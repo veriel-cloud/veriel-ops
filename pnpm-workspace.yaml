@@ -1,0 +1,7 @@
+packages:
+  - dashboard
+  - packages/*
+  - scripts
+ignoredBuiltDependencies:
+  - esbuild
+  - sharp

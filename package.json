@@ -1,0 +1,26 @@
+{
+  "name": "veriel-ops",
+  "version": "0.1.0",
+  "description": "Sistema centralizado de DevOps para proyectos web de veriel.dev",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter dashboard dev",
+    "build": "pnpm --filter dashboard build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck"
+  },
+  "keywords": [
+    "devops",
+    "cloudflare",
+    "ci-cd",
+    "deployment"
+  ],
+  "author": "veriel-dev",
+  "license": "MIT",
+  "packageManager": "pnpm@10.6.2",
+  "engines": {
+    "node": ">=20"
+  }
+}

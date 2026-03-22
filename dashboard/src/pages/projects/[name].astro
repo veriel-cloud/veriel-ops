@@ -1,0 +1,178 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import Header from "@/components/Header.astro";
+import EnvironmentCard from "@/components/EnvironmentCard.astro";
+import CoverageBar from "@/components/CoverageBar.astro";
+import DeployTable from "@/components/DeployTable.astro";
+import BuildArtifactRow from "@/components/BuildArtifactRow.astro";
+import { projects, deploys, buildArtifacts, formatDate } from "@/lib/mock-data";
+import type { Environment } from "@/lib/types";
+
+export function getStaticPaths() {
+  return projects.map((p) => ({
+    params: { name: p.name },
+  }));
+}
+
+const { name } = Astro.params;
+const project = projects.find((p) => p.name === name)!;
+
+const projectDeploys = deploys
+  .filter((d) => d.project === name)
+  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+const projectArtifacts = buildArtifacts
+  .filter((a) => a.project === name)
+  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+const typeLabels: Record<string, string> = {
+  "astro-static": "Astro Static",
+  "astro-ssr": "Astro SSR",
+  "react-spa": "React SPA",
+  "backend-worker": "Worker",
+};
+
+const typeColors: Record<string, string> = {
+  "astro-static": "bg-orange-500/15 text-orange-400",
+  "astro-ssr": "bg-orange-500/15 text-orange-400",
+  "react-spa": "bg-cyan-500/15 text-cyan-400",
+  "backend-worker": "bg-purple-500/15 text-purple-400",
+};
+---
+
+<DashboardLayout title={project.name}>
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 text-sm text-surface-500 mb-6">
+    <a href="/projects" class="hover:text-surface-300 transition-colors">Proyectos</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 6l6 6l-6 6" />
+    </svg>
+    <span class="text-surface-300">{project.name}</span>
+  </nav>
+
+  <Header title={project.name} description={project.domain}>
+    <div slot="actions" class="flex items-center gap-3">
+      <span class:list={["badge", typeColors[project.type]]}>
+        {typeLabels[project.type]}
+      </span>
+      {project.customDomain && (
+        <span class="badge bg-violet-500/15 text-violet-400">Dominio custom</span>
+      )}
+      <a
+        href={`https://github.com/${project.repo}`}
+        target="_blank"
+        rel="noopener"
+        class="btn-secondary"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+        </svg>
+        Repositorio
+      </a>
+    </div>
+  </Header>
+
+  <!-- Project Info Bar -->
+  <div class="card p-4 mb-6 flex items-center justify-between">
+    <div class="flex items-center gap-8">
+      <div>
+        <span class="text-xs text-surface-500 block">Cobertura</span>
+        <div class="w-40 mt-1">
+          <CoverageBar percentage={project.coverage} size="md" />
+        </div>
+      </div>
+      <div>
+        <span class="text-xs text-surface-500 block">Umbral</span>
+        <span class="text-sm font-semibold text-white">{project.coverageThreshold}%</span>
+      </div>
+      <div>
+        <span class="text-xs text-surface-500 block">Gate PRE/PRO</span>
+        <span class:list={[
+          "text-sm font-semibold",
+          project.coverage >= project.coverageThreshold ? "text-emerald-400" : "text-red-400",
+        ]}>
+          {project.coverage >= project.coverageThreshold ? "PASS" : "BLOCKED"}
+        </span>
+      </div>
+      <div>
+        <span class="text-xs text-surface-500 block">Creado</span>
+        <span class="text-sm text-surface-300">{formatDate(project.createdAt)}</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 13a8 8 0 0 1 7 7a6 6 0 0 0 3 -5a9 9 0 0 0 6 -8a3 3 0 0 0 -3 -3a9 9 0 0 0 -8 6a6 6 0 0 0 -5 3" />
+          <path d="M7 14a6 6 0 0 0 -3 6a6 6 0 0 0 6 -3" />
+          <circle cx="15" cy="9" r="1" />
+        </svg>
+        Deploy
+      </button>
+      <button class="btn-danger">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1" />
+        </svg>
+        Rollback
+      </button>
+    </div>
+  </div>
+
+  <!-- Environments -->
+  <section class="mb-8">
+    <h2 class="text-lg font-semibold text-white mb-4">Entornos</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {(["des", "pre", "pro"] as const).map((env) => (
+        <EnvironmentCard
+          environment={env}
+          status={project.environments[env]}
+          projectName={project.name}
+        />
+      ))}
+    </div>
+  </section>
+
+  <!-- Deploy History -->
+  <section class="mb-8">
+    <h2 class="text-lg font-semibold text-white mb-4">Historial de deploys</h2>
+    {projectDeploys.length > 0 ? (
+      <div class="card overflow-hidden">
+        <DeployTable deploys={projectDeploys} showProject={false} />
+      </div>
+    ) : (
+      <div class="card p-8 text-center">
+        <p class="text-surface-500">No hay deploys registrados</p>
+      </div>
+    )}
+  </section>
+
+  <!-- Build Artifacts -->
+  <section>
+    <h2 class="text-lg font-semibold text-white mb-4">Builds almacenadas</h2>
+    {projectArtifacts.length > 0 ? (
+      <div class="card overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-surface-700 text-left">
+              <th class="pb-3 pt-4 pl-5 pr-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Entorno</th>
+              <th class="pb-3 pt-4 px-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Version</th>
+              <th class="pb-3 pt-4 px-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Commit</th>
+              <th class="pb-3 pt-4 px-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Tamano</th>
+              <th class="pb-3 pt-4 px-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Cobertura</th>
+              <th class="pb-3 pt-4 px-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Fecha</th>
+              <th class="pb-3 pt-4 px-2 pr-5 text-xs font-medium text-surface-400 uppercase tracking-wider">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {projectArtifacts.map((artifact) => (
+              <BuildArtifactRow artifact={artifact} showProject={false} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <div class="card p-8 text-center">
+        <p class="text-surface-500">No hay builds almacenadas</p>
+      </div>
+    )}
+  </section>
+</DashboardLayout>

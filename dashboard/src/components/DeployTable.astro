@@ -1,0 +1,108 @@
+---
+import type { DeployEntry } from "@/lib/types";
+import EnvironmentBadge from "./EnvironmentBadge.astro";
+import { timeAgo } from "@/lib/mock-data";
+
+interface Props {
+  deploys: DeployEntry[];
+  showProject?: boolean;
+  limit?: number;
+}
+
+const { deploys, showProject = true, limit } = Astro.props;
+
+const displayDeploys = limit ? deploys.slice(0, limit) : deploys;
+
+const actionLabels: Record<string, { label: string; color: string }> = {
+  deploy: { label: "Deploy", color: "text-brand-400" },
+  rollback: { label: "Rollback", color: "text-amber-400" },
+  promote: { label: "Promote", color: "text-emerald-400" },
+};
+
+const statusIcons: Record<string, { color: string; label: string }> = {
+  success: { color: "text-emerald-400", label: "Exitoso" },
+  failed: { color: "text-red-400", label: "Fallido" },
+  in_progress: { color: "text-amber-400", label: "En progreso" },
+};
+---
+
+<div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-surface-700 text-left">
+        {showProject && <th class="pb-3 pl-4 pr-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Proyecto</th>}
+        <th class="pb-3 px-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Entorno</th>
+        <th class="pb-3 px-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Version</th>
+        <th class="pb-3 px-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Commit</th>
+        <th class="pb-3 px-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Accion</th>
+        <th class="pb-3 px-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Cobertura</th>
+        <th class="pb-3 px-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Duracion</th>
+        <th class="pb-3 px-2 text-xs font-medium text-surface-400 uppercase tracking-wider">Cuando</th>
+        <th class="pb-3 px-2 pr-4 text-xs font-medium text-surface-400 uppercase tracking-wider">Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {displayDeploys.map((deploy) => {
+        const action = actionLabels[deploy.action];
+        const status = statusIcons[deploy.status];
+        const coverageOk = deploy.coverage >= 80;
+        return (
+          <tr class="table-row">
+            {showProject && (
+              <td class="py-3 pl-4 pr-2">
+                <a href={`/projects/${deploy.project}`} class="font-medium text-surface-200 hover:text-brand-400 transition-colors">
+                  {deploy.project}
+                </a>
+              </td>
+            )}
+            <td class="py-3 px-2">
+              <EnvironmentBadge
+                environment={deploy.environment}
+                status="healthy"
+                compact
+              />
+            </td>
+            <td class="py-3 px-2">
+              <span class="font-mono text-xs text-surface-300">{deploy.version}</span>
+            </td>
+            <td class="py-3 px-2">
+              <code class="text-xs bg-surface-700 px-1.5 py-0.5 rounded text-surface-300">{deploy.commitSha}</code>
+            </td>
+            <td class="py-3 px-2">
+              <span class:list={["text-xs font-medium", action.color]}>{action.label}</span>
+            </td>
+            <td class="py-3 px-2">
+              <span class:list={[
+                "text-xs font-semibold tabular-nums",
+                coverageOk ? "text-emerald-400" : "text-red-400",
+              ]}>
+                {deploy.coverage}%
+              </span>
+            </td>
+            <td class="py-3 px-2">
+              <span class="text-xs text-surface-400 tabular-nums">{deploy.duration}s</span>
+            </td>
+            <td class="py-3 px-2">
+              <span class="text-xs text-surface-400">{timeAgo(deploy.timestamp)}</span>
+            </td>
+            <td class="py-3 px-2 pr-4">
+              <span class:list={["inline-flex items-center gap-1.5 text-xs font-medium", status.color]}>
+                {deploy.status === "success" && (
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12l5 5l10 -10" />
+                  </svg>
+                )}
+                {deploy.status === "failed" && (
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6l-12 12" /><path d="M6 6l12 12" />
+                  </svg>
+                )}
+                {status.label}
+              </span>
+            </td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>

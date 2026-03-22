@@ -1,0 +1,60 @@
+---
+import type { BuildArtifact } from "@/lib/types";
+import EnvironmentBadge from "./EnvironmentBadge.astro";
+import { timeAgo } from "@/lib/mock-data";
+
+interface Props {
+  artifact: BuildArtifact;
+  showProject?: boolean;
+}
+
+const { artifact, showProject = true } = Astro.props;
+const coverageOk = artifact.coverage >= 80;
+---
+
+<tr class="table-row">
+  {showProject && (
+    <td class="py-3 pl-4 pr-2">
+      <a href={`/projects/${artifact.project}`} class="font-medium text-surface-200 hover:text-brand-400 transition-colors">
+        {artifact.project}
+      </a>
+    </td>
+  )}
+  <td class="py-3 px-2">
+    <EnvironmentBadge environment={artifact.environment} status="healthy" compact />
+  </td>
+  <td class="py-3 px-2">
+    <span class="font-mono text-xs text-surface-300">{artifact.version}</span>
+  </td>
+  <td class="py-3 px-2">
+    <code class="text-xs bg-surface-700 px-1.5 py-0.5 rounded text-surface-300">{artifact.commitSha}</code>
+  </td>
+  <td class="py-3 px-2">
+    <span class="text-xs text-surface-400">{artifact.size}</span>
+  </td>
+  <td class="py-3 px-2">
+    <span class:list={[
+      "text-xs font-semibold tabular-nums",
+      coverageOk ? "text-emerald-400" : "text-red-400",
+    ]}>
+      {artifact.coverage}%
+    </span>
+  </td>
+  <td class="py-3 px-2">
+    <span class="text-xs text-surface-400">{timeAgo(artifact.timestamp)}</span>
+  </td>
+  <td class="py-3 px-2 pr-4">
+    <div class="flex items-center gap-2">
+      <button class="btn-ghost btn-sm" title="Descargar">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" />
+        </svg>
+      </button>
+      <button class="btn-ghost btn-sm" title="Rollback a esta build">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1" />
+        </svg>
+      </button>
+    </div>
+  </td>
+</tr>

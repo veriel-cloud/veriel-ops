@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.turbo/
+.env
+.env.*
+!.env.example
+*.tgz
+.DS_Store
+coverage/
+dashboard/.astro/
+.github-org/

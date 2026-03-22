@@ -1,0 +1,99 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import Header from "@/components/Header.astro";
+import StatsCard from "@/components/StatsCard.astro";
+import ProjectCard from "@/components/ProjectCard.astro";
+import DeployTable from "@/components/DeployTable.astro";
+import { projects, deploys, systemStats } from "@/lib/mock-data";
+
+const sortedDeploys = [...deploys].sort(
+  (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+);
+
+const healthyEnvs = projects.reduce((count, p) => {
+  return count + Object.values(p.environments).filter((e) => e.status === "healthy").length;
+}, 0);
+
+const totalEnvs = projects.length * 3;
+---
+
+<DashboardLayout title="Dashboard">
+  <Header title="Dashboard" description="Vista general de todos los proyectos y despliegues">
+    <a slot="actions" href="/projects" class="btn-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 5l0 14" /><path d="M5 12l14 0" />
+      </svg>
+      Nuevo proyecto
+    </a>
+  </Header>
+
+  <!-- Stats Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
+    <StatsCard
+      label="Proyectos"
+      value={systemStats.totalProjects}
+      variant="default"
+      trend="up"
+      trendValue="+2 este mes"
+    />
+    <StatsCard
+      label="Deploys totales"
+      value={systemStats.totalDeploys}
+      variant="default"
+      trend="up"
+      trendValue="+5 esta semana"
+    />
+    <StatsCard
+      label="Cobertura media"
+      value={systemStats.avgCoverage}
+      suffix="%"
+      variant={systemStats.avgCoverage >= 80 ? "success" : "warning"}
+      trend="up"
+      trendValue="+1.2%"
+    />
+    <StatsCard
+      label="Entornos activos"
+      value={`${healthyEnvs}/${totalEnvs}`}
+      variant="success"
+    />
+    <StatsCard
+      label="Tasa de exito"
+      value={systemStats.successRate}
+      suffix="%"
+      variant="success"
+    />
+    <StatsCard
+      label="Builds almacenadas"
+      value={systemStats.buildsStored}
+      variant="default"
+    />
+  </div>
+
+  <!-- Projects Grid -->
+  <section class="mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-white">Proyectos</h2>
+      <a href="/projects" class="text-sm text-brand-400 hover:text-brand-300 transition-colors">
+        Ver todos
+      </a>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {projects.map((project) => (
+        <ProjectCard project={project} />
+      ))}
+    </div>
+  </section>
+
+  <!-- Recent Deploys -->
+  <section>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-white">Deploys recientes</h2>
+      <a href="/deploys" class="text-sm text-brand-400 hover:text-brand-300 transition-colors">
+        Ver todos
+      </a>
+    </div>
+    <div class="card overflow-hidden">
+      <DeployTable deploys={sortedDeploys} limit={8} />
+    </div>
+  </section>
+</DashboardLayout>

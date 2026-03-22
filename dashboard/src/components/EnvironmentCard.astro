@@ -1,0 +1,115 @@
+---
+import type { Environment, EnvironmentStatus } from "@/lib/types";
+import StatusDot from "./StatusDot.astro";
+import { timeAgo } from "@/lib/mock-data";
+
+interface Props {
+  environment: Environment;
+  status: EnvironmentStatus;
+  projectName: string;
+}
+
+const { environment, status, projectName } = Astro.props;
+
+const envConfig: Record<Environment, { label: string; color: string; bg: string; border: string }> = {
+  des: {
+    label: "Desarrollo",
+    color: "text-sky-400",
+    bg: "bg-sky-500/10",
+    border: "border-sky-500/20",
+  },
+  pre: {
+    label: "Pre-produccion",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/20",
+  },
+  pro: {
+    label: "Produccion",
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/20",
+  },
+};
+
+const config = envConfig[environment];
+---
+
+<div class:list={["rounded-xl border p-5", config.bg, config.border]}>
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-2">
+      <StatusDot status={status.status} pulse={status.status === "healthy"} />
+      <h3 class:list={["text-sm font-bold uppercase tracking-wider", config.color]}>
+        {environment.toUpperCase()}
+      </h3>
+      <span class="text-xs text-surface-500">— {config.label}</span>
+    </div>
+    {status.status !== "idle" && (
+      <a
+        href={status.url}
+        target="_blank"
+        rel="noopener"
+        class="btn-ghost btn-sm"
+        title="Abrir en nueva pestana"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" /><path d="M11 13l9 -9" /><path d="M15 4h5v5" />
+        </svg>
+      </a>
+    )}
+  </div>
+
+  {status.status === "idle" ? (
+    <!-- Idle state -->
+    <div class="text-center py-6">
+      <div class="w-12 h-12 mx-auto rounded-full bg-surface-800 flex items-center justify-center mb-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-surface-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+        </svg>
+      </div>
+      <p class="text-sm text-surface-500">Sin despliegues</p>
+      <p class="text-xs text-surface-600 mt-1">Esperando primer deploy</p>
+    </div>
+  ) : (
+    <!-- Active state -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-surface-500">Version</span>
+        <span class="font-mono text-sm font-semibold text-white">{status.version}</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-surface-500">Commit</span>
+        <code class="text-xs bg-surface-800 px-2 py-0.5 rounded text-surface-300">{status.commitSha}</code>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-surface-500">URL</span>
+        <a href={status.url} target="_blank" rel="noopener" class="text-xs text-brand-400 hover:text-brand-300 truncate max-w-[200px]">
+          {status.url.replace("https://", "")}
+        </a>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-surface-500">Desplegado</span>
+        <span class="text-xs text-surface-300">{status.lastDeployAt ? timeAgo(status.lastDeployAt) : "—"}</span>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center gap-2 pt-2 border-t border-surface-700/50">
+        <button class="btn-secondary btn-sm flex-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l-4 4l4 4m-4 -4h11a4 4 0 0 0 0 -8h-1" />
+          </svg>
+          Rollback
+        </button>
+        {environment !== "pro" && (
+          <button class="btn-primary btn-sm flex-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12l5 5l10 -10" />
+            </svg>
+            Promover
+          </button>
+        )}
+      </div>
+    </div>
+  )}
+</div>
