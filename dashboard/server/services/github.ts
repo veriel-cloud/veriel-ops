@@ -272,6 +272,10 @@ jobs:
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - ".github/**"
+      - "*.md"
+      - "package.json"
 
 permissions:
   contents: write
