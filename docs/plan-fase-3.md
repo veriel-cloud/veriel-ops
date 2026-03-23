@@ -164,6 +164,77 @@ R2_BUCKET_NAME=veriel-ops-builds
 | 14 | API route POST promote + rollback | 2, 3 |
 | 15 | Modales de promote y rollback en detalle de proyecto | 14 |
 | 16 | Página de settings con estado real | 2, 3, 4 |
+| 17 | Webhooks: endpoints de recepción | 1 |
+| 18 | Webhooks: configuración automática en GitHub y Cloudflare | 2, 3, 17 |
+| 19 | Webhooks: actualización reactiva del dashboard | 17 |
+
+---
+
+## Paso 7 — Webhooks (dashboard reactivo)
+
+El dashboard debe reaccionar en tiempo real a eventos de GitHub y Cloudflare, sin necesidad de recargar la página.
+
+### Endpoints de recepción
+
+Crear `dashboard/src/pages/api/webhooks/`:
+
+```
+dashboard/src/pages/api/webhooks/
+├── github.ts         # Recibe eventos de GitHub
+└── cloudflare.ts     # Recibe eventos de Cloudflare
+```
+
+### Eventos de GitHub
+
+| Evento | Cuándo | Acción en el dashboard |
+|--------|--------|----------------------|
+| `push` | Push a cualquier branch | Actualizar estado del proyecto |
+| `workflow_run.completed` | Un workflow termina | Mostrar resultado del deploy, actualizar entorno |
+| `workflow_run.requested` | Un workflow arranca | Mostrar indicador "deploying..." |
+| `pull_request` | PR abierta/cerrada/mergeada | Mostrar PRs activos por proyecto |
+| `create` (branch) | Se crea `release/*` | Indicar que PRE tiene un deploy en curso |
+
+### Eventos de Cloudflare
+
+| Evento | Cuándo | Acción en el dashboard |
+|--------|--------|----------------------|
+| `pages_deployment.created` | Deploy inicia | Indicador de deploy en curso |
+| `pages_deployment.success` | Deploy exitoso | Actualizar URL y estado del entorno |
+| `pages_deployment.failure` | Deploy falla | Marcar entorno como fallido |
+
+### Seguridad
+
+- **GitHub**: verificar firma HMAC (`X-Hub-Signature-256`) con un webhook secret
+- **Cloudflare**: verificar token compartido en el header
+
+### Configuración automática
+
+Al crear un proyecto nuevo (POST /api/projects), además de lo ya definido:
+- Crear el webhook de GitHub en el repo apuntando a `https://ops.veriel.dev/api/webhooks/github`
+- Configurar el webhook de Cloudflare Pages apuntando a `https://ops.veriel.dev/api/webhooks/cloudflare`
+
+### Actualización reactiva del dashboard
+
+Para que el dashboard se actualice sin recargar, dos opciones:
+
+**Opción A — Server-Sent Events (SSE):**
+- Endpoint `GET /api/events` que mantiene conexión abierta
+- Cuando llega un webhook, el servidor emite el evento al cliente
+- El frontend escucha y actualiza los componentes afectados
+
+**Opción B — Polling corto (más simple para empezar):**
+- El dashboard hace polling cada 10-15 segundos a los endpoints de estado
+- Los webhooks actualizan un cache en memoria del servidor
+- El polling lee del cache (rápido, sin llamadas a APIs externas)
+
+**Recomendación:** Empezar con Opción B (polling + cache) y migrar a SSE después si hace falta.
+
+### Variables de entorno adicionales
+
+```
+GITHUB_WEBHOOK_SECRET=...     # Secret para verificar webhooks de GitHub
+WEBHOOK_URL=https://ops.veriel.dev  # URL pública del dashboard para recibir webhooks
+```
 
 ---
 
@@ -175,4 +246,5 @@ R2_BUCKET_NAME=veriel-ops-builds
 4. La página de Actions muestra los workflow runs reales
 5. Crear un nuevo proyecto desde el formulario → se crea repo + Pages + DNS automáticamente
 6. Promover y hacer rollback desde el dashboard funciona
-7. `pnpm build` compila sin errores
+7. Al hacer push en `pilot-app`, el dashboard se actualiza sin recargar manualmente
+8. `pnpm build` compila sin errores
