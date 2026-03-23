@@ -8,12 +8,6 @@ import BuildArtifactRow from "@/components/BuildArtifactRow.astro";
 import { projects, deploys, buildArtifacts, formatDate } from "@/lib/mock-data";
 import type { Environment } from "@/lib/types";
 
-export function getStaticPaths() {
-  return projects.map((p) => ({
-    params: { name: p.name },
-  }));
-}
-
 const { name } = Astro.params;
 const project = projects.find((p) => p.name === name)!;
 
