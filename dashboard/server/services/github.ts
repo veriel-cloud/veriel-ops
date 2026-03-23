@@ -72,20 +72,36 @@ export async function getWorkflowRunLogs(repo: string, runId: number) {
 
 // ─── Write operations ───────────────────────────────────────────────
 
+const TEMPLATES: Record<string, string> = {
+  "astro-static": "template-astro",
+  "astro-ssr": "template-astro",
+  "react-spa": "template-react",
+  "backend-worker": "template-astro",
+};
+
 export async function createRepo(
   name: string,
   options: {
     description?: string;
     isPrivate?: boolean;
+    type?: string;
   } = {},
 ) {
-  const { data } = await octokit.rest.repos.createInOrg({
-    org,
+  const templateRepo = TEMPLATES[options.type ?? "astro-static"] ?? "template-astro";
+
+  const { data } = await octokit.rest.repos.createUsingTemplate({
+    template_owner: org,
+    template_repo: templateRepo,
+    owner: org,
     name,
     description: options.description ?? `Project ${name} managed by veriel-ops`,
     private: options.isPrivate ?? true,
-    auto_init: true,
+    include_all_branches: false,
   });
+
+  // Wait for GitHub to finish creating the repo from template
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
   return data;
 }
 
@@ -125,31 +141,6 @@ export async function addFileToRepo(
     branch,
   });
   return data;
-}
-
-export async function addInitialPackageJson(
-  repo: string,
-  projectName: string,
-) {
-  const content = JSON.stringify(
-    {
-      name: projectName,
-      type: "module",
-      version: "0.0.1",
-      packageManager: "pnpm@10.6.2",
-      engines: { node: ">=22.12.0" },
-      scripts: {
-        dev: "echo 'Add your dev script'",
-        build: "echo 'Add your build script'",
-        lint: "echo 'Add your lint script'",
-        test: "echo 'Add your test script'",
-      },
-    },
-    null,
-    2,
-  );
-
-  await addFileToRepo(repo, "package.json", content, "chore: add initial package.json with pnpm version");
 }
 
 export async function addWorkflowCallers(
