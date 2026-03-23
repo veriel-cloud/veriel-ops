@@ -113,11 +113,8 @@ export async function getProjectDetail(name: string): Promise<{
     createdAt: repo.created_at ?? "",
   };
 
-  const deploys: DeployEntry[] = deployments.map((d, i) => {
-    const branch = d.deployment_trigger?.metadata?.branch ?? "";
-    let environment: Environment = "des";
-    if (branch.startsWith("release")) environment = "pre";
-    if (branch === "main" || d.environment === "production") environment = "pro";
+  const deploys: DeployEntry[] = deduplicateDeployments(deployments).map((d) => {
+    const environment = resolveEnvironment(d);
 
     return {
       id: d.id,
@@ -125,12 +122,10 @@ export async function getProjectDetail(name: string): Promise<{
       environment,
       version: d.deployment_trigger?.metadata?.commit_hash?.slice(0, 7) ?? d.short_id,
       commitSha: d.deployment_trigger?.metadata?.commit_hash?.slice(0, 7) ?? "",
-      branch,
+      branch: d.deployment_trigger?.metadata?.branch ?? "",
       timestamp: d.created_on,
       coverage: 0,
-      duration: d.latest_stage?.ended_on && d.latest_stage?.started_on
-        ? Math.round((new Date(d.latest_stage.ended_on).getTime() - new Date(d.latest_stage.started_on).getTime()) / 1000)
-        : 0,
+      duration: computeDuration(d),
       action: "deploy",
       triggeredBy: d.deployment_trigger?.type ?? "unknown",
       status: d.latest_stage?.status === "success" ? "success" : d.latest_stage?.status === "active" ? "in_progress" : "failed",
@@ -157,11 +152,10 @@ export async function getDeploys(): Promise<DeployEntry[]> {
 
   for (const project of pagesProjects) {
     const deployments = await cloudflare.getDeployments(project.name, 10).catch(() => []);
-    for (const d of deployments) {
-      const branch = d.deployment_trigger?.metadata?.branch ?? "";
-      let environment: Environment = "des";
-      if (branch.startsWith("release")) environment = "pre";
-      if (branch === "main" || d.environment === "production") environment = "pro";
+    const deduplicated = deduplicateDeployments(deployments);
+
+    for (const d of deduplicated) {
+      const environment = resolveEnvironment(d);
 
       allDeploys.push({
         id: d.id,
@@ -169,12 +163,10 @@ export async function getDeploys(): Promise<DeployEntry[]> {
         environment,
         version: d.deployment_trigger?.metadata?.commit_hash?.slice(0, 7) ?? d.short_id,
         commitSha: d.deployment_trigger?.metadata?.commit_hash?.slice(0, 7) ?? "",
-        branch,
+        branch: d.deployment_trigger?.metadata?.branch ?? "",
         timestamp: d.created_on,
         coverage: 0,
-        duration: d.latest_stage?.ended_on && d.latest_stage?.started_on
-          ? Math.round((new Date(d.latest_stage.ended_on).getTime() - new Date(d.latest_stage.started_on).getTime()) / 1000)
-          : 0,
+        duration: computeDuration(d),
         action: "deploy",
         triggeredBy: d.deployment_trigger?.type ?? "unknown",
         status: d.latest_stage?.status === "success" ? "success" : d.latest_stage?.status === "active" ? "in_progress" : "failed",
@@ -203,7 +195,68 @@ export async function getSystemStats(): Promise<SystemStats> {
   };
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────
+// ─── Deployment helpers ─────────────────────────────────────────────
+
+interface DeploymentLike {
+  id: string;
+  short_id: string;
+  environment: string;
+  created_on: string;
+  deployment_trigger?: {
+    type: string;
+    metadata: {
+      branch: string;
+      commit_hash: string;
+      commit_message: string;
+    };
+  };
+  latest_stage?: {
+    name: string;
+    status: string;
+    started_on: string;
+    ended_on: string;
+  };
+}
+
+function resolveEnvironment(d: DeploymentLike): Environment {
+  const branch = d.deployment_trigger?.metadata?.branch ?? "";
+
+  if (branch === "develop") return "des";
+  if (branch.startsWith("release")) return "pre";
+  if (branch === "main") return "pro";
+
+  // Fallback to Cloudflare's environment field
+  if (d.environment === "production") return "pro";
+  return "des";
+}
+
+function deduplicateDeployments(deployments: DeploymentLike[]): DeploymentLike[] {
+  // Cloudflare creates multiple entries per deploy (one per stage).
+  // Group by commit hash + branch and keep only the most recent entry per group.
+  const seen = new Map<string, DeploymentLike>();
+
+  for (const d of deployments) {
+    const commitHash = d.deployment_trigger?.metadata?.commit_hash ?? "";
+    const branch = d.deployment_trigger?.metadata?.branch ?? "";
+    const key = `${commitHash}-${branch}`;
+
+    if (!seen.has(key)) {
+      seen.set(key, d);
+    }
+  }
+
+  return Array.from(seen.values());
+}
+
+function computeDuration(d: DeploymentLike): number {
+  if (!d.latest_stage?.ended_on || !d.latest_stage?.started_on) return 0;
+  const start = new Date(d.latest_stage.started_on).getTime();
+  const end = new Date(d.latest_stage.ended_on).getTime();
+  const diff = Math.round((end - start) / 1000);
+  return diff > 0 ? diff : 0;
+}
+
+// ─── Format helpers ─────────────────────────────────────────────────
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
