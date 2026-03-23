@@ -32,6 +32,14 @@ El dashboard actual tiene una UI básica que no cumple el estándar visual esper
 | Ver todos los proyectos | GET /api/projects | /projects |
 | Ver detalle de proyecto | GET /api/projects/:name | /projects/:name |
 
+### Git (branches, commits, merge)
+| Operación | Endpoint | Página |
+|-----------|----------|--------|
+| Ver branches de un proyecto | GET /api/projects/:name/branches | /projects/:name (tab Git) |
+| Ver commits de una branch | GET /api/projects/:name/commits?branch=X | /projects/:name (tab Git) |
+| Merge de branches (ej: release → main) | POST /api/projects/:name/merge | Modal en /projects/:name |
+| Triggear deploy manual (push) | POST /api/projects/:name/deploy-trigger | /projects/:name |
+
 ### Despliegues
 | Operación | Endpoint | Página |
 |-----------|----------|--------|
