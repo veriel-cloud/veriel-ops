@@ -127,6 +127,31 @@ export async function addFileToRepo(
   return data;
 }
 
+export async function addInitialPackageJson(
+  repo: string,
+  projectName: string,
+) {
+  const content = JSON.stringify(
+    {
+      name: projectName,
+      type: "module",
+      version: "0.0.1",
+      packageManager: "pnpm@10.6.2",
+      engines: { node: ">=22.12.0" },
+      scripts: {
+        dev: "echo 'Add your dev script'",
+        build: "echo 'Add your build script'",
+        lint: "echo 'Add your lint script'",
+        test: "echo 'Add your test script'",
+      },
+    },
+    null,
+    2,
+  );
+
+  await addFileToRepo(repo, "package.json", content, "chore: add initial package.json with pnpm version");
+}
+
 export async function addWorkflowCallers(
   repo: string,
   projectName: string,

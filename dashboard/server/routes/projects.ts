@@ -34,6 +34,8 @@ projectsRoutes.post("/", async (c) => {
       isPrivate: true,
     });
 
+    // Add package.json with pnpm version before workflows (required by GitHub Actions)
+    await github.addInitialPackageJson(name, name);
     await github.addWorkflowCallers(name, name);
     await github.createBranch(name, "develop", "main");
 
