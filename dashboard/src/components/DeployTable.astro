@@ -1,7 +1,7 @@
 ---
 import type { DeployEntry } from "@/lib/types";
 import EnvironmentBadge from "./EnvironmentBadge.astro";
-import { timeAgo } from "@/lib/data";
+import { timeAgo, formatDuration } from "@/lib/data";
 
 interface Props {
   deploys: DeployEntry[];
@@ -80,7 +80,7 @@ const statusIcons: Record<string, { color: string; label: string }> = {
               </span>
             </td>
             <td class="py-3 px-2">
-              <span class="text-xs text-surface-400 tabular-nums">{deploy.duration}s</span>
+              <span class="text-xs text-surface-400 tabular-nums">{formatDuration(deploy.duration)}</span>
             </td>
             <td class="py-3 px-2">
               <span class="text-xs text-surface-400">{timeAgo(deploy.timestamp)}</span>

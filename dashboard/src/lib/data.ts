@@ -147,10 +147,15 @@ export async function getProjectDetail(name: string): Promise<{
 }
 
 export async function getDeploys(): Promise<DeployEntry[]> {
-  const pagesProjects = await cloudflare.listPagesProjects().catch(() => []);
+  const [orgRepos, pagesProjects] = await Promise.all([
+    github.listOrgRepos(),
+    cloudflare.listPagesProjects().catch(() => []),
+  ]);
+
+  const orgRepoNames = new Set(orgRepos.map((r) => r.name));
   const allDeploys: DeployEntry[] = [];
 
-  for (const project of pagesProjects) {
+  for (const project of pagesProjects.filter((p) => orgRepoNames.has(p.name))) {
     const deployments = await cloudflare.getDeployments(project.name, 10).catch(() => []);
     const deduplicated = deduplicateDeployments(deployments);
 
@@ -231,17 +236,26 @@ function resolveEnvironment(d: DeploymentLike): Environment {
 }
 
 function deduplicateDeployments(deployments: DeploymentLike[]): DeploymentLike[] {
-  // Cloudflare creates multiple entries per deploy (one per stage).
-  // Group by commit hash + branch and keep only the most recent entry per group.
+  // Cloudflare creates multiple entries per deploy.
+  // Group by commit hash + resolved environment and keep only the one
+  // with the longest duration (the actual deploy, not the trigger).
   const seen = new Map<string, DeploymentLike>();
 
   for (const d of deployments) {
-    const commitHash = d.deployment_trigger?.metadata?.commit_hash ?? "";
-    const branch = d.deployment_trigger?.metadata?.branch ?? "";
-    const key = `${commitHash}-${branch}`;
+    const commitHash = d.deployment_trigger?.metadata?.commit_hash ?? d.short_id;
+    const env = resolveEnvironment(d);
+    const key = `${commitHash}-${env}`;
 
-    if (!seen.has(key)) {
+    const existing = seen.get(key);
+    if (!existing) {
       seen.set(key, d);
+    } else {
+      // Keep the one with actual duration (non-zero)
+      const existingDuration = computeDuration(existing);
+      const newDuration = computeDuration(d);
+      if (newDuration > existingDuration) {
+        seen.set(key, d);
+      }
     }
   }
 
@@ -281,12 +295,28 @@ export function timeAgo(iso: string): string {
   const now = new Date();
   const date = new Date(iso);
   const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 60) return `hace ${diffMins}m`;
-  if (diffHours < 24) return `hace ${diffHours}h`;
-  if (diffDays < 7) return `hace ${diffDays}d`;
+  if (diffSecs < 60) return `hace ${diffSecs}s`;
+  if (diffMins < 60) return `hace ${diffMins}min`;
+  if (diffHours < 24) {
+    const mins = diffMins % 60;
+    return mins > 0 ? `hace ${diffHours}h ${mins}min` : `hace ${diffHours}h`;
+  }
+  if (diffDays < 7) {
+    const hours = diffHours % 24;
+    return hours > 0 ? `hace ${diffDays}d ${hours}h` : `hace ${diffDays}d`;
+  }
   return formatDate(iso);
+}
+
+export function formatDuration(seconds: number): string {
+  if (seconds === 0) return "—";
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
 }
