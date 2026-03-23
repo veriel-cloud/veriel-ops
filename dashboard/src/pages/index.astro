@@ -4,22 +4,29 @@ import Header from "@/components/Header.astro";
 import StatsCard from "@/components/StatsCard.astro";
 import ProjectCard from "@/components/ProjectCard.astro";
 import DeployTable from "@/components/DeployTable.astro";
-import { projects, deploys, systemStats } from "@/lib/mock-data";
+import { getProjects, getDeploys, getSystemStats } from "@/lib/data";
 
-const sortedDeploys = [...deploys].sort(
-  (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-);
+let projects = [];
+let sortedDeploys = [];
+let stats = { totalProjects: 0, totalDeploys: 0, avgCoverage: 0, activeEnvironments: 0, successRate: 0, buildsStored: 0 };
+let error = null;
 
-const healthyEnvs = projects.reduce((count, p) => {
-  return count + Object.values(p.environments).filter((e) => e.status === "healthy").length;
-}, 0);
+try {
+  [projects, sortedDeploys, stats] = await Promise.all([
+    getProjects(),
+    getDeploys(),
+    getSystemStats(),
+  ]);
+} catch (e) {
+  error = e instanceof Error ? e.message : "Error loading data";
+}
 
 const totalEnvs = projects.length * 3;
 ---
 
 <DashboardLayout title="Dashboard">
   <Header title="Dashboard" description="Vista general de todos los proyectos y despliegues">
-    <a slot="actions" href="/projects" class="btn-primary">
+    <a slot="actions" href="/projects/new" class="btn-primary">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 5l0 14" /><path d="M5 12l14 0" />
       </svg>
@@ -27,44 +34,45 @@ const totalEnvs = projects.length * 3;
     </a>
   </Header>
 
+  {error && (
+    <div class="card p-4 mb-8 border-red-500/30 bg-red-500/10">
+      <p class="text-sm text-red-400">Error cargando datos: {error}</p>
+      <p class="text-xs text-surface-500 mt-1">Verifica las variables de entorno en .env</p>
+    </div>
+  )}
+
   <!-- Stats Grid -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
     <StatsCard
       label="Proyectos"
-      value={systemStats.totalProjects}
+      value={stats.totalProjects}
       variant="default"
-      trend="up"
-      trendValue="+2 este mes"
     />
     <StatsCard
-      label="Deploys totales"
-      value={systemStats.totalDeploys}
+      label="Deploys recientes"
+      value={sortedDeploys.length}
       variant="default"
-      trend="up"
-      trendValue="+5 esta semana"
     />
     <StatsCard
       label="Cobertura media"
-      value={systemStats.avgCoverage}
-      suffix="%"
-      variant={systemStats.avgCoverage >= 80 ? "success" : "warning"}
-      trend="up"
-      trendValue="+1.2%"
+      value={stats.avgCoverage || "—"}
+      suffix={stats.avgCoverage ? "%" : ""}
+      variant={stats.avgCoverage >= 80 ? "success" : "warning"}
     />
     <StatsCard
       label="Entornos activos"
-      value={`${healthyEnvs}/${totalEnvs}`}
+      value={`${stats.activeEnvironments}/${totalEnvs}`}
       variant="success"
     />
     <StatsCard
       label="Tasa de exito"
-      value={systemStats.successRate}
-      suffix="%"
+      value={stats.successRate || "—"}
+      suffix={stats.successRate ? "%" : ""}
       variant="success"
     />
     <StatsCard
       label="Builds almacenadas"
-      value={systemStats.buildsStored}
+      value={stats.buildsStored}
       variant="default"
     />
   </div>
@@ -77,11 +85,18 @@ const totalEnvs = projects.length * 3;
         Ver todos
       </a>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {projects.map((project) => (
-        <ProjectCard project={project} />
-      ))}
-    </div>
+    {projects.length > 0 ? (
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {projects.map((project) => (
+          <ProjectCard project={project} />
+        ))}
+      </div>
+    ) : (
+      <div class="card p-8 text-center">
+        <p class="text-surface-500">No hay proyectos registrados</p>
+        <a href="/projects/new" class="btn-primary mt-4 inline-flex">Crear primer proyecto</a>
+      </div>
+    )}
   </section>
 
   <!-- Recent Deploys -->
@@ -92,8 +107,14 @@ const totalEnvs = projects.length * 3;
         Ver todos
       </a>
     </div>
-    <div class="card overflow-hidden">
-      <DeployTable deploys={sortedDeploys} limit={8} />
-    </div>
+    {sortedDeploys.length > 0 ? (
+      <div class="card overflow-hidden">
+        <DeployTable deploys={sortedDeploys} limit={8} />
+      </div>
+    ) : (
+      <div class="card p-8 text-center">
+        <p class="text-surface-500">No hay deploys registrados</p>
+      </div>
+    )}
   </section>
 </DashboardLayout>
