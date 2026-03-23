@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { EnvironmentBadge } from "./EnvironmentBadge";
-import { CoverageBar } from "./CoverageBar";
 import { timeAgo } from "@/lib/utils";
 
 interface ProjectCardProps {
@@ -22,13 +21,6 @@ const typeLabels: Record<string, string> = {
   "backend-worker": "Worker",
 };
 
-const typeColors: Record<string, string> = {
-  "astro-static": "bg-orange-500/10 text-orange-400",
-  "astro-ssr": "bg-orange-500/10 text-orange-400",
-  "react-spa": "bg-cyan-500/10 text-cyan-400",
-  "backend-worker": "bg-purple-500/10 text-purple-400",
-};
-
 export function ProjectCard({ project }: ProjectCardProps) {
   const mostRecent = Object.values(project.environments)
     .filter((env) => env.lastDeployAt)
@@ -37,23 +29,23 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Link
       to={`/projects/${project.name}`}
-      className="block rounded-xl border border-surface-700 bg-surface-800 p-4 transition-all duration-200 hover:border-surface-600 hover:shadow-lg hover:shadow-black/20 group"
+      className="block rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-4 transition-colors duration-150 hover:border-[var(--color-border-hover)] group"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-surface-700 flex items-center justify-center group-hover:bg-surface-600 transition-colors">
-            <span className="text-sm font-bold text-surface-300">
+          <div className="w-8 h-8 rounded-md bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+            <span className="text-sm font-semibold text-[var(--color-text-tertiary)]">
               {project.name.charAt(0).toUpperCase()}
             </span>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white group-hover:text-brand-400 transition-colors leading-tight">
+            <h3 className="text-[13px] font-medium text-[var(--color-text-primary)] group-hover:text-white transition-colors leading-tight">
               {project.name}
             </h3>
-            <p className="text-[11px] text-surface-500">{project.domain}</p>
+            <p className="text-[11px] text-[var(--color-text-quaternary)]">{project.domain}</p>
           </div>
         </div>
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${typeColors[project.type] ?? "bg-surface-700 text-surface-300"}`}>
+        <span className="text-[11px] text-[var(--color-text-quaternary)] bg-[var(--color-bg-tertiary)] px-1.5 py-0.5 rounded">
           {typeLabels[project.type] ?? project.type}
         </span>
       </div>
@@ -64,18 +56,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
             key={env}
             environment={env}
             status={project.environments[env]?.status as "healthy" | "degraded" | "down" | "idle" ?? "idle"}
-            version={project.environments[env]?.version}
           />
         ))}
       </div>
 
-      {project.coverage > 0 && (
-        <div className="mb-3">
-          <CoverageBar percentage={project.coverage} />
-        </div>
-      )}
-
-      <div className="flex items-center justify-between text-[11px] text-surface-500">
+      <div className="flex items-center justify-between text-[11px] text-[var(--color-text-quaternary)]">
         <span>{project.repo}</span>
         {mostRecent?.lastDeployAt && <span>{timeAgo(mostRecent.lastDeployAt)}</span>}
       </div>
