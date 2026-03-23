@@ -8,4 +8,6 @@ dist/
 .DS_Store
 coverage/
 dashboard/.astro/
+dashboard/dist-server/
 .github-org/
+.vscode/
