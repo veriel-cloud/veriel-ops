@@ -4,14 +4,14 @@ import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Timeline, type TimelineStepStatus } from "@/components/ui/Timeline";
-
-interface Step {
-  label: string;
-  status: TimelineStepStatus;
-  detail?: string;
-  duration?: number;
-}
+import {
+  WorkflowRun,
+  type WorkflowRunData,
+  type WorkflowJob,
+  type WorkflowStep,
+  type JobStatus,
+  type StepStatus,
+} from "@/components/ui/WorkflowRun";
 
 export function NewProject() {
   const [name, setName] = useState("");
@@ -20,7 +20,7 @@ export function NewProject() {
   const [domainType, setDomainType] = useState<"default" | "custom">("default");
   const [customDomain, setCustomDomain] = useState("");
   const [creating, setCreating] = useState(false);
-  const [steps, setSteps] = useState<Step[]>([]);
+  const [workflow, setWorkflow] = useState<WorkflowRunData | null>(null);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +29,7 @@ export function NewProject() {
     setCreating(true);
     setError(null);
     setResult(null);
-    setSteps([]);
+    setWorkflow(null);
 
     try {
       const response = await fetch("/api/projects/create-stream", {
@@ -63,38 +63,22 @@ export function NewProject() {
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
 
+        // Parse SSE events (event: + data: pairs)
+        let currentEvent = "step";
         for (const line of lines) {
-          if (line.startsWith("data:")) {
+          if (line.startsWith("event:")) {
+            currentEvent = line.slice(6).trim();
+          } else if (line.startsWith("data:")) {
             const jsonStr = line.slice(5).trim();
             if (!jsonStr) continue;
 
             try {
               const data = JSON.parse(jsonStr);
-              const eventLine = lines.find((l) => l.startsWith("event:"));
-              const event = eventLine?.slice(6).trim() ?? "step";
-
-              if (event === "step") {
-                setSteps((prev) => {
-                  const updated = [...prev];
-                  while (updated.length <= data.step) {
-                    updated.push({ label: "", status: "pending" });
-                  }
-                  updated[data.step] = {
-                    label: data.label,
-                    status: data.status as TimelineStepStatus,
-                    detail: data.detail,
-                    duration: data.duration,
-                  };
-                  return updated;
-                });
-              } else if (event === "complete") {
-                setResult(data);
-              } else if (event === "error") {
-                setError(data.error);
-              }
+              handleSSEEvent(currentEvent, data);
             } catch {
               // ignore parse errors
             }
+            currentEvent = "step"; // reset
           }
         }
       }
@@ -104,6 +88,73 @@ export function NewProject() {
       setCreating(false);
     }
   }, [name, type, description, domainType, customDomain]);
+
+  const handleSSEEvent = useCallback((event: string, data: any) => {
+    if (event === "init") {
+      // Initialize the full workflow with all jobs/steps pending
+      setWorkflow({
+        title: data.title,
+        status: "running",
+        jobs: data.jobs.map((job: any) => ({
+          ...job,
+          steps: job.steps.map((step: any) => ({ ...step })),
+        })),
+      });
+    } else if (event === "job") {
+      // Update a job's status/duration
+      setWorkflow((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          jobs: prev.jobs.map((job) =>
+            job.id === data.jobId
+              ? { ...job, status: data.status as JobStatus, duration: data.duration ?? job.duration }
+              : job,
+          ),
+        };
+      });
+    } else if (event === "step") {
+      // Update a step within a job
+      setWorkflow((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          jobs: prev.jobs.map((job) =>
+            job.id === data.jobId
+              ? {
+                  ...job,
+                  steps: job.steps.map((step) =>
+                    step.id === data.stepId
+                      ? {
+                          ...step,
+                          status: data.status as StepStatus,
+                          detail: data.detail ?? step.detail,
+                          logs: data.logs ?? step.logs,
+                          duration: data.duration ?? step.duration,
+                        }
+                      : step,
+                  ),
+                }
+              : job,
+          ),
+        };
+      });
+    } else if (event === "complete") {
+      setResult(data);
+      setWorkflow((prev) =>
+        prev
+          ? { ...prev, status: "success" as JobStatus, totalDuration: data.totalDuration }
+          : prev,
+      );
+    } else if (event === "error") {
+      setError(data.error);
+      setWorkflow((prev) =>
+        prev
+          ? { ...prev, status: "error" as JobStatus, totalDuration: data.totalDuration }
+          : prev,
+      );
+    }
+  }, []);
 
   return (
     <>
@@ -116,84 +167,85 @@ export function NewProject() {
 
       <Header title="New Project" description="Create and deploy a new project" />
 
-      <div className="max-w-xl">
+      <div className="max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Project info */}
-          <Card>
-            <div className="space-y-4">
-              <Input
-                id="name"
-                label="Project name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                pattern="[a-z0-9-]+"
-                placeholder="my-project"
-                hint="Lowercase letters, numbers and hyphens only"
-              />
-              <Input
-                id="desc"
-                label="Description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional description"
-              />
-              <div>
-                <label htmlFor="type" className="block text-[13px] text-[var(--color-text-secondary)] mb-1.5">
-                  Framework
-                </label>
-                <select
-                  id="type"
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  className="w-full h-9 px-3 rounded-md text-[13px] bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-text-quaternary)] transition-colors appearance-none cursor-pointer"
-                >
-                  <option value="astro-static">Astro</option>
-                  <option value="react-spa">React</option>
-                </select>
-              </div>
-            </div>
-          </Card>
+          {!workflow && (
+            <>
+              <Card>
+                <div className="space-y-4">
+                  <Input
+                    id="name"
+                    label="Project name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    pattern="[a-z0-9-]+"
+                    placeholder="my-project"
+                    hint="Lowercase letters, numbers and hyphens only"
+                  />
+                  <Input
+                    id="desc"
+                    label="Description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Optional description"
+                  />
+                  <div>
+                    <label htmlFor="type" className="block text-[13px] text-[var(--color-text-secondary)] mb-1.5">
+                      Framework
+                    </label>
+                    <select
+                      id="type"
+                      value={type}
+                      onChange={(e) => setType(e.target.value)}
+                      className="w-full h-9 px-3 rounded-md text-[13px] bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-text-quaternary)] transition-colors appearance-none cursor-pointer"
+                    >
+                      <option value="astro-static">Astro</option>
+                      <option value="react-spa">React</option>
+                    </select>
+                  </div>
+                </div>
+              </Card>
 
-          {/* Domain */}
-          <Card>
-            <p className="text-[13px] text-[var(--color-text-secondary)] mb-3">Domain</p>
-            <div className="flex items-center gap-6 mb-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" checked={domainType === "default"} onChange={() => setDomainType("default")} className="accent-white" />
-                <span className="text-[13px] text-[var(--color-text-secondary)]">veriel.dev subdomain</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" checked={domainType === "custom"} onChange={() => setDomainType("custom")} className="accent-white" />
-                <span className="text-[13px] text-[var(--color-text-secondary)]">Custom domain</span>
-              </label>
-            </div>
+              {/* Domain */}
+              <Card>
+                <p className="text-[13px] text-[var(--color-text-secondary)] mb-3">Domain</p>
+                <div className="flex items-center gap-6 mb-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" checked={domainType === "default"} onChange={() => setDomainType("default")} className="accent-white" />
+                    <span className="text-[13px] text-[var(--color-text-secondary)]">veriel.dev subdomain</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" checked={domainType === "custom"} onChange={() => setDomainType("custom")} className="accent-white" />
+                    <span className="text-[13px] text-[var(--color-text-secondary)]">Custom domain</span>
+                  </label>
+                </div>
 
-            {domainType === "default" && name && (
-              <div className="bg-[var(--color-bg-secondary)] rounded-md p-3 space-y-1 border border-[var(--color-border)]">
-                <p className="text-[12px] text-[var(--color-env-des)]">DES → dev.{name}.veriel.dev</p>
-                <p className="text-[12px] text-[var(--color-env-pre)]">PRE → pre.{name}.veriel.dev</p>
-                <p className="text-[12px] text-[var(--color-env-pro)]">PRO → {name}.veriel.dev</p>
-              </div>
-            )}
+                {domainType === "default" && name && (
+                  <div className="bg-[var(--color-bg-secondary)] rounded-md p-3 space-y-1 border border-[var(--color-border)]">
+                    <p className="text-[12px] text-[var(--color-env-des)]">DES → dev.{name}.veriel.dev</p>
+                    <p className="text-[12px] text-[var(--color-env-pre)]">PRE → pre.{name}.veriel.dev</p>
+                    <p className="text-[12px] text-[var(--color-env-pro)]">PRO → {name}.veriel.dev</p>
+                  </div>
+                )}
 
-            {domainType === "custom" && (
-              <Input
-                value={customDomain}
-                onChange={(e) => setCustomDomain(e.target.value)}
-                placeholder="example.com"
-                hint="Domain must be added to Cloudflare first"
-              />
-            )}
-          </Card>
+                {domainType === "custom" && (
+                  <Input
+                    value={customDomain}
+                    onChange={(e) => setCustomDomain(e.target.value)}
+                    placeholder="example.com"
+                    hint="Domain must be added to Cloudflare first"
+                  />
+                )}
+              </Card>
+            </>
+          )}
 
-          {/* Timeline */}
-          {steps.length > 0 && (
+          {/* Workflow Run (GitHub Actions style) */}
+          {workflow && (
             <Card>
-              <p className="text-[13px] text-[var(--color-text-secondary)] mb-4">
-                {creating ? "Creating project..." : result ? "Project created" : "Creation failed"}
-              </p>
-              <Timeline steps={steps} />
+              <WorkflowRun data={workflow} />
             </Card>
           )}
 
@@ -236,10 +288,22 @@ export function NewProject() {
           {/* Actions */}
           {!result && (
             <div className="flex items-center gap-2">
-              <Button type="submit" loading={creating} disabled={!name} size="sm">
-                {creating ? "Creating..." : "Create Project"}
-              </Button>
-              <Link to="/projects"><Button variant="ghost" size="sm">Cancel</Button></Link>
+              {!workflow ? (
+                <>
+                  <Button type="submit" loading={creating} disabled={!name} size="sm">
+                    Create Project
+                  </Button>
+                  <Link to="/projects"><Button variant="ghost" size="sm">Cancel</Button></Link>
+                </>
+              ) : creating ? (
+                <p className="text-[12px] text-[var(--color-text-quaternary)]">
+                  Pipeline running — do not close this page
+                </p>
+              ) : error ? (
+                <Button type="button" size="sm" onClick={() => { setWorkflow(null); setError(null); }}>
+                  Try again
+                </Button>
+              ) : null}
             </div>
           )}
         </form>

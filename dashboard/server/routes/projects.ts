@@ -73,6 +73,7 @@ projectsRoutes.post("/", async (c) => {
 });
 
 // POST /api/projects/create-stream (SSE)
+// Emits GitHub Actions-style events: init (full pipeline), job, step, complete, error
 projectsRoutes.post("/create-stream", async (c) => {
   const body = await c.req.json();
   const { name, type, description, customDomain } = body;
@@ -83,75 +84,287 @@ projectsRoutes.post("/create-stream", async (c) => {
 
   const org = process.env.GITHUB_ORG ?? "veriel-cloud";
   const baseDomain = customDomain ?? `${name}.veriel.dev`;
+  const webhookUrl = process.env.WEBHOOK_URL;
+  const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
+  const hasWebhook = !!(webhookUrl && webhookSecret);
+
+  // Define the full pipeline as jobs > steps
+  interface PipelineStep {
+    id: string;
+    label: string;
+    fn: () => Promise<{ detail?: string; logs?: string[] }>;
+  }
+
+  interface PipelineJob {
+    id: string;
+    label: string;
+    steps: PipelineStep[];
+  }
+
+  const pipeline: PipelineJob[] = [
+    {
+      id: "setup-repo",
+      label: "Setup Repository",
+      steps: [
+        {
+          id: "create-repo",
+          label: "Create repository",
+          fn: async () => {
+            const repo = await github.createRepo(name, {
+              description: description ?? `${type ?? "web"} project managed by veriel-ops`,
+              isPrivate: true,
+              type: type ?? "astro-static",
+            });
+            return {
+              detail: repo.full_name,
+              logs: [
+                `Creating repository ${org}/${name}...`,
+                `Template: ${type ?? "astro-static"}`,
+                `Visibility: private`,
+                `Repository created: ${repo.html_url}`,
+              ],
+            };
+          },
+        },
+        {
+          id: "add-workflows",
+          label: "Add CI/CD workflows",
+          fn: async () => {
+            await github.addWorkflowCallers(name, name);
+            return {
+              detail: "5 workflow callers",
+              logs: [
+                "Adding workflow caller files...",
+                "  → .github/workflows/deploy-des.yml",
+                "  → .github/workflows/deploy-pre.yml",
+                "  → .github/workflows/deploy-pro.yml",
+                "  → .github/workflows/rollback.yml",
+                "  → .github/workflows/teardown.yml",
+                "All workflow callers committed.",
+              ],
+            };
+          },
+        },
+        {
+          id: "create-branches",
+          label: "Create develop branch",
+          fn: async () => {
+            await github.createBranch(name, "develop", "main");
+            return {
+              detail: "develop ← main",
+              logs: [
+                "Fetching main branch SHA...",
+                "Creating branch develop from main...",
+                "Branch develop created successfully.",
+              ],
+            };
+          },
+        },
+      ],
+    },
+    {
+      id: "infra",
+      label: "Configure Infrastructure",
+      steps: [
+        {
+          id: "cf-pages",
+          label: "Create Cloudflare Pages project",
+          fn: async () => {
+            const pages = await cloudflare.createPagesProject(name, org, name);
+            return {
+              detail: `${pages.subdomain}.pages.dev`,
+              logs: [
+                `Creating Pages project: ${name}...`,
+                `Connected to GitHub: ${org}/${name}`,
+                `Production branch: main`,
+                `Preview URL: ${pages.subdomain}.pages.dev`,
+              ],
+            };
+          },
+        },
+        {
+          id: "dns-records",
+          label: "Setup DNS records",
+          fn: async () => {
+            const records = await cloudflare.setupProjectDns(name, customDomain);
+            return {
+              detail: `${records.length} CNAME records`,
+              logs: [
+                "Configuring DNS records on Cloudflare...",
+                ...records.map((r: any) => `  → CNAME ${r.name} → ${r.content}`),
+                `${records.length} DNS records created.`,
+              ],
+            };
+          },
+        },
+        {
+          id: "custom-domains",
+          label: "Assign custom domains",
+          fn: async () => {
+            await cloudflare.setupCustomDomains(name, customDomain);
+            return {
+              detail: `dev.${baseDomain}, pre.${baseDomain}, ${baseDomain}`,
+              logs: [
+                "Assigning custom domains to Pages project...",
+                `  → dev.${baseDomain} (DES)`,
+                `  → pre.${baseDomain} (PRE)`,
+                `  → ${baseDomain} (PRO)`,
+                "All custom domains assigned.",
+              ],
+            };
+          },
+        },
+      ],
+    },
+    ...(hasWebhook
+      ? [
+          {
+            id: "connect",
+            label: "Connect Services",
+            steps: [
+              {
+                id: "webhook",
+                label: "Configure GitHub webhook",
+                fn: async () => {
+                  await github.createWebhook(name, webhookUrl!, webhookSecret!);
+                  return {
+                    detail: "Webhook active",
+                    logs: [
+                      `Creating webhook for ${org}/${name}...`,
+                      `URL: ${webhookUrl}`,
+                      "Events: push, pull_request, deployment_status",
+                      "Webhook created and active.",
+                    ],
+                  };
+                },
+              },
+            ],
+          },
+        ]
+      : []),
+  ];
 
   return streamSSE(c, async (stream) => {
-    const sendStep = async (step: number, label: string, status: string, detail?: string, duration?: number) => {
+    const globalStart = Date.now();
+
+    // Send init event with the full pipeline structure (all pending)
+    await stream.writeSSE({
+      data: JSON.stringify({
+        title: `Deploy ${name}`,
+        jobs: pipeline.map((job) => ({
+          id: job.id,
+          label: job.label,
+          status: "pending",
+          steps: job.steps.map((step) => ({
+            id: step.id,
+            label: step.label,
+            status: "pending",
+          })),
+        })),
+      }),
+      event: "init",
+    });
+
+    // Execute jobs sequentially
+    for (let ji = 0; ji < pipeline.length; ji++) {
+      const job = pipeline[ji];
+
+      // Mark job as running
       await stream.writeSSE({
-        data: JSON.stringify({ step, label, status, detail, duration }),
-        event: "step",
+        data: JSON.stringify({ jobId: job.id, status: "running" }),
+        event: "job",
       });
-    };
 
-    const steps = [
-      { label: "Crear repositorio en GitHub", fn: async () => {
-        const repo = await github.createRepo(name, {
-          description: description ?? `${type ?? "web"} project managed by veriel-ops`,
-          isPrivate: true,
-          type: type ?? "astro-static",
-        });
-        return { detail: repo.full_name };
-      }},
-      { label: "Añadir workflows CI/CD", fn: async () => {
-        await github.addWorkflowCallers(name, name);
-        return { detail: "5 workflow callers" };
-      }},
-      { label: "Crear branch develop", fn: async () => {
-        await github.createBranch(name, "develop", "main");
-        return { detail: "develop desde main" };
-      }},
-      { label: "Crear proyecto en Cloudflare Pages", fn: async () => {
-        const pages = await cloudflare.createPagesProject(name, org, name);
-        return { detail: `${pages.subdomain}.pages.dev` };
-      }},
-      { label: "Configurar registros DNS", fn: async () => {
-        const records = await cloudflare.setupProjectDns(name, customDomain);
-        return { detail: `${records.length} registros CNAME` };
-      }},
-      { label: "Añadir custom domains", fn: async () => {
-        await cloudflare.setupCustomDomains(name, customDomain);
-        return { detail: `dev.${baseDomain}, pre.${baseDomain}, ${baseDomain}` };
-      }},
-    ];
+      const jobStart = Date.now();
+      let jobFailed = false;
 
-    // Add webhook step if configured
-    const webhookUrl = process.env.WEBHOOK_URL;
-    const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
-    if (webhookUrl && webhookSecret) {
-      steps.push({
-        label: "Configurar webhook",
-        fn: async () => {
-          await github.createWebhook(name, webhookUrl, webhookSecret);
-          return { detail: "GitHub webhook activo" };
-        },
-      });
-    }
+      // Execute steps within the job
+      for (let si = 0; si < job.steps.length; si++) {
+        const step = job.steps[si];
 
-    for (let i = 0; i < steps.length; i++) {
-      await sendStep(i, steps[i].label, "loading");
-      const start = Date.now();
-
-      try {
-        const result = await steps[i].fn();
-        const duration = Date.now() - start;
-        await sendStep(i, steps[i].label, "success", result.detail, duration);
-      } catch (err) {
-        const duration = Date.now() - start;
-        const message = err instanceof Error ? err.message : "Unknown error";
-        await sendStep(i, steps[i].label, "error", message, duration);
-
-        // Send final error event
+        // Mark step as running
         await stream.writeSSE({
-          data: JSON.stringify({ error: message, failedStep: i }),
+          data: JSON.stringify({ jobId: job.id, stepId: step.id, status: "running" }),
+          event: "step",
+        });
+
+        const stepStart = Date.now();
+
+        try {
+          const result = await step.fn();
+          const duration = Date.now() - stepStart;
+
+          await stream.writeSSE({
+            data: JSON.stringify({
+              jobId: job.id,
+              stepId: step.id,
+              status: "success",
+              detail: result.detail,
+              logs: result.logs,
+              duration,
+            }),
+            event: "step",
+          });
+        } catch (err) {
+          const duration = Date.now() - stepStart;
+          const message = err instanceof Error ? err.message : "Unknown error";
+
+          await stream.writeSSE({
+            data: JSON.stringify({
+              jobId: job.id,
+              stepId: step.id,
+              status: "error",
+              detail: message,
+              logs: [`Error: ${message}`],
+              duration,
+            }),
+            event: "step",
+          });
+
+          // Mark remaining steps as skipped
+          for (let rs = si + 1; rs < job.steps.length; rs++) {
+            await stream.writeSSE({
+              data: JSON.stringify({
+                jobId: job.id,
+                stepId: job.steps[rs].id,
+                status: "skipped",
+              }),
+              event: "step",
+            });
+          }
+
+          jobFailed = true;
+          break;
+        }
+      }
+
+      const jobDuration = Date.now() - jobStart;
+
+      // Mark job as done
+      await stream.writeSSE({
+        data: JSON.stringify({
+          jobId: job.id,
+          status: jobFailed ? "error" : "success",
+          duration: jobDuration,
+        }),
+        event: "job",
+      });
+
+      if (jobFailed) {
+        // Mark remaining jobs as skipped
+        for (let rj = ji + 1; rj < pipeline.length; rj++) {
+          await stream.writeSSE({
+            data: JSON.stringify({ jobId: pipeline[rj].id, status: "pending" }),
+            event: "job",
+          });
+        }
+
+        await stream.writeSSE({
+          data: JSON.stringify({
+            error: "Pipeline failed",
+            failedJob: job.id,
+            totalDuration: Date.now() - globalStart,
+          }),
           event: "error",
         });
         return;
@@ -159,9 +372,11 @@ projectsRoutes.post("/create-stream", async (c) => {
     }
 
     // Send complete event
+    const totalDuration = Date.now() - globalStart;
     await stream.writeSSE({
       data: JSON.stringify({
         success: true,
+        totalDuration,
         project: {
           name,
           repo: `${org}/${name}`,
