@@ -1,91 +1,152 @@
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { StatsCard } from "@/components/StatsCard";
-import { ProjectCard } from "@/components/ProjectCard";
 import { DeployTable } from "@/components/DeployTable";
+import { EnvironmentBadge } from "@/components/EnvironmentBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { SkeletonCard, SkeletonStats, SkeletonTable } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton, SkeletonTable, SkeletonStats } from "@/components/ui/Skeleton";
 import { useFetch } from "@/hooks/useFetch";
+import { timeAgo } from "@/lib/utils";
 
 export function Dashboard() {
-  const { data: projectsData, loading: loadingProjects, error: projectsError } = useFetch<{ projects: any[] }>("/api/projects");
-  const { data: deploysData, loading: loadingDeploys } = useFetch<{ deploys: any[] }>("/api/deploys");
+  const { data: projectsData, loading: lp, error } = useFetch<{ projects: any[] }>("/api/projects");
+  const { data: deploysData, loading: ld } = useFetch<{ deploys: any[] }>("/api/deploys");
 
   const projects = projectsData?.projects ?? [];
   const deploys = deploysData?.deploys ?? [];
 
-  const totalBuilds = projects.reduce((sum: number, p: any) => sum + (p.builds?.des ?? 0) + (p.builds?.pre ?? 0) + (p.builds?.pro ?? 0), 0);
+  const totalBuilds = projects.reduce((sum: number, p: any) =>
+    sum + (p.builds?.des ?? 0) + (p.builds?.pre ?? 0) + (p.builds?.pro ?? 0), 0);
+  const successDeploys = deploys.filter((d: any) => d.status === "success").length;
+  const successRate = deploys.length > 0 ? Math.round((successDeploys / deploys.length) * 100) : 0;
 
   return (
     <>
       <Header
-        title="Dashboard"
-        description="Vista general de todos los proyectos y despliegues"
+        title="Overview"
         actions={
           <Link to="/projects/new">
-            <Button icon={
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 5l0 14" /><path d="M5 12l14 0" />
-              </svg>
-            }>
-              Nuevo proyecto
-            </Button>
+            <Button size="sm">New Project</Button>
           </Link>
         }
       />
 
-      {projectsError && (
-        <Card className="mb-8 border-red-500/20 bg-red-500/5">
-          <p className="text-sm text-red-400">Error cargando datos: {projectsError}</p>
-          <p className="text-xs text-surface-500 mt-1">Verifica las variables de entorno en .env</p>
+      {error && (
+        <Card className="mb-6 border-[var(--color-error)]/10 bg-[var(--color-error-light)]">
+          <p className="text-[13px] text-[var(--color-error-text)]">{error}</p>
+          <p className="text-[11px] text-[var(--color-text-quaternary)] mt-1">Verifica las variables de entorno en .env</p>
         </Card>
       )}
 
       {/* Stats */}
-      {loadingProjects ? (
-        <div className="mb-8"><SkeletonStats /></div>
+      {lp ? (
+        <div className="mb-8"><SkeletonStats count={5} /></div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
-          <StatsCard label="Proyectos" value={projects.length} />
-          <StatsCard label="Deploys recientes" value={deploys.length} />
-          <StatsCard label="Cobertura media" value="—" />
-          <StatsCard label="Entornos activos" value={`${projects.length * 3}`} variant="success" />
-          <StatsCard label="Tasa de exito" value="—" />
-          <StatsCard label="Builds almacenadas" value={totalBuilds} />
+        <div className="grid grid-cols-5 gap-3 mb-8">
+          <StatsCard label="Projects" value={projects.length} />
+          <StatsCard label="Deployments" value={deploys.length} />
+          <StatsCard label="Success rate" value={successRate} suffix="%" />
+          <StatsCard label="Builds stored" value={totalBuilds} />
+          <StatsCard label="Environments" value={projects.length * 3} />
         </div>
       )}
 
-      {/* Projects */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-white">Proyectos</h2>
-          <Link to="/projects" className="text-xs text-brand-400 hover:text-brand-300 transition-colors">Ver todos</Link>
+      {/* Projects table */}
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[13px] font-medium text-[var(--color-text-primary)]">Projects</h2>
+          <Link to="/projects" className="text-[12px] text-[var(--color-text-quaternary)] hover:text-[var(--color-text-secondary)] transition-colors">
+            View all →
+          </Link>
         </div>
-        {loadingProjects ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
-          </div>
-        ) : projects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {projects.map((p: any) => <ProjectCard key={p.name} project={p} />)}
-          </div>
+
+        {lp ? (
+          <Card padding={false}><SkeletonTable rows={3} /></Card>
+        ) : projects.length === 0 ? (
+          <Card padding={false}>
+            <EmptyState
+              title="No projects yet"
+              description="Create your first project to get started"
+              icon={
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[var(--color-text-quaternary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 4h3l2 2h5a2 2 0 0 1 2 2v7a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2" />
+                </svg>
+              }
+              action={<Link to="/projects/new"><Button size="sm">New Project</Button></Link>}
+            />
+          </Card>
         ) : (
-          <Card className="text-center py-12">
-            <p className="text-surface-500 mb-4">No hay proyectos registrados</p>
-            <Link to="/projects/new"><Button>Crear primer proyecto</Button></Link>
+          <Card padding={false}>
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-[var(--color-border)]">
+                  <th className="text-left py-2.5 px-4 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Project</th>
+                  <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Environments</th>
+                  <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Domain</th>
+                  <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Last deploy</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projects.map((p: any) => {
+                  const latest = Object.values(p.environments as Record<string, any>)
+                    .filter((e: any) => e.lastDeployAt)
+                    .sort((a: any, b: any) => new Date(b.lastDeployAt).getTime() - new Date(a.lastDeployAt).getTime())[0] as any;
+
+                  return (
+                    <tr key={p.name} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg-hover)] transition-colors duration-100">
+                      <td className="py-3 px-4">
+                        <Link to={`/projects/${p.name}`} className="group flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-md bg-[var(--color-bg-tertiary)] flex items-center justify-center flex-shrink-0">
+                            <span className="text-[11px] font-semibold text-[var(--color-text-tertiary)]">
+                              {p.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[var(--color-text-primary)] group-hover:underline font-medium">{p.name}</span>
+                            <span className="block text-[11px] text-[var(--color-text-quaternary)]">{p.repo}</span>
+                          </div>
+                        </Link>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-1.5">
+                          {(["des", "pre", "pro"] as const).map((env) => (
+                            <EnvironmentBadge
+                              key={env}
+                              environment={env}
+                              status={p.environments?.[env]?.status ?? "idle"}
+                            />
+                          ))}
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="text-[12px] text-[var(--color-text-quaternary)]">{p.domain}</span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="text-[12px] text-[var(--color-text-quaternary)]">
+                          {latest?.lastDeployAt ? timeAgo(latest.lastDeployAt) : "—"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </Card>
         )}
       </section>
 
       {/* Recent deploys */}
       <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-white">Deploys recientes</h2>
-          <Link to="/deploys" className="text-xs text-brand-400 hover:text-brand-300 transition-colors">Ver todos</Link>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[13px] font-medium text-[var(--color-text-primary)]">Recent Deployments</h2>
+          <Link to="/deploys" className="text-[12px] text-[var(--color-text-quaternary)] hover:text-[var(--color-text-secondary)] transition-colors">
+            View all →
+          </Link>
         </div>
         <Card padding={false}>
-          {loadingDeploys ? <SkeletonTable /> : <DeployTable deploys={deploys} limit={8} />}
+          {ld ? <SkeletonTable rows={5} /> : <DeployTable deploys={deploys} limit={6} />}
         </Card>
       </section>
     </>

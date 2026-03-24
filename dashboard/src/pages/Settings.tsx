@@ -9,59 +9,70 @@ export function Settings() {
 
   return (
     <>
-      <Header title="Settings" description="Configuracion del sistema veriel-ops" />
+      <Header title="Settings" description="System configuration" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-5">
+          {/* General */}
           <Card>
-            <h2 className="text-sm font-semibold text-white mb-4">General</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-surface-400 block mb-1.5">Organizacion GitHub</label>
-                <input type="text" value="veriel-cloud" readOnly className="w-full px-3 py-2 bg-surface-900 border border-surface-700 rounded-lg text-surface-200 text-sm" />
+            <h2 className="text-[13px] font-medium text-[var(--color-text-primary)] mb-4">General</h2>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b border-[var(--color-border)]">
+                <span className="text-[13px] text-[var(--color-text-secondary)]">Organization</span>
+                <span className="text-[13px] text-[var(--color-text-primary)] font-mono">veriel-cloud</span>
               </div>
-              <div>
-                <label className="text-xs text-surface-400 block mb-1.5">Dominio base</label>
-                <input type="text" value="veriel.dev" readOnly className="w-full px-3 py-2 bg-surface-900 border border-surface-700 rounded-lg text-surface-200 text-sm" />
+              <div className="flex justify-between items-center py-2 border-b border-[var(--color-border)]">
+                <span className="text-[13px] text-[var(--color-text-secondary)]">Base domain</span>
+                <span className="text-[13px] text-[var(--color-text-primary)] font-mono">veriel.dev</span>
               </div>
-              <div>
-                <label className="text-xs text-surface-400 block mb-1.5">Cobertura minima</label>
-                <div className="flex items-center gap-2">
-                  <input type="number" value={80} readOnly className="w-20 px-3 py-2 bg-surface-900 border border-surface-700 rounded-lg text-surface-200 text-sm" />
-                  <span className="text-sm text-surface-500">%</span>
-                </div>
+              <div className="flex justify-between items-center py-2 border-b border-[var(--color-border)]">
+                <span className="text-[13px] text-[var(--color-text-secondary)]">Coverage threshold</span>
+                <span className="text-[13px] text-[var(--color-text-primary)] font-mono">80%</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-[13px] text-[var(--color-text-secondary)]">Build retention</span>
+                <span className="text-[13px] text-[var(--color-text-quaternary)]">DES: 10 · PRE: 20 · PRO: all</span>
               </div>
             </div>
           </Card>
 
+          {/* Workflows */}
           <Card>
-            <h2 className="text-sm font-semibold text-white mb-4">Politica de retencion</h2>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="text-xs text-surface-400 block mb-1.5">DES</label>
-                <span className="text-sm text-white">10 builds</span>
-              </div>
-              <div>
-                <label className="text-xs text-surface-400 block mb-1.5">PRE</label>
-                <span className="text-sm text-white">20 builds</span>
-              </div>
-              <div>
-                <label className="text-xs text-surface-400 block mb-1.5">PRO</label>
-                <span className="text-sm text-white">Todas</span>
-              </div>
+            <h2 className="text-[13px] font-medium text-[var(--color-text-primary)] mb-4">Reusable Workflows</h2>
+            <div className="space-y-0">
+              {[
+                { name: "ci.yml", desc: "Lint + tests + coverage" },
+                { name: "deploy-des.yml", desc: "Build + deploy to DES" },
+                { name: "deploy-pre.yml", desc: "Gate + deploy to PRE" },
+                { name: "deploy-pro.yml", desc: "Gate + deploy to PRO + tag" },
+                { name: "rollback.yml", desc: "Restore build from R2" },
+                { name: "setup-dns.yml", desc: "Create DNS records" },
+                { name: "cleanup-builds.yml", desc: "Apply retention policy" },
+              ].map((wf, i) => (
+                <div key={wf.name} className={`flex items-center justify-between py-2.5 ${i > 0 ? "border-t border-[var(--color-border)]" : ""}`}>
+                  <div className="flex items-center gap-2.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-[var(--color-text-quaternary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" />
+                    </svg>
+                    <code className="text-[12px] text-[var(--color-text-primary)]">{wf.name}</code>
+                  </div>
+                  <span className="text-[11px] text-[var(--color-text-quaternary)]">{wf.desc}</span>
+                </div>
+              ))}
             </div>
           </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
+          {/* System status */}
           <Card>
-            <h3 className="text-sm font-semibold text-white mb-4">Estado del sistema</h3>
+            <h3 className="text-[13px] font-medium text-[var(--color-text-primary)] mb-4">System Status</h3>
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="flex items-center justify-between">
-                    <Skeleton className="h-4 w-28" />
-                    <Skeleton className="h-5 w-20 rounded-full" />
+                    <Skeleton className="h-3.5 w-24" />
+                    <Skeleton className="h-5 w-14 rounded-full" />
                   </div>
                 ))}
               </div>
@@ -69,10 +80,10 @@ export function Settings() {
               <div className="space-y-3">
                 {status.services.map((svc: any) => (
                   <div key={svc.name} className="flex items-center justify-between">
-                    <span className="text-sm text-surface-400">{svc.name}</span>
+                    <span className="text-[13px] text-[var(--color-text-secondary)]">{svc.name}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-surface-500">{svc.latency}ms</span>
-                      <Badge variant={svc.status === "connected" ? "success" : "danger"}>
+                      <span className="text-[11px] text-[var(--color-text-quaternary)] tabular-nums">{svc.latency}ms</span>
+                      <Badge variant={svc.status === "connected" ? "success" : "danger"} dot>
                         {svc.status === "connected" ? "OK" : "Error"}
                       </Badge>
                     </div>
@@ -80,21 +91,22 @@ export function Settings() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-surface-500">No se pudo verificar</p>
+              <p className="text-[12px] text-[var(--color-text-quaternary)]">Could not check status</p>
             )}
           </Card>
 
+          {/* Templates */}
           <Card>
-            <h3 className="text-sm font-semibold text-white mb-4">Workflows</h3>
-            <div className="space-y-1.5">
-              {["ci.yml", "deploy-des.yml", "deploy-pre.yml", "deploy-pro.yml", "rollback.yml", "setup-dns.yml", "cleanup-builds.yml"].map((wf) => (
-                <div key={wf} className="flex items-center gap-2 py-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-surface-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" />
-                  </svg>
-                  <code className="text-xs text-surface-300">{wf}</code>
-                </div>
-              ))}
+            <h3 className="text-[13px] font-medium text-[var(--color-text-primary)] mb-4">Project Templates</h3>
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] text-[var(--color-text-secondary)]">Astro</span>
+                <Badge variant="default">template-astro</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] text-[var(--color-text-secondary)]">React</span>
+                <Badge variant="default">template-react</Badge>
+              </div>
             </div>
           </Card>
         </div>

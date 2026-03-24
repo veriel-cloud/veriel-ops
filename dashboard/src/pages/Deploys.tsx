@@ -1,58 +1,75 @@
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/Card";
+import { StatsCard } from "@/components/StatsCard";
 import { DeployTable } from "@/components/DeployTable";
-import { SkeletonStats, SkeletonTable } from "@/components/ui/Skeleton";
+import { SkeletonTable, SkeletonStats } from "@/components/ui/Skeleton";
 import { useFetch } from "@/hooks/useFetch";
 
 export function Deploys() {
   const { data, loading, error } = useFetch<{ deploys: any[] }>("/api/deploys");
-  const deploys = data?.deploys ?? [];
+  const [filter, setFilter] = useState<string>("all");
 
-  const totalSuccess = deploys.filter((d: any) => d.status === "success").length;
-  const totalFailed = deploys.filter((d: any) => d.status === "failed").length;
-  const avgDuration = deploys.length > 0
-    ? Math.round(deploys.reduce((sum: number, d: any) => sum + d.duration, 0) / deploys.length)
+  const allDeploys = data?.deploys ?? [];
+  const deploys = filter === "all"
+    ? allDeploys
+    : allDeploys.filter((d: any) => d.environment === filter || d.status === filter);
+
+  const totalSuccess = allDeploys.filter((d: any) => d.status === "success").length;
+  const totalFailed = allDeploys.filter((d: any) => d.status === "failed").length;
+  const avgDuration = allDeploys.length > 0
+    ? Math.round(allDeploys.reduce((sum: number, d: any) => sum + d.duration, 0) / allDeploys.length)
     : 0;
+
+  const filters = [
+    { id: "all", label: "All" },
+    { id: "des", label: "DES" },
+    { id: "pre", label: "PRE" },
+    { id: "pro", label: "PRO" },
+    { id: "failed", label: "Failed" },
+  ];
 
   return (
     <>
-      <Header title="Deploys" description="Historial completo de despliegues" />
+      <Header title="Deployments" description="Deployment history across all projects" />
 
       {error && (
-        <Card className="mb-6 border-red-500/20 bg-red-500/5">
-          <p className="text-sm text-red-400">Error: {error}</p>
+        <Card className="mb-6 border-[var(--color-error)]/10 bg-[var(--color-error-light)]">
+          <p className="text-[13px] text-[var(--color-error-text)]">{error}</p>
         </Card>
       )}
 
       {loading ? (
-        <div className="mb-8"><SkeletonStats /></div>
+        <div className="mb-6"><SkeletonStats count={4} /></div>
       ) : (
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <Card>
-            <span className="text-[11px] text-surface-500 uppercase tracking-wider">Total</span>
-            <p className="text-2xl font-bold text-white mt-1">{deploys.length}</p>
-          </Card>
-          <Card>
-            <span className="text-[11px] text-surface-500 uppercase tracking-wider">Exitosos</span>
-            <p className="text-2xl font-bold text-emerald-400 mt-1">{totalSuccess}</p>
-          </Card>
-          <Card>
-            <span className="text-[11px] text-surface-500 uppercase tracking-wider">Fallidos</span>
-            <p className="text-2xl font-bold text-red-400 mt-1">{totalFailed}</p>
-          </Card>
-          <Card>
-            <span className="text-[11px] text-surface-500 uppercase tracking-wider">Duracion media</span>
-            <p className="text-2xl font-bold text-white mt-1">{avgDuration}s</p>
-          </Card>
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          <StatsCard label="Total" value={allDeploys.length} />
+          <StatsCard label="Successful" value={totalSuccess} />
+          <StatsCard label="Failed" value={totalFailed} />
+          <StatsCard label="Avg duration" value={avgDuration} suffix="s" />
         </div>
       )}
 
-      <section>
-        <h2 className="text-base font-semibold text-white mb-4">Historial</h2>
-        <Card padding={false}>
-          {loading ? <SkeletonTable rows={8} /> : <DeployTable deploys={deploys} />}
-        </Card>
-      </section>
+      {/* Filters */}
+      <div className="flex items-center gap-1 mb-4">
+        {filters.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
+              filter === f.id
+                ? "bg-[var(--color-text-primary)] text-[var(--color-bg)]"
+                : "text-[var(--color-text-quaternary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <Card padding={false}>
+        {loading ? <SkeletonTable rows={8} /> : <DeployTable deploys={deploys} />}
+      </Card>
     </>
   );
 }
