@@ -43,6 +43,37 @@ export async function getWorkflowRuns(repo: string, perPage = 20) {
   return data.workflow_runs;
 }
 
+export async function getWorkflowRunsByBranch(repo: string, branch: string, perPage = 5) {
+  const { data } = await octokit.rest.actions.listWorkflowRunsForRepo({
+    owner: org,
+    repo,
+    branch,
+    per_page: perPage,
+  });
+  return data.workflow_runs;
+}
+
+export async function waitForWorkflowRun(
+  repo: string,
+  branch: string,
+  createdAfter: Date,
+  timeoutMs = 120_000,
+  pollMs = 3_000,
+): Promise<number | null> {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const runs = await getWorkflowRunsByBranch(repo, branch, 5);
+    const run = runs.find(
+      (r) => new Date(r.created_at) >= createdAfter,
+    );
+    if (run) return run.id;
+    await new Promise((r) => setTimeout(r, pollMs));
+  }
+
+  return null;
+}
+
 export async function getWorkflowRun(repo: string, runId: number) {
   const { data } = await octokit.rest.actions.getWorkflowRun({
     owner: org,

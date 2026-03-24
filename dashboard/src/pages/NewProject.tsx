@@ -114,29 +114,49 @@ export function NewProject() {
         };
       });
     } else if (event === "step") {
-      // Update a step within a job
+      // Update a step within a job, or add it dynamically (GitHub Actions steps)
       setWorkflow((prev) => {
         if (!prev) return prev;
         return {
           ...prev,
-          jobs: prev.jobs.map((job) =>
-            job.id === data.jobId
-              ? {
-                  ...job,
-                  steps: job.steps.map((step) =>
-                    step.id === data.stepId
-                      ? {
-                          ...step,
-                          status: data.status as StepStatus,
-                          detail: data.detail ?? step.detail,
-                          logs: data.logs ?? step.logs,
-                          duration: data.duration ?? step.duration,
-                        }
-                      : step,
-                  ),
-                }
-              : job,
-          ),
+          jobs: prev.jobs.map((job) => {
+            if (job.id !== data.jobId) return job;
+
+            const existingStep = job.steps.find((s) => s.id === data.stepId);
+
+            if (existingStep) {
+              return {
+                ...job,
+                steps: job.steps.map((step) =>
+                  step.id === data.stepId
+                    ? {
+                        ...step,
+                        status: data.status as StepStatus,
+                        detail: data.detail ?? step.detail,
+                        logs: data.logs ?? step.logs,
+                        duration: data.duration ?? step.duration,
+                      }
+                    : step,
+                ),
+              };
+            }
+
+            // New step discovered from GitHub Actions — add it
+            return {
+              ...job,
+              steps: [
+                ...job.steps,
+                {
+                  id: data.stepId,
+                  label: data.label ?? data.stepId,
+                  status: data.status as StepStatus,
+                  detail: data.detail,
+                  logs: data.logs,
+                  duration: data.duration,
+                },
+              ],
+            };
+          }),
         };
       });
     } else if (event === "complete") {
@@ -252,24 +272,28 @@ export function NewProject() {
           {/* Result */}
           {result && (
             <Card className="border-[var(--color-success)]/10 bg-[var(--color-success-light)]">
-              <p className="text-[13px] font-medium text-[var(--color-success-text)] mb-3">Project created successfully</p>
+              <p className="text-[13px] font-medium text-[var(--color-success-text)] mb-3">Deploy DES Complete</p>
               <div className="space-y-1.5 text-[13px]">
                 <p>
                   <span className="text-[var(--color-text-quaternary)]">Repository </span>
-                  <a href={result.project?.github} target="_blank" className="text-[var(--color-accent-text)] hover:underline">{result.project?.repo}</a>
+                  <a href={result.project?.github} target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent-text)] hover:underline">{result.project?.repo}</a>
                 </p>
+                {result.project?.commit && (
+                  <p>
+                    <span className="text-[var(--color-text-quaternary)]">Commit </span>
+                    <code className="text-[12px] text-[var(--color-text-secondary)]">{result.project.commit}</code>
+                  </p>
+                )}
                 <p>
                   <span className="text-[var(--color-text-quaternary)]">DES </span>
                   <span className="text-[var(--color-env-des)]">{result.project?.urls?.des}</span>
                 </p>
-                <p>
-                  <span className="text-[var(--color-text-quaternary)]">PRE </span>
-                  <span className="text-[var(--color-env-pre)]">{result.project?.urls?.pre}</span>
-                </p>
-                <p>
-                  <span className="text-[var(--color-text-quaternary)]">PRO </span>
-                  <span className="text-[var(--color-env-pro)]">{result.project?.urls?.pro}</span>
-                </p>
+                {result.ghRunUrl && (
+                  <p>
+                    <span className="text-[var(--color-text-quaternary)]">Workflow </span>
+                    <a href={result.ghRunUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent-text)] hover:underline">View on GitHub →</a>
+                  </p>
+                )}
               </div>
               <div className="mt-4">
                 <Link to={`/projects/${name}`}>

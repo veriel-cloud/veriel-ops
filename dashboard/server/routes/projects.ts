@@ -73,7 +73,8 @@ projectsRoutes.post("/", async (c) => {
 });
 
 // POST /api/projects/create-stream (SSE)
-// Emits GitHub Actions-style events: init (full pipeline), job, step, complete, error
+// Phase 1: Create repo + infra (API calls)
+// Phase 2: Poll the real GitHub Actions workflow run for deploy-des
 projectsRoutes.post("/create-stream", async (c) => {
   const body = await c.req.json();
   const { name, type, description, customDomain } = body;
@@ -88,7 +89,6 @@ projectsRoutes.post("/create-stream", async (c) => {
   const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
   const hasWebhook = !!(webhookUrl && webhookSecret);
 
-  // Define the full pipeline as jobs > steps
   interface PipelineStep {
     id: string;
     label: string;
@@ -101,7 +101,7 @@ projectsRoutes.post("/create-stream", async (c) => {
     steps: PipelineStep[];
   }
 
-  const pipeline: PipelineJob[] = [
+  const setupPipeline: PipelineJob[] = [
     {
       id: "setup-repo",
       label: "Setup Repository",
@@ -247,29 +247,42 @@ projectsRoutes.post("/create-stream", async (c) => {
   return streamSSE(c, async (stream) => {
     const globalStart = Date.now();
 
-    // Send init event with the full pipeline structure (all pending)
-    await stream.writeSSE({
-      data: JSON.stringify({
-        title: `Deploy ${name}`,
-        jobs: pipeline.map((job) => ({
-          id: job.id,
-          label: job.label,
-          status: "pending",
-          steps: job.steps.map((step) => ({
-            id: step.id,
-            label: step.label,
-            status: "pending",
-          })),
+    // We'll track the timestamp before creating the develop branch
+    // so we can find the workflow run that gets triggered
+    let branchCreatedAt: Date | null = null;
+
+    // Build init payload: setup jobs + a placeholder "Deploy DES" job
+    // The Deploy DES job will be populated with real steps from GitHub Actions
+    const initJobs = [
+      ...setupPipeline.map((job) => ({
+        id: job.id,
+        label: job.label,
+        status: "pending" as const,
+        steps: job.steps.map((step) => ({
+          id: step.id,
+          label: step.label,
+          status: "pending" as const,
         })),
-      }),
+      })),
+      {
+        id: "deploy-des",
+        label: "Deploy DES (GitHub Actions)",
+        status: "pending" as const,
+        steps: [
+          { id: "waiting-run", label: "Waiting for workflow run...", status: "pending" as const },
+        ],
+      },
+    ];
+
+    await stream.writeSSE({
+      data: JSON.stringify({ title: `Deploy ${name}`, jobs: initJobs }),
       event: "init",
     });
 
-    // Execute jobs sequentially
-    for (let ji = 0; ji < pipeline.length; ji++) {
-      const job = pipeline[ji];
+    // ── Phase 1: Execute setup pipeline ──────────────────────────────
+    for (let ji = 0; ji < setupPipeline.length; ji++) {
+      const job = setupPipeline[ji];
 
-      // Mark job as running
       await stream.writeSSE({
         data: JSON.stringify({ jobId: job.id, status: "running" }),
         event: "job",
@@ -278,11 +291,9 @@ projectsRoutes.post("/create-stream", async (c) => {
       const jobStart = Date.now();
       let jobFailed = false;
 
-      // Execute steps within the job
       for (let si = 0; si < job.steps.length; si++) {
         const step = job.steps[si];
 
-        // Mark step as running
         await stream.writeSSE({
           data: JSON.stringify({ jobId: job.id, stepId: step.id, status: "running" }),
           event: "step",
@@ -291,6 +302,11 @@ projectsRoutes.post("/create-stream", async (c) => {
         const stepStart = Date.now();
 
         try {
+          // Record timestamp just before creating develop branch
+          if (step.id === "create-branches") {
+            branchCreatedAt = new Date();
+          }
+
           const result = await step.fn();
           const duration = Date.now() - stepStart;
 
@@ -321,14 +337,9 @@ projectsRoutes.post("/create-stream", async (c) => {
             event: "step",
           });
 
-          // Mark remaining steps as skipped
           for (let rs = si + 1; rs < job.steps.length; rs++) {
             await stream.writeSSE({
-              data: JSON.stringify({
-                jobId: job.id,
-                stepId: job.steps[rs].id,
-                status: "skipped",
-              }),
+              data: JSON.stringify({ jobId: job.id, stepId: job.steps[rs].id, status: "skipped" }),
               event: "step",
             });
           }
@@ -340,7 +351,6 @@ projectsRoutes.post("/create-stream", async (c) => {
 
       const jobDuration = Date.now() - jobStart;
 
-      // Mark job as done
       await stream.writeSSE({
         data: JSON.stringify({
           jobId: job.id,
@@ -351,13 +361,13 @@ projectsRoutes.post("/create-stream", async (c) => {
       });
 
       if (jobFailed) {
-        // Mark remaining jobs as skipped
-        for (let rj = ji + 1; rj < pipeline.length; rj++) {
-          await stream.writeSSE({
-            data: JSON.stringify({ jobId: pipeline[rj].id, status: "pending" }),
-            event: "job",
-          });
-        }
+        await stream.writeSSE({
+          data: JSON.stringify({
+            jobId: "deploy-des",
+            status: "pending",
+          }),
+          event: "job",
+        });
 
         await stream.writeSSE({
           data: JSON.stringify({
@@ -371,25 +381,248 @@ projectsRoutes.post("/create-stream", async (c) => {
       }
     }
 
-    // Send complete event
-    const totalDuration = Date.now() - globalStart;
+    // ── Phase 2: Monitor real GitHub Actions workflow ─────────────────
+    await stream.writeSSE({
+      data: JSON.stringify({ jobId: "deploy-des", status: "running" }),
+      event: "job",
+    });
+
     await stream.writeSSE({
       data: JSON.stringify({
-        success: true,
-        totalDuration,
-        project: {
-          name,
-          repo: `${org}/${name}`,
-          urls: {
-            des: `https://dev.${baseDomain}`,
-            pre: `https://pre.${baseDomain}`,
-            pro: `https://${baseDomain}`,
-          },
-          github: `https://github.com/${org}/${name}`,
-        },
+        jobId: "deploy-des",
+        stepId: "waiting-run",
+        status: "running",
+        detail: "Polling GitHub Actions...",
       }),
-      event: "complete",
+      event: "step",
     });
+
+    try {
+      // Wait for the workflow run to appear
+      const searchFrom = branchCreatedAt ?? new Date(globalStart);
+      const runId = await github.waitForWorkflowRun(name, "develop", searchFrom, 120_000, 4_000);
+
+      if (!runId) {
+        throw new Error("Timeout waiting for GitHub Actions workflow run");
+      }
+
+      await stream.writeSSE({
+        data: JSON.stringify({
+          jobId: "deploy-des",
+          stepId: "waiting-run",
+          status: "success",
+          detail: `Run #${runId}`,
+          duration: Date.now() - (branchCreatedAt?.getTime() ?? globalStart),
+        }),
+        event: "step",
+      });
+
+      // Now poll the run until it completes, streaming real job/step updates
+      const POLL_INTERVAL = 5_000;
+      const RUN_TIMEOUT = 600_000; // 10 min max
+      const runStart = Date.now();
+
+      // Track which GitHub Actions jobs/steps we've already sent to the client
+      const sentJobs = new Map<number, string>(); // jobId -> last status
+      const sentSteps = new Map<string, string>(); // "jobId:stepName" -> last status
+      // Map GitHub job IDs to our SSE step IDs
+      const ghJobIdMap = new Map<number, string>(); // github job.id -> our step id
+
+      let runCompleted = false;
+      let lastRunStatus = "";
+
+      while (!runCompleted && Date.now() - runStart < RUN_TIMEOUT) {
+        const [run, jobs] = await Promise.all([
+          github.getWorkflowRun(name, runId),
+          github.getWorkflowRunJobs(name, runId),
+        ]);
+
+        // Process each GitHub Actions job
+        for (const ghJob of jobs) {
+          const ghJobKey = ghJob.id;
+
+          // Create a deterministic step ID from the job name
+          if (!ghJobIdMap.has(ghJobKey)) {
+            const stepId = `gh-job-${ghJob.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+            ghJobIdMap.set(ghJobKey, stepId);
+
+            // Add this job as a new step in our deploy-des job
+            await stream.writeSSE({
+              data: JSON.stringify({
+                jobId: "deploy-des",
+                stepId,
+                status: "pending",
+                label: ghJob.name,
+              }),
+              event: "step",
+            });
+          }
+
+          const stepId = ghJobIdMap.get(ghJobKey)!;
+          const currentStatus = ghJob.status === "completed"
+            ? (ghJob.conclusion === "success" ? "success" : "error")
+            : ghJob.status === "in_progress"
+              ? "running"
+              : "pending";
+
+          const prevStatus = sentJobs.get(ghJobKey);
+
+          if (prevStatus !== currentStatus) {
+            sentJobs.set(ghJobKey, currentStatus);
+
+            // Calculate real duration from GitHub's timestamps
+            let duration: number | undefined;
+            if (ghJob.completed_at && ghJob.started_at) {
+              duration = new Date(ghJob.completed_at).getTime() - new Date(ghJob.started_at).getTime();
+            }
+
+            // Build detail from the job's steps
+            let detail: string | undefined;
+            if (ghJob.conclusion === "success" && ghJob.steps) {
+              const totalSteps = ghJob.steps.length;
+              detail = `${totalSteps} steps completed`;
+            } else if (ghJob.conclusion === "failure" && ghJob.steps) {
+              const failedStep = ghJob.steps.find((s) => s.conclusion === "failure");
+              detail = failedStep ? `Failed at: ${failedStep.name}` : "Failed";
+            }
+
+            // Build logs from real step data
+            const logs: string[] = [];
+            if (ghJob.steps) {
+              for (const step of ghJob.steps) {
+                const icon = step.conclusion === "success" ? "✓"
+                  : step.conclusion === "failure" ? "✗"
+                  : step.status === "in_progress" ? "●"
+                  : "○";
+
+                let stepDuration = "";
+                if (step.completed_at && step.started_at) {
+                  const ms = new Date(step.completed_at).getTime() - new Date(step.started_at).getTime();
+                  stepDuration = ms < 1000 ? ` (${ms}ms)` : ` (${(ms / 1000).toFixed(1)}s)`;
+                }
+
+                logs.push(`${icon} ${step.name}${stepDuration}`);
+              }
+            }
+
+            await stream.writeSSE({
+              data: JSON.stringify({
+                jobId: "deploy-des",
+                stepId,
+                status: currentStatus,
+                detail,
+                duration,
+                logs: logs.length > 0 ? logs : undefined,
+              }),
+              event: "step",
+            });
+          }
+        }
+
+        // Check if the overall run is done
+        if (run.status === "completed") {
+          runCompleted = true;
+          lastRunStatus = run.conclusion ?? "unknown";
+        } else {
+          await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+        }
+      }
+
+      // Calculate total duration of the GitHub Actions run
+      const finalRun = await github.getWorkflowRun(name, runId);
+      let ghRunDuration: number | undefined;
+      if (finalRun.updated_at && finalRun.run_started_at) {
+        ghRunDuration = new Date(finalRun.updated_at).getTime() - new Date(finalRun.run_started_at).getTime();
+      }
+
+      const ghRunSuccess = lastRunStatus === "success";
+
+      await stream.writeSSE({
+        data: JSON.stringify({
+          jobId: "deploy-des",
+          status: ghRunSuccess ? "success" : "error",
+          duration: ghRunDuration,
+        }),
+        event: "job",
+      });
+
+      if (!ghRunSuccess) {
+        await stream.writeSSE({
+          data: JSON.stringify({
+            error: `GitHub Actions workflow ${lastRunStatus || "timed out"}`,
+            failedJob: "deploy-des",
+            totalDuration: Date.now() - globalStart,
+          }),
+          event: "error",
+        });
+        return;
+      }
+
+      // ── Complete ─────────────────────────────────────────────────────
+      // Fetch the run summary for the result
+      const finalJobs = await github.getWorkflowRunJobs(name, runId);
+      const deployJob = finalJobs.find((j) => j.name.toLowerCase().includes("deploy"));
+      const buildJob = finalJobs.find((j) => j.name.toLowerCase().includes("build") && !j.name.toLowerCase().includes("r2"));
+
+      // Try to extract commit and build info from job outputs/steps
+      let commit = finalRun.head_sha?.substring(0, 7) ?? "";
+      let buildVersion = "";
+
+      // Look for the deploy summary in annotations
+      const storeJob = finalJobs.find((j) => j.name.toLowerCase().includes("store") || j.name.toLowerCase().includes("r2"));
+
+      const totalDuration = Date.now() - globalStart;
+      await stream.writeSSE({
+        data: JSON.stringify({
+          success: true,
+          totalDuration,
+          ghRunId: runId,
+          ghRunUrl: finalRun.html_url,
+          project: {
+            name,
+            repo: `${org}/${name}`,
+            urls: {
+              des: `https://dev.${baseDomain}`,
+              pre: `https://pre.${baseDomain}`,
+              pro: `https://${baseDomain}`,
+            },
+            github: `https://github.com/${org}/${name}`,
+            commit,
+          },
+        }),
+        event: "complete",
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+
+      await stream.writeSSE({
+        data: JSON.stringify({
+          jobId: "deploy-des",
+          stepId: "waiting-run",
+          status: "error",
+          detail: message,
+          logs: [`Error: ${message}`],
+        }),
+        event: "step",
+      });
+
+      await stream.writeSSE({
+        data: JSON.stringify({
+          jobId: "deploy-des",
+          status: "error",
+        }),
+        event: "job",
+      });
+
+      await stream.writeSSE({
+        data: JSON.stringify({
+          error: message,
+          failedJob: "deploy-des",
+          totalDuration: Date.now() - globalStart,
+        }),
+        event: "error",
+      });
+    }
   });
 });
 
