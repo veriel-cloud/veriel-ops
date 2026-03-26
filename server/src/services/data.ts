@@ -31,7 +31,7 @@ export async function getProjects(s: Services): Promise<Project[]> {
   const pagesMap = new Map(pagesProjects.map((p) => [p.name, p]));
 
   return repos
-    .filter((repo) => repo.name !== ".github")
+    .filter((repo) => repo.name !== ".github" && !repo.archived)
     .map((repo) => {
       const pages = pagesMap.get(repo.name);
       const domain = pages?.domains?.[0] ?? `${repo.name}.veriel.dev`;
@@ -130,12 +130,20 @@ export async function getDeploys(s: Services): Promise<DeployEntry[]> {
     s.cloudflare.listPagesProjects().catch(() => []),
   ]);
 
-  const repoNames = new Set(repos.map((r) => r.name));
+  const repoNames = new Set(repos.filter((r) => r.name !== ".github" && !r.archived).map((r) => r.name));
+  const pagesNames = new Set(pagesProjects.map((p) => p.name));
   const all: DeployEntry[] = [];
 
-  for (const project of pagesProjects.filter((p) => repoNames.has(p.name))) {
-    const deployments = await s.cloudflare.getDeployments(project.name, 10).catch(() => []);
-    all.push(...deduplicateByCommit(deployments).map(toDeployEntry(project.name)));
+  for (const repoName of repoNames) {
+    const envFetches = (["des", "pre", "pro"] as const)
+      .map((env) => ({ env, pagesName: pagesProjectName(repoName, env) }))
+      .filter(({ pagesName }) => pagesNames.has(pagesName))
+      .map(({ pagesName }) => s.cloudflare.getDeployments(pagesName, 10).catch(() => []));
+
+    const results = await Promise.all(envFetches);
+    for (const deployments of results) {
+      all.push(...deduplicateByCommit(deployments).map(toDeployEntry(repoName)));
+    }
   }
 
   return all.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
