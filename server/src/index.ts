@@ -7,6 +7,7 @@ import { loggerMiddleware } from "./middleware/logger.js";
 import { actionsRoutes } from "./routes/actions.js";
 import { deploysRoutes } from "./routes/deploys.js";
 import { eventsRoutes } from "./routes/events.js";
+import { notificationsRoutes } from "./routes/notifications.js";
 import { projectsRoutes } from "./routes/projects.js";
 import { systemRoutes } from "./routes/system.js";
 import { webhooksRoutes } from "./routes/webhooks.js";
@@ -68,6 +69,7 @@ app.route("/api/actions", actionsRoutes);
 app.route("/api/system", systemRoutes);
 app.route("/api/webhooks", webhooksRoutes);
 app.route("/api/events", eventsRoutes);
+app.route("/api/notifications", notificationsRoutes);
 
 export default {
   fetch: app.fetch,

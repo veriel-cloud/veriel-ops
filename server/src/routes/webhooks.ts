@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { Env } from "../env.js";
+import { addNotification } from "../services/notifications.js";
 import { addEvent } from "../services/webhook-cache.js";
 
 export const webhooksRoutes = new Hono<Env>();
@@ -9,7 +10,16 @@ webhooksRoutes.post("/github", async (c) => {
   const event = c.req.header("x-github-event") ?? "unknown";
   const payload = JSON.parse(body);
 
-  addEvent({ source: "github", type: event, project: payload.repository?.name ?? "unknown", data: payload });
+  const project = payload.repository?.name ?? "unknown";
+  addEvent({ source: "github", type: event, project, data: payload });
+
+  if (event === "workflow_run" && payload.action === "completed") {
+    const conclusion = payload.workflow_run?.conclusion;
+    if (conclusion === "failure") {
+      addNotification("workflow_failed", project, `Workflow "${payload.workflow_run?.name}" failed`);
+    }
+  }
+
   return c.json({ ok: true });
 });
 

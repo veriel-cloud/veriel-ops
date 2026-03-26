@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { BranchList } from "@/components/BranchList";
+import { CoverageChart } from "@/components/CoverageChart";
 import { DeployModal } from "@/components/DeployModal";
 import { DeployTable } from "@/components/DeployTable";
 import { EnvironmentBadge } from "@/components/EnvironmentBadge";
@@ -380,6 +381,19 @@ export function ProjectDetail() {
 
               {/* Builds tab */}
               {activeTab === "builds" && (
+                <div className="space-y-4">
+                {builds.length > 0 && (
+                  <Card>
+                    <p className="text-[13px] text-[var(--color-text-primary)] mb-3">Coverage Trend</p>
+                    <CoverageChart
+                      data={builds
+                        .filter((b: any) => b.coverage > 0)
+                        .reverse()
+                        .map((b: any) => ({ label: b.version, coverage: b.coverage }))}
+                      threshold={project?.coverageThreshold ?? 80}
+                    />
+                  </Card>
+                )}
                 <Card padding={false}>
                   {lb ? (
                     <SkeletonTable rows={3} />
@@ -439,6 +453,7 @@ export function ProjectDetail() {
                     <EmptyState title="No builds stored" />
                   )}
                 </Card>
+                </div>
               )}
 
               {/* Branches tab */}
