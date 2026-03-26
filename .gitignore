@@ -13,3 +13,9 @@ dashboard/dist-server/
 .github-org/
 .vscode/
 .playwright-mcp
+
+# Local config / tooling
+.claude/
+.mcp.json
+image.png
+docs/hono-best-practices.md

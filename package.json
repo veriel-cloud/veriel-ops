@@ -9,7 +9,8 @@
     "dev:dashboard": "pnpm --filter dashboard dev",
     "dev:server": "pnpm --filter server dev",
     "build": "pnpm --filter dashboard build && pnpm --filter server build",
-    "lint": "turbo run lint",
+    "lint": "biome check --write .",
+    "lint:check": "biome check .",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck"
   },
@@ -29,7 +30,12 @@
     "onlyBuiltDependencies": [
       "workerd",
       "esbuild",
-      "sharp"
+      "sharp",
+      "lefthook"
     ]
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.9",
+    "lefthook": "^2.1.4"
   }
 }

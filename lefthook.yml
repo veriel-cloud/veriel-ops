@@ -1,0 +1,6 @@
+pre-commit:
+  commands:
+    biome-check:
+      glob: "server/src/**/*.ts"
+      run: pnpm biome check --write --staged {staged_files}
+      stage_fixed: true
