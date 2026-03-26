@@ -1,5 +1,13 @@
+import {
+  CF_API_URL,
+  domainForEnv,
+  ENV_BRANCHES,
+  PAGES_BUILD_COMMAND,
+  PAGES_BUILD_OUTPUT,
+  PER_PAGE_DNS,
+  pagesProjectName,
+} from "../constants.js";
 import type { CloudflareConfig, DnsRecord, Environment, PagesDeployment, PagesProject } from "../types.js";
-import { CF_API_URL, ENV_BRANCHES, PAGES_BUILD_COMMAND, PAGES_BUILD_OUTPUT, PER_PAGE_DNS, pagesProjectName, domainForEnv } from "../constants.js";
 
 // ─── API client ───────────────────────────────────────────────────────
 
@@ -28,11 +36,9 @@ export function createCloudflareService(config: CloudflareConfig) {
 
   return {
     // Pages — read
-    listPagesProjects: () =>
-      cfFetch<PagesProject[]>(config, `${accounts}/pages/projects`),
+    listPagesProjects: () => cfFetch<PagesProject[]>(config, `${accounts}/pages/projects`),
 
-    getPagesProject: (name: string) =>
-      cfFetch<PagesProject>(config, `${accounts}/pages/projects/${name}`),
+    getPagesProject: (name: string) => cfFetch<PagesProject>(config, `${accounts}/pages/projects/${name}`),
 
     getDeployments: (project: string, perPage = 20) =>
       cfFetch<PagesDeployment[]>(config, `${accounts}/pages/projects/${project}/deployments?per_page=${perPage}`),
@@ -65,8 +71,7 @@ export function createCloudflareService(config: CloudflareConfig) {
       }),
 
     // DNS
-    listDnsRecords: () =>
-      cfFetch<DnsRecord[]>(config, `${zones}/dns_records?per_page=${PER_PAGE_DNS}`),
+    listDnsRecords: () => cfFetch<DnsRecord[]>(config, `${zones}/dns_records?per_page=${PER_PAGE_DNS}`),
 
     createDnsRecord: (name: string, target: string) =>
       cfFetch<DnsRecord>(config, `${zones}/dns_records`, {

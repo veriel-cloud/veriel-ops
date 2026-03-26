@@ -1,6 +1,6 @@
+import { GH_ACTIONS_POLL_INTERVAL_MS, GH_ACTIONS_POLL_TIMEOUT_MS } from "../constants.js";
 import type { PipelineJob } from "../types.js";
 import type { GitHubService } from "./github.js";
-import { GH_ACTIONS_POLL_INTERVAL_MS, GH_ACTIONS_POLL_TIMEOUT_MS } from "../constants.js";
 
 type SSEWriter = { writeSSE: (msg: { data: string; event: string }) => Promise<void> };
 
@@ -12,7 +12,11 @@ function emit(stream: SSEWriter, event: string, data: Record<string, unknown>) {
  * Executes a pipeline of jobs/steps via SSE, emitting events for each state change.
  * Returns the timestamp when the "create-branches" step started (for workflow polling).
  */
-export async function executeSetupPipeline(stream: SSEWriter, jobs: PipelineJob[], globalStart: number): Promise<{ branchCreatedAt: Date | null; failed: boolean }> {
+export async function executeSetupPipeline(
+  stream: SSEWriter,
+  jobs: PipelineJob[],
+  globalStart: number,
+): Promise<{ branchCreatedAt: Date | null; failed: boolean }> {
   let branchCreatedAt: Date | null = null;
 
   for (const job of jobs) {
@@ -32,14 +36,22 @@ export async function executeSetupPipeline(stream: SSEWriter, jobs: PipelineJob[
 
         const result = await step.fn();
         await emit(stream, "step", {
-          jobId: job.id, stepId: step.id, status: "success",
-          detail: result.detail, logs: result.logs, duration: Date.now() - stepStart,
+          jobId: job.id,
+          stepId: step.id,
+          status: "success",
+          detail: result.detail,
+          logs: result.logs,
+          duration: Date.now() - stepStart,
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
         await emit(stream, "step", {
-          jobId: job.id, stepId: step.id, status: "error",
-          detail: message, logs: [`Error: ${message}`], duration: Date.now() - stepStart,
+          jobId: job.id,
+          stepId: step.id,
+          status: "error",
+          detail: message,
+          logs: [`Error: ${message}`],
+          duration: Date.now() - stepStart,
         });
 
         // Skip remaining steps
@@ -51,10 +63,18 @@ export async function executeSetupPipeline(stream: SSEWriter, jobs: PipelineJob[
       }
     }
 
-    await emit(stream, "job", { jobId: job.id, status: jobFailed ? "error" : "success", duration: Date.now() - jobStart });
+    await emit(stream, "job", {
+      jobId: job.id,
+      status: jobFailed ? "error" : "success",
+      duration: Date.now() - jobStart,
+    });
 
     if (jobFailed) {
-      await emit(stream, "error", { error: "Pipeline failed", failedJob: job.id, totalDuration: Date.now() - globalStart });
+      await emit(stream, "error", {
+        error: "Pipeline failed",
+        failedJob: job.id,
+        totalDuration: Date.now() - globalStart,
+      });
       return { branchCreatedAt, failed: true };
     }
   }
@@ -75,7 +95,12 @@ export async function pollWorkflowRun(
   const deployJobId = "deploy-des";
 
   await emit(stream, "job", { jobId: deployJobId, status: "running" });
-  await emit(stream, "step", { jobId: deployJobId, stepId: "waiting-run", status: "running", detail: "Polling GitHub Actions..." });
+  await emit(stream, "step", {
+    jobId: deployJobId,
+    stepId: "waiting-run",
+    status: "running",
+    detail: "Polling GitHub Actions...",
+  });
 
   const searchFrom = branchCreatedAt ?? new Date(globalStart);
   const runId = await gh.waitForWorkflowRun(repo, "develop", searchFrom);
@@ -86,8 +111,11 @@ export async function pollWorkflowRun(
   }
 
   await emit(stream, "step", {
-    jobId: deployJobId, stepId: "waiting-run", status: "success",
-    detail: `Run #${runId}`, duration: Date.now() - (branchCreatedAt?.getTime() ?? globalStart),
+    jobId: deployJobId,
+    stepId: "waiting-run",
+    status: "success",
+    detail: `Run #${runId}`,
+    duration: Date.now() - (branchCreatedAt?.getTime() ?? globalStart),
   });
 
   // Poll until the run completes
@@ -108,28 +136,46 @@ export async function pollWorkflowRun(
       }
 
       const stepId = ghJobIdMap.get(ghJob.id)!;
-      const status = ghJob.status === "completed"
-        ? (ghJob.conclusion === "success" ? "success" : "error")
-        : ghJob.status === "in_progress" ? "running" : "pending";
+      const status =
+        ghJob.status === "completed"
+          ? ghJob.conclusion === "success"
+            ? "success"
+            : "error"
+          : ghJob.status === "in_progress"
+            ? "running"
+            : "pending";
 
       if (sentJobs.get(ghJob.id) !== status) {
         sentJobs.set(ghJob.id, status);
 
-        const duration = (ghJob.completed_at && ghJob.started_at)
-          ? new Date(ghJob.completed_at).getTime() - new Date(ghJob.started_at).getTime()
-          : undefined;
-
-        const detail = ghJob.conclusion === "success" && ghJob.steps
-          ? `${ghJob.steps.length} steps completed`
-          : ghJob.conclusion === "failure" && ghJob.steps
-            ? `Failed at: ${ghJob.steps.find((s) => s.conclusion === "failure")?.name ?? "unknown"}`
+        const duration =
+          ghJob.completed_at && ghJob.started_at
+            ? new Date(ghJob.completed_at).getTime() - new Date(ghJob.started_at).getTime()
             : undefined;
 
+        const detail =
+          ghJob.conclusion === "success" && ghJob.steps
+            ? `${ghJob.steps.length} steps completed`
+            : ghJob.conclusion === "failure" && ghJob.steps
+              ? `Failed at: ${ghJob.steps.find((s) => s.conclusion === "failure")?.name ?? "unknown"}`
+              : undefined;
+
         const logs = ghJob.steps?.map((s) => {
-          const icon = s.conclusion === "success" ? "✓" : s.conclusion === "failure" ? "✗" : s.status === "in_progress" ? "●" : "○";
-          const dur = (s.completed_at && s.started_at)
-            ? (() => { const ms = new Date(s.completed_at).getTime() - new Date(s.started_at).getTime(); return ms < 1000 ? ` (${ms}ms)` : ` (${(ms / 1000).toFixed(1)}s)`; })()
-            : "";
+          const icon =
+            s.conclusion === "success"
+              ? "✓"
+              : s.conclusion === "failure"
+                ? "✗"
+                : s.status === "in_progress"
+                  ? "●"
+                  : "○";
+          const dur =
+            s.completed_at && s.started_at
+              ? (() => {
+                  const ms = new Date(s.completed_at).getTime() - new Date(s.started_at).getTime();
+                  return ms < 1000 ? ` (${ms}ms)` : ` (${(ms / 1000).toFixed(1)}s)`;
+                })()
+              : "";
           return `${icon} ${s.name}${dur}`;
         });
 
@@ -147,9 +193,10 @@ export async function pollWorkflowRun(
 
   // Final run status
   const finalRun = await gh.getWorkflowRun(repo, runId);
-  const ghRunDuration = (finalRun.updated_at && finalRun.run_started_at)
-    ? new Date(finalRun.updated_at).getTime() - new Date(finalRun.run_started_at).getTime()
-    : undefined;
+  const ghRunDuration =
+    finalRun.updated_at && finalRun.run_started_at
+      ? new Date(finalRun.updated_at).getTime() - new Date(finalRun.run_started_at).getTime()
+      : undefined;
 
   const success = lastRunStatus === "success";
   await emit(stream, "job", { jobId: deployJobId, status: success ? "success" : "error", duration: ghRunDuration });
@@ -157,7 +204,8 @@ export async function pollWorkflowRun(
   if (!success) {
     await emit(stream, "error", {
       error: `GitHub Actions workflow ${lastRunStatus || "timed out"}`,
-      failedJob: deployJobId, totalDuration: Date.now() - globalStart,
+      failedJob: deployJobId,
+      totalDuration: Date.now() - globalStart,
     });
     return null;
   }
@@ -166,7 +214,13 @@ export async function pollWorkflowRun(
 }
 
 async function emitDeployError(stream: SSEWriter, message: string, globalStart: number) {
-  await emit(stream, "step", { jobId: "deploy-des", stepId: "waiting-run", status: "error", detail: message, logs: [`Error: ${message}`] });
+  await emit(stream, "step", {
+    jobId: "deploy-des",
+    stepId: "waiting-run",
+    status: "error",
+    detail: message,
+    logs: [`Error: ${message}`],
+  });
   await emit(stream, "job", { jobId: "deploy-des", status: "error" });
   await emit(stream, "error", { error: message, failedJob: "deploy-des", totalDuration: Date.now() - globalStart });
 }

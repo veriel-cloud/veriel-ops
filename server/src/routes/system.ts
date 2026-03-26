@@ -9,7 +9,12 @@ async function checkService(name: string, fn: () => Promise<unknown>) {
     await fn();
     return { name, status: "connected", message: "OK", latency: Date.now() - start };
   } catch (error) {
-    return { name, status: "error", message: error instanceof Error ? error.message : "Unknown", latency: Date.now() - start };
+    return {
+      name,
+      status: "error",
+      message: error instanceof Error ? error.message : "Unknown",
+      latency: Date.now() - start,
+    };
   }
 }
 

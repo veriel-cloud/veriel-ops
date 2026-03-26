@@ -1,5 +1,5 @@
-import type { WebhookEvent } from "../types.js";
 import { MAX_WEBHOOK_EVENTS } from "../constants.js";
+import type { WebhookEvent } from "../types.js";
 
 const events: WebhookEvent[] = [];
 let lastUpdated = "";

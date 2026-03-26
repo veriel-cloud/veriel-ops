@@ -1,5 +1,4 @@
 import { Octokit } from "octokit";
-import type { GitHubConfig } from "../types.js";
 import {
   DEFAULT_COVERAGE_THRESHOLD,
   PER_PAGE_REPOS,
@@ -10,6 +9,7 @@ import {
   WORKFLOW_POLL_INTERVAL_MS,
   WORKFLOW_POLL_TIMEOUT_MS,
 } from "../constants.js";
+import type { GitHubConfig } from "../types.js";
 
 export function createGitHubService(config: GitHubConfig) {
   const octokit = new Octokit({ auth: config.token });
@@ -20,8 +20,7 @@ export function createGitHubService(config: GitHubConfig) {
   const listOrgRepos = () =>
     octokit.rest.repos.listForOrg({ org, sort: "updated", per_page: PER_PAGE_REPOS }).then((r) => r.data);
 
-  const getRepo = (name: string) =>
-    octokit.rest.repos.get({ owner: org, repo: name }).then((r) => r.data);
+  const getRepo = (name: string) => octokit.rest.repos.get({ owner: org, repo: name }).then((r) => r.data);
 
   const getRepoBranches = (name: string) =>
     octokit.rest.repos.listBranches({ owner: org, repo: name, per_page: PER_PAGE_REPOS }).then((r) => r.data);
@@ -29,10 +28,14 @@ export function createGitHubService(config: GitHubConfig) {
   // ─── Workflow runs ────────────────────────────────────────────
 
   const getWorkflowRuns = (repo: string, perPage = PER_PAGE_RUNS) =>
-    octokit.rest.actions.listWorkflowRunsForRepo({ owner: org, repo, per_page: perPage }).then((r) => r.data.workflow_runs);
+    octokit.rest.actions
+      .listWorkflowRunsForRepo({ owner: org, repo, per_page: perPage })
+      .then((r) => r.data.workflow_runs);
 
   const getWorkflowRunsByBranch = (repo: string, branch: string, perPage = 5) =>
-    octokit.rest.actions.listWorkflowRunsForRepo({ owner: org, repo, branch, per_page: perPage }).then((r) => r.data.workflow_runs);
+    octokit.rest.actions
+      .listWorkflowRunsForRepo({ owner: org, repo, branch, per_page: perPage })
+      .then((r) => r.data.workflow_runs);
 
   const getWorkflowRun = (repo: string, runId: number) =>
     octokit.rest.actions.getWorkflowRun({ owner: org, repo, run_id: runId }).then((r) => r.data);
@@ -79,7 +82,11 @@ export function createGitHubService(config: GitHubConfig) {
 
   async function addFileToRepo(repo: string, path: string, content: string, message: string, branch = "main") {
     await octokit.rest.repos.createOrUpdateFileContents({
-      owner: org, repo, path, message, branch,
+      owner: org,
+      repo,
+      path,
+      message,
+      branch,
       content: btoa(content),
     });
   }
@@ -95,16 +102,29 @@ export function createGitHubService(config: GitHubConfig) {
 
   async function createWebhook(repo: string, webhookUrl: string, secret: string) {
     await octokit.rest.repos.createWebhook({
-      owner: org, repo, active: true,
+      owner: org,
+      repo,
+      active: true,
       config: { url: `${webhookUrl}/api/webhooks/github`, content_type: "json", secret },
       events: WEBHOOK_GITHUB_EVENTS,
     });
   }
 
   return {
-    listOrgRepos, getRepo, getRepoBranches,
-    getWorkflowRuns, getWorkflowRunsByBranch, getWorkflowRun, getWorkflowRunJobs, waitForWorkflowRun,
-    createRepo, createBranch, addFileToRepo, addWorkflowCallers, dispatchWorkflow, createWebhook,
+    listOrgRepos,
+    getRepo,
+    getRepoBranches,
+    getWorkflowRuns,
+    getWorkflowRunsByBranch,
+    getWorkflowRun,
+    getWorkflowRunJobs,
+    waitForWorkflowRun,
+    createRepo,
+    createBranch,
+    addFileToRepo,
+    addWorkflowCallers,
+    dispatchWorkflow,
+    createWebhook,
   };
 }
 
@@ -116,7 +136,7 @@ function buildWorkflowCallerFiles(org: string, projectName: string) {
   return [
     {
       path: ".github/workflows/ci.yml",
-      content: [
+      content: `${[
         "name: CI",
         "on:",
         "  pull_request:",
@@ -126,11 +146,11 @@ function buildWorkflowCallerFiles(org: string, projectName: string) {
         `    uses: ${uses("ci.yml")}`,
         "    with:",
         `      coverage_threshold: ${DEFAULT_COVERAGE_THRESHOLD}`,
-      ].join("\n") + "\n",
+      ].join("\n")}\n`,
     },
     {
       path: ".github/workflows/deploy-des.yml",
-      content: [
+      content: `${[
         "name: Deploy DES",
         "on:",
         "  push:",
@@ -141,11 +161,11 @@ function buildWorkflowCallerFiles(org: string, projectName: string) {
         "    with:",
         `      project_name: "${projectName}"`,
         "    secrets: inherit",
-      ].join("\n") + "\n",
+      ].join("\n")}\n`,
     },
     {
       path: ".github/workflows/deploy-pre.yml",
-      content: [
+      content: `${[
         "name: Deploy PRE",
         "on:",
         "  push:",
@@ -160,11 +180,11 @@ function buildWorkflowCallerFiles(org: string, projectName: string) {
         `      project_name: "${projectName}"`,
         `      coverage_threshold: ${DEFAULT_COVERAGE_THRESHOLD}`,
         "    secrets: inherit",
-      ].join("\n") + "\n",
+      ].join("\n")}\n`,
     },
     {
       path: ".github/workflows/deploy-pro.yml",
-      content: [
+      content: `${[
         "name: Deploy PRO",
         "on:",
         "  push:",
@@ -183,11 +203,11 @@ function buildWorkflowCallerFiles(org: string, projectName: string) {
         `      project_name: "${projectName}"`,
         `      coverage_threshold: ${DEFAULT_COVERAGE_THRESHOLD}`,
         "    secrets: inherit",
-      ].join("\n") + "\n",
+      ].join("\n")}\n`,
     },
     {
       path: ".github/workflows/rollback.yml",
-      content: [
+      content: `${[
         "name: Rollback",
         "on:",
         "  workflow_dispatch:",
@@ -209,7 +229,7 @@ function buildWorkflowCallerFiles(org: string, projectName: string) {
         "      environment: ${{ inputs.environment }}",
         "      build_artifact: ${{ inputs.build_artifact }}",
         "    secrets: inherit",
-      ].join("\n") + "\n",
+      ].join("\n")}\n`,
     },
   ];
 }

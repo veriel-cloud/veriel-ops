@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { addEvent } from "../services/webhook-cache.js";
 import type { Env } from "../env.js";
+import { addEvent } from "../services/webhook-cache.js";
 
 export const webhooksRoutes = new Hono<Env>();
 

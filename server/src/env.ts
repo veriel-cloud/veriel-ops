@@ -1,5 +1,5 @@
-import type { GitHubService } from "./services/github.js";
 import type { CloudflareService } from "./services/cloudflare.js";
+import type { GitHubService } from "./services/github.js";
 import type { R2Service } from "./services/r2.js";
 
 export interface Bindings {

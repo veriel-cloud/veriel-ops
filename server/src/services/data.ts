@@ -1,8 +1,17 @@
-import type { GitHubService } from "./github.js";
-import type { CloudflareService } from "./cloudflare.js";
-import type { R2Service } from "./r2.js";
-import type { BuildArtifact, DeployEntry, DeployStatus, Environment, HealthStatus, PagesDeployment, Project, SystemStats } from "../types.js";
 import { DEFAULT_COVERAGE_THRESHOLD, urlForEnv } from "../constants.js";
+import type {
+  BuildArtifact,
+  DeployEntry,
+  DeployStatus,
+  Environment,
+  HealthStatus,
+  PagesDeployment,
+  Project,
+  SystemStats,
+} from "../types.js";
+import type { CloudflareService } from "./cloudflare.js";
+import type { GitHubService } from "./github.js";
+import type { R2Service } from "./r2.js";
 
 export interface Services {
   github: GitHubService;
@@ -13,7 +22,7 @@ export interface Services {
 // ─── Queries ──────────────────────────────────────────────────────────
 
 export async function getProjects(s: Services): Promise<Project[]> {
-  const [repos, pagesProjects, allBuilds] = await Promise.all([
+  const [repos, pagesProjects, _allBuilds] = await Promise.all([
     s.github.listOrgRepos(),
     s.cloudflare.listPagesProjects().catch(() => []),
     s.r2.listAllProjectBuilds().catch(() => []),
@@ -125,16 +134,16 @@ export async function getDeploys(s: Services): Promise<DeployEntry[]> {
 }
 
 export async function getSystemStats(s: Services): Promise<SystemStats> {
-  const [projects, allBuilds] = await Promise.all([
-    getProjects(s),
-    s.r2.listAllProjectBuilds().catch(() => []),
-  ]);
+  const [projects, allBuilds] = await Promise.all([getProjects(s), s.r2.listAllProjectBuilds().catch(() => [])]);
 
   return {
     totalProjects: projects.length,
     totalDeploys: 0,
     avgCoverage: 0,
-    activeEnvironments: projects.reduce((n, p) => n + Object.values(p.environments).filter((e) => e.status !== "idle").length, 0),
+    activeEnvironments: projects.reduce(
+      (n, p) => n + Object.values(p.environments).filter((e) => e.status !== "idle").length,
+      0,
+    ),
     successRate: 0,
     buildsStored: allBuilds.length,
   };

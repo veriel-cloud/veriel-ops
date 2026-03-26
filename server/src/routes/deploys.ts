@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { getDeploys } from "../services/data.js";
 import type { Env } from "../env.js";
+import { getDeploys } from "../services/data.js";
 
 export const deploysRoutes = new Hono<Env>();
 

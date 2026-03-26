@@ -27,8 +27,7 @@ export function createR2Service(config: R2Config) {
     listBuilds: (project: string, environment?: string) =>
       listObjects(environment ? `${project}/${environment}/` : `${project}/`),
 
-    listAllProjectBuilds: () =>
-      listObjects(),
+    listAllProjectBuilds: () => listObjects(),
 
     async downloadBuild(project: string, environment: string, artifact: string) {
       const url = new URL(`/${bucketName}/${project}/${environment}/${artifact}`, endpoint);
@@ -44,9 +43,8 @@ export function createR2Service(config: R2Config) {
 function parseS3ListResponse(xml: string): BuildInfo[] {
   const builds: BuildInfo[] = [];
   const blockRegex = /<Contents>([\s\S]*?)<\/Contents>/g;
-  let match;
 
-  while ((match = blockRegex.exec(xml)) !== null) {
+  for (let match = blockRegex.exec(xml); match !== null; match = blockRegex.exec(xml)) {
     const block = match[1];
     const key = tag(block, "Key");
     if (!key || key.endsWith("/")) continue;

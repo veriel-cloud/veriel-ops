@@ -1,7 +1,7 @@
-import type { GitHubService } from "./github.js";
-import type { CloudflareService } from "./cloudflare.js";
+import { DEFAULT_PROJECT_TYPE, domainForEnv } from "../constants.js";
 import type { PipelineJob } from "../types.js";
-import { domainForEnv, DEFAULT_PROJECT_TYPE } from "../constants.js";
+import type { CloudflareService } from "./cloudflare.js";
+import type { GitHubService } from "./github.js";
 
 interface PipelineContext {
   name: string;
@@ -75,7 +75,11 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
             await gh.createBranch(name, "develop", "main");
             return {
               detail: "develop ← main",
-              logs: ["Fetching main branch SHA...", "Creating branch develop from main...", "Branch develop created successfully."],
+              logs: [
+                "Fetching main branch SHA...",
+                "Creating branch develop from main...",
+                "Branch develop created successfully.",
+              ],
             };
           },
         },
@@ -137,7 +141,12 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
             await gh.createWebhook(name, webhookUrl, webhookSecret);
             return {
               detail: "Webhook active",
-              logs: [`Creating webhook for ${org}/${name}...`, `URL: ${webhookUrl}`, "Events: push, workflow_run, pull_request, create", "Webhook created and active."],
+              logs: [
+                `Creating webhook for ${org}/${name}...`,
+                `URL: ${webhookUrl}`,
+                "Events: push, workflow_run, pull_request, create",
+                "Webhook created and active.",
+              ],
             };
           },
         },

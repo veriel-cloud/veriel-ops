@@ -1,11 +1,11 @@
 import { Hono } from "hono";
-import { streamSSE } from "hono/streaming";
 import { env } from "hono/adapter";
-import { getProjects, getProjectDetail } from "../services/data.js";
+import { streamSSE } from "hono/streaming";
+import { DEFAULT_ORG, domainForEnv } from "../constants.js";
+import type { Env } from "../env.js";
+import { getProjectDetail, getProjects } from "../services/data.js";
 import { buildSetupPipeline } from "../services/pipeline.js";
 import { executeSetupPipeline, pollWorkflowRun } from "../services/sse.js";
-import { domainForEnv, DEFAULT_ORG } from "../constants.js";
-import type { Env } from "../env.js";
 
 export const projectsRoutes = new Hono<Env>();
 
@@ -49,17 +49,20 @@ projectsRoutes.post("/", async (c) => {
     await gh.createWebhook(name, e.WEBHOOK_URL, e.GITHUB_WEBHOOK_SECRET);
   }
 
-  return c.json({
-    success: true,
-    project: {
-      name,
-      repo: repo.full_name,
-      urls: { des: `https://${domainForEnv(name, "des", customDomain)}` },
-      github: repo.html_url,
-      pages: pages.subdomain,
-      dns: [dnsRecord.name],
+  return c.json(
+    {
+      success: true,
+      project: {
+        name,
+        repo: repo.full_name,
+        urls: { des: `https://${domainForEnv(name, "des", customDomain)}` },
+        github: repo.html_url,
+        pages: pages.subdomain,
+        dns: [dnsRecord.name],
+      },
     },
-  }, 201);
+    201,
+  );
 });
 
 // ─── Create with SSE ──────────────────────────────────────────────────
@@ -76,7 +79,8 @@ projectsRoutes.post("/create-stream", async (c) => {
 
   const { jobs } = buildSetupPipeline(
     { name, type, description, customDomain, org, webhookUrl: e.WEBHOOK_URL, webhookSecret: e.GITHUB_WEBHOOK_SECRET },
-    gh, cf,
+    gh,
+    cf,
   );
 
   return streamSSE(c, async (stream) => {
@@ -84,8 +88,18 @@ projectsRoutes.post("/create-stream", async (c) => {
 
     // Send init with all jobs + deploy placeholder
     const initJobs = [
-      ...jobs.map((j) => ({ id: j.id, label: j.label, status: "pending" as const, steps: j.steps.map((s) => ({ id: s.id, label: s.label, status: "pending" as const })) })),
-      { id: "deploy-des", label: "Deploy DES (GitHub Actions)", status: "pending" as const, steps: [{ id: "waiting-run", label: "Waiting for workflow run...", status: "pending" as const }] },
+      ...jobs.map((j) => ({
+        id: j.id,
+        label: j.label,
+        status: "pending" as const,
+        steps: j.steps.map((s) => ({ id: s.id, label: s.label, status: "pending" as const })),
+      })),
+      {
+        id: "deploy-des",
+        label: "Deploy DES (GitHub Actions)",
+        status: "pending" as const,
+        steps: [{ id: "waiting-run", label: "Waiting for workflow run...", status: "pending" as const }],
+      },
     ];
 
     await stream.writeSSE({ event: "init", data: JSON.stringify({ title: `Deploy ${name}`, jobs: initJobs }) });
@@ -106,12 +120,21 @@ projectsRoutes.post("/create-stream", async (c) => {
           totalDuration: Date.now() - globalStart,
           ghRunId: result.runId,
           ghRunUrl: result.htmlUrl,
-          project: { name, repo: `${org}/${name}`, urls: { des: `https://${desDomain}` }, github: `https://github.com/${org}/${name}`, commit: result.commit },
+          project: {
+            name,
+            repo: `${org}/${name}`,
+            urls: { des: `https://${desDomain}` },
+            github: `https://github.com/${org}/${name}`,
+            commit: result.commit,
+          },
         }),
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
-      await stream.writeSSE({ event: "error", data: JSON.stringify({ error: message, failedJob: "deploy-des", totalDuration: Date.now() - globalStart }) });
+      await stream.writeSSE({
+        event: "error",
+        data: JSON.stringify({ error: message, failedJob: "deploy-des", totalDuration: Date.now() - globalStart }),
+      });
     }
   });
 });
@@ -120,7 +143,11 @@ projectsRoutes.post("/create-stream", async (c) => {
 
 projectsRoutes.get("/:name", async (c) => {
   const detail = await getProjectDetail(c.req.param("name"), services(c));
-  return c.json({ project: { ...detail.project, workflowRuns: detail.workflowRuns }, deploys: detail.deploys, builds: detail.builds });
+  return c.json({
+    project: { ...detail.project, workflowRuns: detail.workflowRuns },
+    deploys: detail.deploys,
+    builds: detail.builds,
+  });
 });
 
 projectsRoutes.get("/:name/deploys", async (c) => {
