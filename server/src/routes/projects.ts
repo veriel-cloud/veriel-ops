@@ -228,6 +228,53 @@ projectsRoutes.post("/:name/rollback", async (c) => {
   return c.json({ success: true, action: "rollback", project: name, environment, buildArtifact });
 });
 
+// ─── DNS / Domains ───────────────────────────────────────────────────
+
+projectsRoutes.get("/:name/dns", async (c) => {
+  const name = c.req.param("name");
+  const cf = c.get("cloudflare");
+  const records = await cf.listDnsRecords();
+  const projectRecords = records.filter((r) => r.name.includes(name));
+  return c.json({ records: projectRecords });
+});
+
+projectsRoutes.put("/:name/domain", async (c) => {
+  const name = c.req.param("name");
+  const { customDomain } = await c.req.json();
+  if (!customDomain) return c.json({ error: "customDomain is required" }, 400);
+
+  const log = c.get("logger");
+  const cf = c.get("cloudflare");
+  log.info({ project: name, customDomain }, "setting up custom domain");
+
+  const results: { env: string; domain: string }[] = [];
+
+  for (const env of ["des", "pre", "pro"] as const) {
+    try {
+      const pagesName = pagesProjectName(name, env);
+      const pages = await cf.getPagesProject(pagesName).catch(() => null);
+      if (!pages) continue;
+
+      const { domain } = await cf.setupEnvDns(name, env, pages.subdomain, customDomain);
+      results.push({ env, domain });
+    } catch (err) {
+      log.warn(
+        { project: name, env, error: err instanceof Error ? err.message : "unknown" },
+        "domain setup failed for env",
+      );
+    }
+  }
+
+  return c.json({ success: true, domains: results });
+});
+
+projectsRoutes.delete("/:name/domain/:recordId", async (c) => {
+  const recordId = c.req.param("recordId");
+  c.get("logger").info({ recordId }, "deleting DNS record");
+  await c.get("cloudflare").deleteDnsRecord(recordId);
+  return c.json({ success: true });
+});
+
 // ─── Settings ────────────────────────────────────────────────────────
 
 projectsRoutes.put("/:name/settings", async (c) => {

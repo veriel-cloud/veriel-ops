@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { PromoteModal } from "@/components/PromoteModal";
 import { RollbackModal } from "@/components/RollbackModal";
 import { ConfirmDeleteModal } from "@/components/ConfirmDeleteModal";
+import { DomainManager } from "@/components/DomainManager";
 import { StatusDot } from "@/components/StatusDot";
 import { WorkflowLogViewer } from "@/components/WorkflowLogViewer";
 import { Button } from "@/components/ui/Button";
@@ -475,11 +476,8 @@ export function ProjectDetail() {
                           </Button>
                         </div>
                       </div>
-                      <div className="border-t border-[var(--color-border)] pt-4 flex justify-between items-center">
-                        <div>
-                          <p className="text-[13px] text-[var(--color-text-primary)]">Domain</p>
-                          <p className="text-[11px] text-[var(--color-text-quaternary)]">{project.domain}</p>
-                        </div>
+                      <div className="border-t border-[var(--color-border)] pt-4">
+                        <DomainManager projectName={name!} currentDomain={project.domain} />
                       </div>
                       <div className="border-t border-[var(--color-border)] pt-4 flex justify-between items-center">
                         <div>
