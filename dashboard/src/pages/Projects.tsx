@@ -34,9 +34,14 @@ export function Projects() {
         title="Projects"
         description={`${allProjects.length} project${allProjects.length !== 1 ? "s" : ""}`}
         actions={
-          <Link to="/projects/new">
-            <Button size="sm">New Project</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/projects/import">
+              <Button variant="secondary" size="sm">Import</Button>
+            </Link>
+            <Link to="/projects/new">
+              <Button size="sm">New Project</Button>
+            </Link>
+          </div>
         }
       />
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { DeployModal } from "@/components/DeployModal";
@@ -8,6 +8,7 @@ import { EnvironmentCompare } from "@/components/EnvironmentCompare";
 import { Header } from "@/components/Header";
 import { PromoteModal } from "@/components/PromoteModal";
 import { RollbackModal } from "@/components/RollbackModal";
+import { ConfirmDeleteModal } from "@/components/ConfirmDeleteModal";
 import { StatusDot } from "@/components/StatusDot";
 import { WorkflowLogViewer } from "@/components/WorkflowLogViewer";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +17,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton, SkeletonTable } from "@/components/ui/Skeleton";
 import { Tabs } from "@/components/ui/Tabs";
 import { useFetch } from "@/hooks/useFetch";
+import { api } from "@/lib/api";
 import { cn, timeAgo } from "@/lib/utils";
 
 export function ProjectDetail() {
@@ -25,6 +27,9 @@ export function ProjectDetail() {
   const [showRollback, setShowRollback] = useState(false);
   const [showDeploy, setShowDeploy] = useState(false);
   const [selectedRun, setSelectedRun] = useState<any>(null);
+  const [showDelete, setShowDelete] = useState(false);
+  const [coverageThreshold, setCoverageThreshold] = useState(80);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const { data, loading, error, refetch } = useFetch<{ project: any; deploys: any[]; builds: any[] }>(
     `/api/projects/${name}`,
@@ -34,6 +39,11 @@ export function ProjectDetail() {
   );
 
   const project = data?.project;
+
+  useEffect(() => {
+    if (project?.coverageThreshold) setCoverageThreshold(project.coverageThreshold);
+  }, [project?.coverageThreshold]);
+
   const deploys = data?.deploys ?? [];
   const builds = buildsData?.builds ?? [];
   const workflowRuns = project?.workflowRuns ?? [];
@@ -428,51 +438,82 @@ export function ProjectDetail() {
 
               {/* Settings tab */}
               {activeTab === "settings" && (
-                <Card>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-[13px] text-[var(--color-text-primary)]">Coverage threshold</p>
-                        <p className="text-[11px] text-[var(--color-text-quaternary)]">
-                          Minimum coverage to deploy to PRE/PRO
-                        </p>
+                <div className="space-y-4">
+                  <Card>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <div className="flex-1 mr-4">
+                          <p className="text-[13px] text-[var(--color-text-primary)]">Coverage threshold</p>
+                          <p className="text-[11px] text-[var(--color-text-quaternary)]">
+                            Minimum coverage to deploy to PRE/PRO
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={coverageThreshold}
+                            onChange={(e) => setCoverageThreshold(parseInt(e.target.value, 10) || 0)}
+                            className="w-16 h-8 px-2 rounded-md text-[13px] font-mono text-center bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-text-quaternary)]"
+                          />
+                          <span className="text-[13px] text-[var(--color-text-quaternary)]">%</span>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            loading={savingSettings}
+                            onClick={async () => {
+                              setSavingSettings(true);
+                              try {
+                                await api.put(`/projects/${name}/settings`, { coverageThreshold });
+                              } finally {
+                                setSavingSettings(false);
+                              }
+                            }}
+                          >
+                            Save
+                          </Button>
+                        </div>
                       </div>
-                      <span className="text-[13px] font-mono text-[var(--color-text-secondary)]">80%</span>
-                    </div>
-                    <div className="border-t border-[var(--color-border)] pt-4 flex justify-between items-center">
-                      <div>
-                        <p className="text-[13px] text-[var(--color-text-primary)]">Domain</p>
-                        <p className="text-[11px] text-[var(--color-text-quaternary)]">{project.domain}</p>
+                      <div className="border-t border-[var(--color-border)] pt-4 flex justify-between items-center">
+                        <div>
+                          <p className="text-[13px] text-[var(--color-text-primary)]">Domain</p>
+                          <p className="text-[11px] text-[var(--color-text-quaternary)]">{project.domain}</p>
+                        </div>
+                      </div>
+                      <div className="border-t border-[var(--color-border)] pt-4 flex justify-between items-center">
+                        <div>
+                          <p className="text-[13px] text-[var(--color-text-primary)]">Repository</p>
+                          <p className="text-[11px] text-[var(--color-text-quaternary)]">{project.repo}</p>
+                        </div>
+                        <a href={`https://github.com/${project.repo}`} target="_blank" rel="noopener">
+                          <Button variant="ghost" size="sm">
+                            Open →
+                          </Button>
+                        </a>
                       </div>
                     </div>
-                    <div className="border-t border-[var(--color-border)] pt-4 flex justify-between items-center">
-                      <div>
-                        <p className="text-[13px] text-[var(--color-text-primary)]">Repository</p>
-                        <p className="text-[11px] text-[var(--color-text-quaternary)]">{project.repo}</p>
-                      </div>
-                      <a href={`https://github.com/${project.repo}`} target="_blank" rel="noopener">
-                        <Button variant="ghost" size="sm">
-                          Open →
-                        </Button>
-                      </a>
+                  </Card>
+                  <Card>
+                    <div>
+                      <p className="text-[13px] text-[var(--color-error-text)]">Danger zone</p>
+                      <p className="text-[11px] text-[var(--color-text-quaternary)] mt-1">
+                        Archive the repository and remove DNS records. This cannot be undone.
+                      </p>
                     </div>
-                    <div className="border-t border-[var(--color-border)] pt-4">
-                      <div>
-                        <p className="text-[13px] text-[var(--color-error-text)]">Danger zone</p>
-                        <p className="text-[11px] text-[var(--color-text-quaternary)] mt-1">
-                          Permanently delete this project and all its data
-                        </p>
-                      </div>
-                      <Button variant="danger" size="sm" className="mt-3">
-                        Delete project
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
+                    <Button variant="danger" size="sm" className="mt-3" onClick={() => setShowDelete(true)}>
+                      Delete project
+                    </Button>
+                  </Card>
+                </div>
               )}
             </div>
           </>
         )
+      )}
+
+      {name && (
+        <ConfirmDeleteModal open={showDelete} onClose={() => setShowDelete(false)} projectName={name} />
       )}
 
       {selectedRun && name && (

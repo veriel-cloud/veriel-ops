@@ -152,6 +152,12 @@ export interface PipelineJob {
   steps: PipelineStep[];
 }
 
+// ─── Project settings (persisted) ────────────────────────────────────
+
+export interface ProjectSettings {
+  coverageThreshold: number;
+}
+
 // ─── Service configs ──────────────────────────────────────────────────
 
 export interface GitHubConfig {

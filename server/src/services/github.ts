@@ -108,6 +108,11 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
   const dispatchWorkflow = (repo: string, workflowId: string, inputs: Record<string, string>, ref = "main") =>
     octokit.rest.actions.createWorkflowDispatch({ owner: org, repo, workflow_id: workflowId, ref, inputs });
 
+  async function archiveRepo(name: string) {
+    logger?.info({ repo: name }, "archiving repository");
+    await octokit.rest.repos.update({ owner: org, repo: name, archived: true });
+  }
+
   async function createWebhook(repo: string, webhookUrl: string, secret: string) {
     logger?.info({ repo }, "creating webhook");
     await octokit.rest.repos.createWebhook({
@@ -133,6 +138,7 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     addFileToRepo,
     addWorkflowCallers,
     dispatchWorkflow,
+    archiveRepo,
     createWebhook,
   };
 }

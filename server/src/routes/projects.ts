@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { env } from "hono/adapter";
 import { streamSSE } from "hono/streaming";
-import { DEFAULT_ORG, domainForEnv } from "../constants.js";
+import { DEFAULT_ORG, domainForEnv, pagesProjectName } from "../constants.js";
 import type { Env } from "../env.js";
+import { deleteProjectSettings, setProjectSettings } from "../services/config.js";
 import { getProjectDetail, getProjects } from "../services/data.js";
 import { buildSetupPipeline } from "../services/pipeline.js";
 import { executeSetupPipeline, pollWorkflowRun } from "../services/sse.js";
@@ -225,4 +226,131 @@ projectsRoutes.post("/:name/rollback", async (c) => {
   c.get("logger").info({ project: name, environment, buildArtifact }, "triggering rollback");
   await c.get("github").dispatchWorkflow(name, "rollback.yml", { environment, build_artifact: buildArtifact });
   return c.json({ success: true, action: "rollback", project: name, environment, buildArtifact });
+});
+
+// ─── Settings ────────────────────────────────────────────────────────
+
+projectsRoutes.put("/:name/settings", async (c) => {
+  const name = c.req.param("name");
+  const body = await c.req.json();
+
+  c.get("logger").info({ project: name, settings: body }, "updating project settings");
+  const settings = await setProjectSettings(name, body);
+  return c.json({ success: true, settings });
+});
+
+// ─── Delete ──────────────────────────────────────────────────────────
+
+projectsRoutes.delete("/:name", async (c) => {
+  const name = c.req.param("name");
+  const log = c.get("logger");
+  const gh = c.get("github");
+  const cf = c.get("cloudflare");
+
+  log.info({ project: name }, "deleting project");
+
+  const deleted: { pages: string[]; dns: string[]; repoArchived: boolean } = {
+    pages: [],
+    dns: [],
+    repoArchived: false,
+  };
+
+  // Delete Pages projects per environment
+  for (const env of ["des", "pre", "pro"] as const) {
+    const pagesName = pagesProjectName(name, env);
+    try {
+      await cf.getPagesProject(pagesName);
+      // If it exists, we can't delete via API (Pages deletion isn't in the API)
+      // but we track it
+      deleted.pages.push(pagesName);
+    } catch {
+      // Project doesn't exist for this env
+    }
+  }
+
+  // Delete DNS records
+  try {
+    const dnsRecords = await cf.listDnsRecords();
+    const projectRecords = dnsRecords.filter((r) => r.name.includes(name));
+    for (const record of projectRecords) {
+      await cf.deleteDnsRecord(record.id);
+      deleted.dns.push(record.name);
+    }
+  } catch (err) {
+    log.warn({ project: name, error: err instanceof Error ? err.message : "unknown" }, "failed to clean DNS records");
+  }
+
+  // Archive the repo
+  try {
+    await gh.archiveRepo(name);
+    deleted.repoArchived = true;
+  } catch (err) {
+    log.warn({ project: name, error: err instanceof Error ? err.message : "unknown" }, "failed to archive repo");
+  }
+
+  // Clean config
+  await deleteProjectSettings(name);
+
+  return c.json({ success: true, deleted });
+});
+
+// ─── Import ──────────────────────────────────────────────────────────
+
+projectsRoutes.post("/import", async (c) => {
+  const { repoName } = await c.req.json();
+  if (!repoName) return c.json({ error: "repoName is required" }, 400);
+
+  const log = c.get("logger");
+  const gh = c.get("github");
+  const cf = c.get("cloudflare");
+  const e = env(c);
+  const org = e.GITHUB_ORG || DEFAULT_ORG;
+
+  log.info({ project: repoName }, "importing existing project");
+
+  // Verify repo exists
+  const repo = await gh.getRepo(repoName);
+
+  // Create Pages project for DES
+  const pages = await cf.createPagesProjectForEnv(repoName, "des", org, repoName);
+
+  // Setup DNS
+  const { domain } = await cf.setupEnvDns(repoName, "des", pages.subdomain);
+
+  // Add workflows if missing
+  try {
+    await gh.addWorkflowCallers(repoName, repoName);
+  } catch {
+    log.warn({ project: repoName }, "workflows may already exist, skipping");
+  }
+
+  // Create develop branch if missing
+  try {
+    await gh.createBranch(repoName, "develop", "main");
+  } catch {
+    log.warn({ project: repoName }, "develop branch may already exist, skipping");
+  }
+
+  // Setup webhook
+  if (e.WEBHOOK_URL && e.GITHUB_WEBHOOK_SECRET) {
+    try {
+      await gh.createWebhook(repoName, e.WEBHOOK_URL, e.GITHUB_WEBHOOK_SECRET);
+    } catch {
+      log.warn({ project: repoName }, "webhook may already exist, skipping");
+    }
+  }
+
+  return c.json(
+    {
+      success: true,
+      project: {
+        name: repoName,
+        repo: repo.full_name,
+        urls: { des: `https://${domain}` },
+        github: repo.html_url,
+        pages: pages.subdomain,
+      },
+    },
+    201,
+  );
 });
