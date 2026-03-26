@@ -1,6 +1,8 @@
 import type { GitHubService } from "./github.js";
 import type { CloudflareService } from "./cloudflare.js";
 import type { R2Service } from "./r2.js";
+import type { BuildArtifact, DeployEntry, DeployStatus, Environment, HealthStatus, PagesDeployment, Project, SystemStats } from "../types.js";
+import { DEFAULT_COVERAGE_THRESHOLD, urlForEnv } from "../constants.js";
 
 export interface Services {
   github: GitHubService;
@@ -8,58 +10,7 @@ export interface Services {
   r2: R2Service;
 }
 
-type Environment = "des" | "pre" | "pro";
-type HealthStatus = "healthy" | "degraded" | "down" | "idle";
-type DeployAction = "deploy" | "rollback" | "promote";
-
-interface Project {
-  name: string;
-  type: string;
-  repo: string;
-  domain: string;
-  customDomain: boolean;
-  coverage: number;
-  coverageThreshold: number;
-  environments: Record<Environment, { version: string | null; commitSha: string | null; url: string; status: HealthStatus; lastDeployAt: string | null }>;
-  createdAt: string;
-}
-
-interface DeployEntry {
-  id: string;
-  project: string;
-  environment: Environment;
-  version: string;
-  commitSha: string;
-  branch: string;
-  timestamp: string;
-  coverage: number;
-  duration: number;
-  action: DeployAction;
-  triggeredBy: string;
-  status: "success" | "failed" | "in_progress";
-}
-
-interface BuildArtifact {
-  name: string;
-  project: string;
-  environment: Environment;
-  version: string;
-  commitSha: string;
-  size: string;
-  timestamp: string;
-  coverage: number;
-}
-
-interface SystemStats {
-  totalProjects: number;
-  totalDeploys: number;
-  avgCoverage: number;
-  activeEnvironments: number;
-  successRate: number;
-  buildsStored: number;
-}
-
-// ─── Fetch & transform to dashboard types ───────────────────────────
+// ─── Queries ──────────────────────────────────────────────────────────
 
 export async function getProjects(s: Services): Promise<Project[]> {
   const [repos, pagesProjects, allBuilds] = await Promise.all([
@@ -68,127 +19,79 @@ export async function getProjects(s: Services): Promise<Project[]> {
     s.r2.listAllProjectBuilds().catch(() => []),
   ]);
 
-  const pagesMap = new Map(
-    pagesProjects.map((p) => [p.name, p]),
-  );
+  const pagesMap = new Map(pagesProjects.map((p) => [p.name, p]));
 
   return repos
     .filter((repo) => repo.name !== ".github")
     .map((repo) => {
       const pages = pagesMap.get(repo.name);
-      const projectBuilds = allBuilds.filter((b) => b.project === repo.name);
-      const baseDomain = pages?.domains?.[0] ?? `${repo.name}.veriel.dev`;
-      const latestDeploy = pages?.latest_deployment;
+      const domain = pages?.domains?.[0] ?? `${repo.name}.veriel.dev`;
+      const latest = pages?.latest_deployment;
 
       return {
         name: repo.name,
-        type: "astro-static" as const,
+        type: "astro-static",
         repo: repo.full_name,
-        domain: baseDomain,
+        domain,
         customDomain: (pages?.domains?.length ?? 0) > 0,
         coverage: 0,
-        coverageThreshold: 80,
+        coverageThreshold: DEFAULT_COVERAGE_THRESHOLD,
         environments: {
-          des: {
-            version: null,
-            commitSha: null,
-            url: `https://${repo.name}-des.veriel.dev`,
-            status: (pages ? "healthy" : "idle") as HealthStatus,
-            lastDeployAt: null,
-          },
-          pre: {
-            version: null,
-            commitSha: null,
-            url: `https://${repo.name}-pre.veriel.dev`,
-            status: "idle" as HealthStatus,
-            lastDeployAt: null,
-          },
-          pro: {
-            version: latestDeploy
-              ? latestDeploy.deployment_trigger?.metadata?.commit_hash?.slice(0, 7) ?? null
-              : null,
-            commitSha: latestDeploy?.deployment_trigger?.metadata?.commit_hash?.slice(0, 7) ?? null,
-            url: `https://${baseDomain}`,
-            status: latestDeploy?.latest_stage?.status === "success"
-              ? "healthy" as HealthStatus
-              : pages
-                ? "idle" as HealthStatus
-                : "idle" as HealthStatus,
-            lastDeployAt: latestDeploy?.created_on ?? null,
-          },
+          des: envState(pages ? "healthy" : "idle", urlForEnv(repo.name, "des")),
+          pre: envState("idle", urlForEnv(repo.name, "pre")),
+          pro: envState(
+            latest?.latest_stage?.status === "success" ? "healthy" : "idle",
+            `https://${domain}`,
+            commitShort(latest?.deployment_trigger?.metadata?.commit_hash),
+            latest?.created_on,
+          ),
         },
         createdAt: repo.created_at ?? "",
       };
     });
 }
 
-export async function getProjectDetail(name: string, s: Services): Promise<{
-  project: Project;
-  deploys: DeployEntry[];
-  builds: BuildArtifact[];
-  workflowRuns: Awaited<ReturnType<GitHubService["getWorkflowRuns"]>>;
-}> {
+export async function getProjectDetail(name: string, s: Services) {
   const [repo, pages, deployments, workflowRuns, builds] = await Promise.all([
     s.github.getRepo(name),
     s.cloudflare.getPagesProject(name).catch(() => null),
     s.cloudflare.getDeployments(name, 30).catch(() => []),
-    s.github.getWorkflowRuns(name, 20),
+    s.github.getWorkflowRuns(name),
     s.r2.listBuilds(name).catch(() => []),
   ]);
 
-  const baseDomain = pages?.domains?.[0] ?? `${name}.veriel.dev`;
+  const domain = pages?.domains?.[0] ?? `${name}.veriel.dev`;
 
-  const envDeployments = {
+  const byEnv = {
     des: deployments.filter((d) => d.deployment_trigger?.metadata?.branch === "develop"),
     pre: deployments.filter((d) => d.deployment_trigger?.metadata?.branch?.startsWith("release")),
     pro: deployments.filter((d) => d.environment === "production"),
   };
 
-  const latestByEnv = (env: "des" | "pre" | "pro") => {
-    const latest = envDeployments[env][0];
-    if (!latest) return { version: null, commitSha: null, status: "idle" as HealthStatus, lastDeployAt: null };
-    return {
-      version: latest.deployment_trigger?.metadata?.commit_hash?.slice(0, 7) ?? null,
-      commitSha: latest.deployment_trigger?.metadata?.commit_hash?.slice(0, 7) ?? null,
-      status: latest.latest_stage?.status === "success" ? "healthy" as HealthStatus : "degraded" as HealthStatus,
-      lastDeployAt: latest.created_on,
-    };
+  const latestOf = (env: Environment) => {
+    const d = byEnv[env][0];
+    if (!d) return envState("idle", urlForEnv(name, env));
+    return envState(
+      d.latest_stage?.status === "success" ? "healthy" : "degraded",
+      urlForEnv(name, env),
+      commitShort(d.deployment_trigger?.metadata?.commit_hash),
+      d.created_on,
+    );
   };
 
   const project: Project = {
     name: repo.name,
     type: "astro-static",
     repo: repo.full_name,
-    domain: baseDomain,
+    domain,
     customDomain: (pages?.domains?.length ?? 0) > 0,
     coverage: 0,
-    coverageThreshold: 80,
-    environments: {
-      des: { ...latestByEnv("des"), url: `https://${name}-des.veriel.dev` },
-      pre: { ...latestByEnv("pre"), url: `https://${name}-pre.veriel.dev` },
-      pro: { ...latestByEnv("pro"), url: `https://${name}.veriel.dev` },
-    },
+    coverageThreshold: DEFAULT_COVERAGE_THRESHOLD,
+    environments: { des: latestOf("des"), pre: latestOf("pre"), pro: latestOf("pro") },
     createdAt: repo.created_at ?? "",
   };
 
-  const deploys: DeployEntry[] = deduplicateDeployments(deployments).map((d) => {
-    const environment = resolveEnvironment(d);
-
-    return {
-      id: d.id,
-      project: name,
-      environment,
-      version: d.deployment_trigger?.metadata?.commit_hash?.slice(0, 7) ?? d.short_id,
-      commitSha: d.deployment_trigger?.metadata?.commit_hash?.slice(0, 7) ?? "",
-      branch: d.deployment_trigger?.metadata?.branch ?? "",
-      timestamp: d.created_on,
-      coverage: 0,
-      duration: computeDuration(d),
-      action: "deploy",
-      triggeredBy: d.deployment_trigger?.type ?? "unknown",
-      status: d.latest_stage?.status === "success" ? "success" : d.latest_stage?.status === "active" ? "in_progress" : "failed",
-    };
-  });
+  const deploys = deduplicateByCommit(deployments).map(toDeployEntry(name));
 
   const buildArtifacts: BuildArtifact[] = builds.map((b) => ({
     name: b.name,
@@ -205,39 +108,20 @@ export async function getProjectDetail(name: string, s: Services): Promise<{
 }
 
 export async function getDeploys(s: Services): Promise<DeployEntry[]> {
-  const [orgRepos, pagesProjects] = await Promise.all([
+  const [repos, pagesProjects] = await Promise.all([
     s.github.listOrgRepos(),
     s.cloudflare.listPagesProjects().catch(() => []),
   ]);
 
-  const orgRepoNames = new Set(orgRepos.map((r) => r.name));
-  const allDeploys: DeployEntry[] = [];
+  const repoNames = new Set(repos.map((r) => r.name));
+  const all: DeployEntry[] = [];
 
-  for (const project of pagesProjects.filter((p) => orgRepoNames.has(p.name))) {
+  for (const project of pagesProjects.filter((p) => repoNames.has(p.name))) {
     const deployments = await s.cloudflare.getDeployments(project.name, 10).catch(() => []);
-    const deduplicated = deduplicateDeployments(deployments);
-
-    for (const d of deduplicated) {
-      const environment = resolveEnvironment(d);
-
-      allDeploys.push({
-        id: d.id,
-        project: project.name,
-        environment,
-        version: d.deployment_trigger?.metadata?.commit_hash?.slice(0, 7) ?? d.short_id,
-        commitSha: d.deployment_trigger?.metadata?.commit_hash?.slice(0, 7) ?? "",
-        branch: d.deployment_trigger?.metadata?.branch ?? "",
-        timestamp: d.created_on,
-        coverage: 0,
-        duration: computeDuration(d),
-        action: "deploy",
-        triggeredBy: d.deployment_trigger?.type ?? "unknown",
-        status: d.latest_stage?.status === "success" ? "success" : d.latest_stage?.status === "active" ? "in_progress" : "failed",
-      });
-    }
+    all.push(...deduplicateByCommit(deployments).map(toDeployEntry(project.name)));
   }
 
-  return allDeploys.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  return all.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 export async function getSystemStats(s: Services): Promise<SystemStats> {
@@ -250,125 +134,98 @@ export async function getSystemStats(s: Services): Promise<SystemStats> {
     totalProjects: projects.length,
     totalDeploys: 0,
     avgCoverage: 0,
-    activeEnvironments: projects.reduce((count, p) => {
-      return count + Object.values(p.environments).filter((e) => e.status !== "idle").length;
-    }, 0),
+    activeEnvironments: projects.reduce((n, p) => n + Object.values(p.environments).filter((e) => e.status !== "idle").length, 0),
     successRate: 0,
     buildsStored: allBuilds.length,
   };
 }
 
-// ─── Deployment helpers ─────────────────────────────────────────────
+// ─── Mappers ──────────────────────────────────────────────────────────
 
-interface DeploymentLike {
-  id: string;
-  short_id: string;
-  environment: string;
-  created_on: string;
-  deployment_trigger?: {
-    type: string;
-    metadata: {
-      branch: string;
-      commit_hash: string;
-      commit_message: string;
-    };
-  };
-  latest_stage?: {
-    name: string;
-    status: string;
-    started_on: string;
-    ended_on: string;
-  };
+function toDeployEntry(projectName: string) {
+  return (d: PagesDeployment): DeployEntry => ({
+    id: d.id,
+    project: projectName,
+    environment: resolveEnv(d),
+    version: commitShort(d.deployment_trigger?.metadata?.commit_hash) ?? d.short_id,
+    commitSha: commitShort(d.deployment_trigger?.metadata?.commit_hash) ?? "",
+    branch: d.deployment_trigger?.metadata?.branch ?? "",
+    timestamp: d.created_on,
+    coverage: 0,
+    duration: durationSecs(d),
+    action: "deploy",
+    triggeredBy: d.deployment_trigger?.type ?? "unknown",
+    status: deployStatus(d),
+  });
 }
 
-function resolveEnvironment(d: DeploymentLike): Environment {
-  const branch = d.deployment_trigger?.metadata?.branch ?? "";
+function envState(status: HealthStatus, url: string, commitSha?: string | null, lastDeployAt?: string | null) {
+  return { version: commitSha ?? null, commitSha: commitSha ?? null, url, status, lastDeployAt: lastDeployAt ?? null };
+}
 
+// ─── Helpers ──────────────────────────────────────────────────────────
+
+function resolveEnv(d: PagesDeployment): Environment {
+  const branch = d.deployment_trigger?.metadata?.branch ?? "";
   if (branch === "develop") return "des";
   if (branch.startsWith("release")) return "pre";
   if (branch === "main") return "pro";
-
-  // Fallback to Cloudflare's environment field
-  if (d.environment === "production") return "pro";
-  return "des";
+  return d.environment === "production" ? "pro" : "des";
 }
 
-function deduplicateDeployments(deployments: DeploymentLike[]): DeploymentLike[] {
-  // Cloudflare creates multiple entries per deploy.
-  // Group by commit hash + resolved environment and keep only the one
-  // with the longest duration (the actual deploy, not the trigger).
-  const seen = new Map<string, DeploymentLike>();
+function deployStatus(d: PagesDeployment): DeployStatus {
+  const s = d.latest_stage?.status;
+  if (s === "success") return "success";
+  if (s === "active") return "in_progress";
+  return "failed";
+}
+
+function deduplicateByCommit(deployments: PagesDeployment[]): PagesDeployment[] {
+  const seen = new Map<string, PagesDeployment>();
 
   for (const d of deployments) {
-    const commitHash = d.deployment_trigger?.metadata?.commit_hash ?? d.short_id;
-    const env = resolveEnvironment(d);
-    const key = `${commitHash}-${env}`;
-
+    const key = `${d.deployment_trigger?.metadata?.commit_hash ?? d.short_id}-${resolveEnv(d)}`;
     const existing = seen.get(key);
-    if (!existing) {
+    if (!existing || durationSecs(d) > durationSecs(existing)) {
       seen.set(key, d);
-    } else {
-      // Keep the one with actual duration (non-zero)
-      const existingDuration = computeDuration(existing);
-      const newDuration = computeDuration(d);
-      if (newDuration > existingDuration) {
-        seen.set(key, d);
-      }
     }
   }
 
   return Array.from(seen.values());
 }
 
-function computeDuration(d: DeploymentLike): number {
+function durationSecs(d: PagesDeployment): number {
   if (!d.latest_stage?.ended_on || !d.latest_stage?.started_on) return 0;
-  const start = new Date(d.latest_stage.started_on).getTime();
-  const end = new Date(d.latest_stage.ended_on).getTime();
-  const diff = Math.round((end - start) / 1000);
-  return diff > 0 ? diff : 0;
+  const diff = (new Date(d.latest_stage.ended_on).getTime() - new Date(d.latest_stage.started_on).getTime()) / 1000;
+  return Math.max(0, Math.round(diff));
 }
 
-// ─── Format helpers ─────────────────────────────────────────────────
+function commitShort(hash?: string | null): string | null {
+  return hash?.slice(0, 7) ?? null;
+}
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
+  const units = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  return `${parseFloat((bytes / k ** i).toFixed(1))} ${units[i]}`;
 }
 
-export function formatDate(iso: string): string {
-  const date = new Date(iso);
-  return date.toLocaleDateString("es-ES", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+// ─── Format helpers (used by routes) ──────────────────────────────────
 
 export function timeAgo(iso: string): string {
-  const now = new Date();
-  const date = new Date(iso);
-  const diffMs = now.getTime() - date.getTime();
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
+  const ms = Date.now() - new Date(iso).getTime();
+  const secs = Math.floor(ms / 1000);
+  const mins = Math.floor(secs / 60);
+  const hours = Math.floor(mins / 60);
+  const days = Math.floor(hours / 24);
 
-  if (diffSecs < 60) return `hace ${diffSecs}s`;
-  if (diffMins < 60) return `hace ${diffMins}min`;
-  if (diffHours < 24) {
-    const mins = diffMins % 60;
-    return mins > 0 ? `hace ${diffHours}h ${mins}min` : `hace ${diffHours}h`;
-  }
-  if (diffDays < 7) {
-    const hours = diffHours % 24;
-    return hours > 0 ? `hace ${diffDays}d ${hours}h` : `hace ${diffDays}d`;
-  }
-  return formatDate(iso);
+  if (secs < 60) return `hace ${secs}s`;
+  if (mins < 60) return `hace ${mins}min`;
+  if (hours < 24) return mins % 60 > 0 ? `hace ${hours}h ${mins % 60}min` : `hace ${hours}h`;
+  if (days < 7) return hours % 24 > 0 ? `hace ${days}d ${hours % 24}h` : `hace ${days}d`;
+  return new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export function formatDuration(seconds: number): string {

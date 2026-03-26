@@ -14,6 +14,7 @@ import { actionsRoutes } from "./routes/actions.js";
 import { systemRoutes } from "./routes/system.js";
 import { webhooksRoutes } from "./routes/webhooks.js";
 import { eventsRoutes } from "./routes/events.js";
+import { DEFAULT_ORG, DEFAULT_BUCKET } from "./constants.js";
 import type { Env } from "./env.js";
 
 const app = new Hono<Env>();
@@ -25,7 +26,7 @@ app.use("/*", async (c, next) => {
 
   c.set("github", createGitHubService({
     token: e.GITHUB_TOKEN,
-    org: e.GITHUB_ORG || "veriel-cloud",
+    org: e.GITHUB_ORG || DEFAULT_ORG,
   }));
 
   c.set("cloudflare", createCloudflareService({
@@ -38,7 +39,7 @@ app.use("/*", async (c, next) => {
     accessKeyId: e.R2_ACCESS_KEY_ID,
     secretAccessKey: e.R2_SECRET_ACCESS_KEY,
     accountId: e.CLOUDFLARE_ACCOUNT_ID,
-    bucketName: e.R2_BUCKET_NAME || "veriel-ops-builds",
+    bucketName: e.R2_BUCKET_NAME || DEFAULT_BUCKET,
   }));
 
   await next();

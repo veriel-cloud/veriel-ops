@@ -12,3 +12,4 @@ dashboard/.astro/
 dashboard/dist-server/
 .github-org/
 .vscode/
+.playwright-mcp
