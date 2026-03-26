@@ -261,6 +261,36 @@ projectsRoutes.post("/:name/branches", async (c) => {
   return c.json({ success: true, branch, from });
 });
 
+// ─── Files / Commits ─────────────────────────────────────────────────
+
+projectsRoutes.get("/:name/files", async (c) => {
+  const name = c.req.param("name");
+  const branch = c.req.query("branch") ?? "main";
+  const files = await c.get("github").getTree(name, branch);
+  return c.json({ files });
+});
+
+projectsRoutes.get("/:name/files/*", async (c) => {
+  const name = c.req.param("name");
+  const filePath = c.req.path.replace(`/api/projects/${name}/files/`, "");
+  const branch = c.req.query("branch") ?? "main";
+  const file = await c.get("github").getFileContent(name, filePath, branch);
+  return c.json(file);
+});
+
+projectsRoutes.post("/:name/commit", async (c) => {
+  const name = c.req.param("name");
+  const { branch, message, files } = await c.req.json();
+
+  if (!branch || !message || !files?.length) {
+    return c.json({ error: "branch, message and files are required" }, 400);
+  }
+
+  c.get("logger").info({ project: name, branch, fileCount: files.length }, "creating commit from dashboard");
+  const result = await c.get("github").createMultiFileCommit(name, branch, message, files);
+  return c.json({ success: true, commit: result });
+});
+
 // ─── DNS / Domains ───────────────────────────────────────────────────
 
 projectsRoutes.get("/:name/dns", async (c) => {

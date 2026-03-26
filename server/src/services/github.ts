@@ -116,6 +116,66 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     await octokit.rest.repos.update({ owner: org, repo: name, archived: true });
   }
 
+  async function getTree(repo: string, branch = "main") {
+    const { data: ref } = await octokit.rest.git.getRef({ owner: org, repo, ref: `heads/${branch}` });
+    const { data: tree } = await octokit.rest.git.getTree({
+      owner: org,
+      repo,
+      tree_sha: ref.object.sha,
+      recursive: "true",
+    });
+    return tree.tree
+      .filter((item) => item.type === "blob")
+      .map((item) => ({ path: item.path!, sha: item.sha!, size: item.size ?? 0 }));
+  }
+
+  async function getFileContent(repo: string, path: string, branch = "main") {
+    const { data } = await octokit.rest.repos.getContent({ owner: org, repo, path, ref: branch });
+    if ("content" in data) {
+      return { content: atob(data.content), sha: data.sha, encoding: data.encoding };
+    }
+    throw new Error("Not a file");
+  }
+
+  async function createMultiFileCommit(
+    repo: string,
+    branch: string,
+    message: string,
+    files: { path: string; content: string }[],
+  ) {
+    logger?.info({ repo, branch, fileCount: files.length }, "creating multi-file commit");
+
+    const { data: ref } = await octokit.rest.git.getRef({ owner: org, repo, ref: `heads/${branch}` });
+    const parentSha = ref.object.sha;
+
+    const blobs = await Promise.all(
+      files.map((f) => octokit.rest.git.createBlob({ owner: org, repo, content: f.content, encoding: "utf-8" })),
+    );
+
+    const { data: tree } = await octokit.rest.git.createTree({
+      owner: org,
+      repo,
+      base_tree: parentSha,
+      tree: files.map((f, i) => ({
+        path: f.path,
+        mode: "100644" as const,
+        type: "blob" as const,
+        sha: blobs[i].data.sha,
+      })),
+    });
+
+    const { data: commit } = await octokit.rest.git.createCommit({
+      owner: org,
+      repo,
+      message,
+      tree: tree.sha,
+      parents: [parentSha],
+    });
+
+    await octokit.rest.git.updateRef({ owner: org, repo, ref: `heads/${branch}`, sha: commit.sha });
+    return { sha: commit.sha, message: commit.message };
+  }
+
   async function createWebhook(repo: string, webhookUrl: string, secret: string) {
     logger?.info({ repo }, "creating webhook");
     await octokit.rest.repos.createWebhook({
@@ -142,6 +202,9 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     addWorkflowCallers,
     dispatchWorkflow,
     listPullRequests,
+    getTree,
+    getFileContent,
+    createMultiFileCommit,
     archiveRepo,
     createWebhook,
   };

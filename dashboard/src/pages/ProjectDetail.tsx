@@ -127,6 +127,11 @@ export function ProjectDetail() {
                   <Button variant="secondary" size="sm" onClick={() => setShowRollback(true)}>
                     Rollback
                   </Button>
+                  <Link to={`/projects/${name}/editor`}>
+                    <Button variant="ghost" size="sm">
+                      Edit files
+                    </Button>
+                  </Link>
                   <a href={`https://github.com/${project.repo}`} target="_blank" rel="noopener">
                     <Button
                       variant="ghost"
