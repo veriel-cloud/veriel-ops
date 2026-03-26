@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { PromoteModal } from "@/components/PromoteModal";
 import { RollbackModal } from "@/components/RollbackModal";
 import { StatusDot } from "@/components/StatusDot";
+import { WorkflowLogViewer } from "@/components/WorkflowLogViewer";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -23,6 +24,7 @@ export function ProjectDetail() {
   const [showPromote, setShowPromote] = useState(false);
   const [showRollback, setShowRollback] = useState(false);
   const [showDeploy, setShowDeploy] = useState(false);
+  const [selectedRun, setSelectedRun] = useState<any>(null);
 
   const { data, loading, error, refetch } = useFetch<{ project: any; deploys: any[]; builds: any[] }>(
     `/api/projects/${name}`,
@@ -281,7 +283,8 @@ export function ProjectDetail() {
                         {workflowRuns.slice(0, 15).map((run: any) => (
                           <tr
                             key={run.id}
-                            className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg-hover)] transition-colors duration-100"
+                            className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg-hover)] transition-colors duration-100 cursor-pointer"
+                            onClick={() => setSelectedRun(run)}
                           >
                             <td className="py-2.5 px-4">
                               <a
@@ -470,6 +473,18 @@ export function ProjectDetail() {
             </div>
           </>
         )
+      )}
+
+      {selectedRun && name && (
+        <WorkflowLogViewer
+          open={!!selectedRun}
+          onClose={() => setSelectedRun(null)}
+          repo={name}
+          runId={selectedRun.id}
+          runName={selectedRun.name}
+          initialStatus={selectedRun.status}
+          initialConclusion={selectedRun.conclusion}
+        />
       )}
 
       {project && name && (
