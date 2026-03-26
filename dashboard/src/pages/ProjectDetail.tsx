@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ActivityFeed } from "@/components/ActivityFeed";
+import { BranchList } from "@/components/BranchList";
 import { DeployModal } from "@/components/DeployModal";
 import { DeployTable } from "@/components/DeployTable";
 import { EnvironmentBadge } from "@/components/EnvironmentBadge";
 import { EnvironmentCompare } from "@/components/EnvironmentCompare";
 import { Header } from "@/components/Header";
 import { PromoteModal } from "@/components/PromoteModal";
+import { PullRequestList } from "@/components/PullRequestList";
 import { RollbackModal } from "@/components/RollbackModal";
 import { ConfirmDeleteModal } from "@/components/ConfirmDeleteModal";
 import { DomainManager } from "@/components/DomainManager";
@@ -64,6 +66,8 @@ export function ProjectDetail() {
     { id: "activity", label: "Activity", count: activityItems.length },
     { id: "actions", label: "Actions", count: workflowRuns.length },
     { id: "builds", label: "Builds", count: builds.length },
+    { id: "branches", label: "Branches" },
+    { id: "prs", label: "PRs" },
     { id: "settings", label: "Settings" },
   ];
 
@@ -436,6 +440,12 @@ export function ProjectDetail() {
                   )}
                 </Card>
               )}
+
+              {/* Branches tab */}
+              {activeTab === "branches" && name && <BranchList projectName={name} />}
+
+              {/* PRs tab */}
+              {activeTab === "prs" && name && <PullRequestList projectName={name} />}
 
               {/* Settings tab */}
               {activeTab === "settings" && (

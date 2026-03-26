@@ -108,6 +108,9 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
   const dispatchWorkflow = (repo: string, workflowId: string, inputs: Record<string, string>, ref = "main") =>
     octokit.rest.actions.createWorkflowDispatch({ owner: org, repo, workflow_id: workflowId, ref, inputs });
 
+  const listPullRequests = (repo: string, state: "open" | "closed" | "all" = "open") =>
+    octokit.rest.pulls.list({ owner: org, repo, state, per_page: PER_PAGE_RUNS }).then((r) => r.data);
+
   async function archiveRepo(name: string) {
     logger?.info({ repo: name }, "archiving repository");
     await octokit.rest.repos.update({ owner: org, repo: name, archived: true });
@@ -138,6 +141,7 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     addFileToRepo,
     addWorkflowCallers,
     dispatchWorkflow,
+    listPullRequests,
     archiveRepo,
     createWebhook,
   };

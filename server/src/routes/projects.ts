@@ -228,6 +228,39 @@ projectsRoutes.post("/:name/rollback", async (c) => {
   return c.json({ success: true, action: "rollback", project: name, environment, buildArtifact });
 });
 
+// ─── Pull Requests ───────────────────────────────────────────────────
+
+projectsRoutes.get("/:name/pull-requests", async (c) => {
+  const prs = await c.get("github").listPullRequests(c.req.param("name"));
+  return c.json({
+    pullRequests: prs.map((pr) => ({
+      id: pr.id,
+      number: pr.number,
+      title: pr.title,
+      state: pr.state,
+      branch: pr.head.ref,
+      baseBranch: pr.base.ref,
+      author: pr.user?.login ?? "unknown",
+      createdAt: pr.created_at,
+      updatedAt: pr.updated_at,
+      htmlUrl: pr.html_url,
+      draft: pr.draft,
+    })),
+  });
+});
+
+// ─── Create Branch ───────────────────────────────────────────────────
+
+projectsRoutes.post("/:name/branches", async (c) => {
+  const name = c.req.param("name");
+  const { branch, from = "main" } = await c.req.json();
+  if (!branch) return c.json({ error: "branch name is required" }, 400);
+
+  c.get("logger").info({ project: name, branch, from }, "creating branch");
+  await c.get("github").createBranch(name, branch, from);
+  return c.json({ success: true, branch, from });
+});
+
 // ─── DNS / Domains ───────────────────────────────────────────────────
 
 projectsRoutes.get("/:name/dns", async (c) => {
