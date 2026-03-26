@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Header } from "@/components/Header";
-import { Card } from "@/components/ui/Card";
-import { StatsCard } from "@/components/StatsCard";
 import { DeployTable } from "@/components/DeployTable";
-import { SkeletonTable, SkeletonStats } from "@/components/ui/Skeleton";
+import { Header } from "@/components/Header";
+import { StatsCard } from "@/components/StatsCard";
+import { Card } from "@/components/ui/Card";
+import { SkeletonStats, SkeletonTable } from "@/components/ui/Skeleton";
 import { useFetch } from "@/hooks/useFetch";
 
 export function Deploys() {
@@ -11,15 +11,15 @@ export function Deploys() {
   const [filter, setFilter] = useState<string>("all");
 
   const allDeploys = data?.deploys ?? [];
-  const deploys = filter === "all"
-    ? allDeploys
-    : allDeploys.filter((d: any) => d.environment === filter || d.status === filter);
+  const deploys =
+    filter === "all" ? allDeploys : allDeploys.filter((d: any) => d.environment === filter || d.status === filter);
 
   const totalSuccess = allDeploys.filter((d: any) => d.status === "success").length;
   const totalFailed = allDeploys.filter((d: any) => d.status === "failed").length;
-  const avgDuration = allDeploys.length > 0
-    ? Math.round(allDeploys.reduce((sum: number, d: any) => sum + d.duration, 0) / allDeploys.length)
-    : 0;
+  const avgDuration =
+    allDeploys.length > 0
+      ? Math.round(allDeploys.reduce((sum: number, d: any) => sum + d.duration, 0) / allDeploys.length)
+      : 0;
 
   const filters = [
     { id: "all", label: "All" },
@@ -40,7 +40,9 @@ export function Deploys() {
       )}
 
       {loading ? (
-        <div className="mb-6"><SkeletonStats count={4} /></div>
+        <div className="mb-6">
+          <SkeletonStats count={4} />
+        </div>
       ) : (
         <div className="grid grid-cols-4 gap-3 mb-6">
           <StatsCard label="Total" value={allDeploys.length} />
@@ -67,9 +69,7 @@ export function Deploys() {
         ))}
       </div>
 
-      <Card padding={false}>
-        {loading ? <SkeletonTable rows={8} /> : <DeployTable deploys={deploys} />}
-      </Card>
+      <Card padding={false}>{loading ? <SkeletonTable rows={8} /> : <DeployTable deploys={deploys} />}</Card>
     </>
   );
 }

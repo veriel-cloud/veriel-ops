@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import { EnvironmentBadge } from "./EnvironmentBadge";
 import { timeAgo } from "@/lib/utils";
+import { EnvironmentBadge } from "./EnvironmentBadge";
 
 interface ProjectCardProps {
   project: {
@@ -55,7 +55,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <EnvironmentBadge
             key={env}
             environment={env}
-            status={project.environments[env]?.status as "healthy" | "degraded" | "down" | "idle" ?? "idle"}
+            status={(project.environments[env]?.status as "healthy" | "degraded" | "down" | "idle") ?? "idle"}
           />
         ))}
       </div>

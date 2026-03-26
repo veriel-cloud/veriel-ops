@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface UseFetchResult<T> {
   data: T | null;
@@ -11,7 +11,7 @@ export function useFetch<T>(url: string): UseFetchResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [trigger, setTrigger] = useState(0);
+  const [_trigger, setTrigger] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,7 +39,7 @@ export function useFetch<T>(url: string): UseFetchResult<T> {
     return () => {
       cancelled = true;
     };
-  }, [url, trigger]);
+  }, [url]);
 
   return { data, loading, error, refetch: () => setTrigger((t) => t + 1) };
 }

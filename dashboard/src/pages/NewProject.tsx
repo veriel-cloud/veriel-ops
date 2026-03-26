@@ -1,17 +1,10 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import {
-  WorkflowRun,
-  type WorkflowRunData,
-  type WorkflowJob,
-  type WorkflowStep,
-  type JobStatus,
-  type StepStatus,
-} from "@/components/ui/WorkflowRun";
+import { type JobStatus, type StepStatus, WorkflowRun, type WorkflowRunData } from "@/components/ui/WorkflowRun";
 
 export function NewProject() {
   const [name, setName] = useState("");
@@ -24,70 +17,73 @@ export function NewProject() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCreating(true);
-    setError(null);
-    setResult(null);
-    setWorkflow(null);
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setCreating(true);
+      setError(null);
+      setResult(null);
+      setWorkflow(null);
 
-    try {
-      const response = await fetch("/api/projects/create-stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          type,
-          description: description || undefined,
-          customDomain: domainType === "custom" ? customDomain : undefined,
-        }),
-      });
+      try {
+        const response = await fetch("/api/projects/create-stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            type,
+            description: description || undefined,
+            customDomain: domainType === "custom" ? customDomain : undefined,
+          }),
+        });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error ?? "Error creating project");
-      }
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error ?? "Error creating project");
+        }
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
 
-      if (!reader) throw new Error("No response stream");
+        if (!reader) throw new Error("No response stream");
 
-      let buffer = "";
+        let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
 
-        // Parse SSE events (event: + data: pairs)
-        let currentEvent = "step";
-        for (const line of lines) {
-          if (line.startsWith("event:")) {
-            currentEvent = line.slice(6).trim();
-          } else if (line.startsWith("data:")) {
-            const jsonStr = line.slice(5).trim();
-            if (!jsonStr) continue;
+          // Parse SSE events (event: + data: pairs)
+          let currentEvent = "step";
+          for (const line of lines) {
+            if (line.startsWith("event:")) {
+              currentEvent = line.slice(6).trim();
+            } else if (line.startsWith("data:")) {
+              const jsonStr = line.slice(5).trim();
+              if (!jsonStr) continue;
 
-            try {
-              const data = JSON.parse(jsonStr);
-              handleSSEEvent(currentEvent, data);
-            } catch {
-              // ignore parse errors
+              try {
+                const data = JSON.parse(jsonStr);
+                handleSSEEvent(currentEvent, data);
+              } catch {
+                // ignore parse errors
+              }
+              currentEvent = "step"; // reset
             }
-            currentEvent = "step"; // reset
           }
         }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error desconocido");
+      } finally {
+        setCreating(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-    } finally {
-      setCreating(false);
-    }
-  }, [name, type, description, domainType, customDomain]);
+    },
+    [name, type, description, domainType, customDomain, handleSSEEvent],
+  );
 
   const handleSSEEvent = useCallback((event: string, data: any) => {
     if (event === "init") {
@@ -162,16 +158,12 @@ export function NewProject() {
     } else if (event === "complete") {
       setResult(data);
       setWorkflow((prev) =>
-        prev
-          ? { ...prev, status: "success" as JobStatus, totalDuration: data.totalDuration }
-          : prev,
+        prev ? { ...prev, status: "success" as JobStatus, totalDuration: data.totalDuration } : prev,
       );
     } else if (event === "error") {
       setError(data.error);
       setWorkflow((prev) =>
-        prev
-          ? { ...prev, status: "error" as JobStatus, totalDuration: data.totalDuration }
-          : prev,
+        prev ? { ...prev, status: "error" as JobStatus, totalDuration: data.totalDuration } : prev,
       );
     }
   }, []);
@@ -180,7 +172,9 @@ export function NewProject() {
     <>
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-[13px] text-[var(--color-text-quaternary)] mb-6">
-        <Link to="/projects" className="hover:text-[var(--color-text-secondary)] transition-colors">Projects</Link>
+        <Link to="/projects" className="hover:text-[var(--color-text-secondary)] transition-colors">
+          Projects
+        </Link>
         <span>/</span>
         <span className="text-[var(--color-text-secondary)]">New</span>
       </nav>
@@ -233,11 +227,21 @@ export function NewProject() {
                 <p className="text-[13px] text-[var(--color-text-secondary)] mb-3">Domain</p>
                 <div className="flex items-center gap-6 mb-3">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" checked={domainType === "default"} onChange={() => setDomainType("default")} className="accent-white" />
+                    <input
+                      type="radio"
+                      checked={domainType === "default"}
+                      onChange={() => setDomainType("default")}
+                      className="accent-white"
+                    />
                     <span className="text-[13px] text-[var(--color-text-secondary)]">veriel.dev subdomain</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" checked={domainType === "custom"} onChange={() => setDomainType("custom")} className="accent-white" />
+                    <input
+                      type="radio"
+                      checked={domainType === "custom"}
+                      onChange={() => setDomainType("custom")}
+                      className="accent-white"
+                    />
                     <span className="text-[13px] text-[var(--color-text-secondary)]">Custom domain</span>
                   </label>
                 </div>
@@ -276,7 +280,14 @@ export function NewProject() {
               <div className="space-y-1.5 text-[13px]">
                 <p>
                   <span className="text-[var(--color-text-quaternary)]">Repository </span>
-                  <a href={result.project?.github} target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent-text)] hover:underline">{result.project?.repo}</a>
+                  <a
+                    href={result.project?.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--color-accent-text)] hover:underline"
+                  >
+                    {result.project?.repo}
+                  </a>
                 </p>
                 {result.project?.commit && (
                   <p>
@@ -291,7 +302,14 @@ export function NewProject() {
                 {result.ghRunUrl && (
                   <p>
                     <span className="text-[var(--color-text-quaternary)]">Workflow </span>
-                    <a href={result.ghRunUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent-text)] hover:underline">View on GitHub →</a>
+                    <a
+                      href={result.ghRunUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[var(--color-accent-text)] hover:underline"
+                    >
+                      View on GitHub →
+                    </a>
                   </p>
                 )}
               </div>
@@ -317,14 +335,25 @@ export function NewProject() {
                   <Button type="submit" loading={creating} disabled={!name} size="sm">
                     Create Project
                   </Button>
-                  <Link to="/projects"><Button variant="ghost" size="sm">Cancel</Button></Link>
+                  <Link to="/projects">
+                    <Button variant="ghost" size="sm">
+                      Cancel
+                    </Button>
+                  </Link>
                 </>
               ) : creating ? (
                 <p className="text-[12px] text-[var(--color-text-quaternary)]">
                   Pipeline running — do not close this page
                 </p>
               ) : error ? (
-                <Button type="button" size="sm" onClick={() => { setWorkflow(null); setError(null); }}>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setWorkflow(null);
+                    setError(null);
+                  }}
+                >
                   Try again
                 </Button>
               ) : null}

@@ -29,12 +29,14 @@ export function Tabs({ tabs, active, onChange }: TabsProps) {
           <span className="flex items-center gap-2">
             {tab.label}
             {tab.count !== undefined && (
-              <span className={cn(
-                "text-[11px] px-1.5 py-0 rounded-full",
-                active === tab.id
-                  ? "bg-[var(--color-text-primary)] text-[var(--color-bg)]"
-                  : "bg-[var(--color-bg-tertiary)] text-[var(--color-text-tertiary)]",
-              )}>
+              <span
+                className={cn(
+                  "text-[11px] px-1.5 py-0 rounded-full",
+                  active === tab.id
+                    ? "bg-[var(--color-text-primary)] text-[var(--color-bg)]"
+                    : "bg-[var(--color-bg-tertiary)] text-[var(--color-text-tertiary)]",
+                )}
+              >
                 {tab.count}
               </span>
             )}

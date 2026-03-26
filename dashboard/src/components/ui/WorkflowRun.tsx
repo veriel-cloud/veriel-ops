@@ -38,9 +38,7 @@ function StatusIcon({ status, size = "md" }: { status: StepStatus | JobStatus; s
   const dim = size === "sm" ? "w-4 h-4" : "w-5 h-5";
 
   if (status === "pending" || status === "queued") {
-    return (
-      <div className={cn(dim, "rounded-full border-2 border-[var(--color-border-hover)] flex-shrink-0")} />
-    );
+    return <div className={cn(dim, "rounded-full border-2 border-[var(--color-border-hover)] flex-shrink-0")} />;
   }
 
   if (status === "running") {
@@ -50,7 +48,16 @@ function StatusIcon({ status, size = "md" }: { status: StepStatus | JobStatus; s
   if (status === "success") {
     return (
       <div className={cn(dim, "rounded-full bg-[var(--color-success)] flex items-center justify-center flex-shrink-0")}>
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-2.5 h-2.5 text-white"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M5 12l5 5l10 -10" />
         </svg>
       </div>
@@ -60,8 +67,18 @@ function StatusIcon({ status, size = "md" }: { status: StepStatus | JobStatus; s
   if (status === "error") {
     return (
       <div className={cn(dim, "rounded-full bg-[var(--color-error)] flex items-center justify-center flex-shrink-0")}>
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 6l-12 12" /><path d="M6 6l12 12" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-2.5 h-2.5 text-white"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M18 6l-12 12" />
+          <path d="M6 6l12 12" />
         </svg>
       </div>
     );
@@ -69,8 +86,19 @@ function StatusIcon({ status, size = "md" }: { status: StepStatus | JobStatus; s
 
   if (status === "skipped") {
     return (
-      <div className={cn(dim, "rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center flex-shrink-0")}>
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5 text-[var(--color-text-quaternary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <div
+        className={cn(dim, "rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center flex-shrink-0")}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-2.5 h-2.5 text-[var(--color-text-quaternary)]"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M5 5l14 14" />
         </svg>
       </div>
@@ -91,12 +119,16 @@ function formatMs(ms: number): string {
 
 function JobConnector({ status }: { status: JobStatus }) {
   return (
-    <div className={cn(
-      "w-0.5 h-5 mx-auto",
-      status === "success" ? "bg-[var(--color-success)]/40" :
-      status === "error" ? "bg-[var(--color-error)]/40" :
-      "bg-[var(--color-border)]",
-    )} />
+    <div
+      className={cn(
+        "w-0.5 h-5 mx-auto",
+        status === "success"
+          ? "bg-[var(--color-success)]/40"
+          : status === "error"
+            ? "bg-[var(--color-error)]/40"
+            : "bg-[var(--color-border)]",
+      )}
+    />
   );
 }
 
@@ -112,9 +144,11 @@ function ProgressBar({ jobs, status }: { jobs: WorkflowJob[]; status: JobStatus 
         <div
           className={cn(
             "h-full rounded-full transition-all duration-500",
-            failed > 0 ? "bg-[var(--color-error)]" :
-            status === "running" ? "bg-[var(--color-warning)]" :
-            "bg-[var(--color-success)]",
+            failed > 0
+              ? "bg-[var(--color-error)]"
+              : status === "running"
+                ? "bg-[var(--color-warning)]"
+                : "bg-[var(--color-success)]",
           )}
           style={{ width: `${pct}%` }}
         />
@@ -127,31 +161,37 @@ function ProgressBar({ jobs, status }: { jobs: WorkflowJob[]; status: JobStatus 
 }
 
 function JobCard({ job }: { job: WorkflowJob }) {
-  const [expanded, setExpanded] = useState(() =>
-    job.status === "running" || job.status === "error"
-  );
+  const [expanded, setExpanded] = useState(() => job.status === "running" || job.status === "error");
 
   const completedSteps = job.steps.filter((s) => s.status === "success").length;
   const totalSteps = job.steps.length;
 
   return (
-    <div className={cn(
-      "border rounded-lg overflow-hidden transition-all",
-      job.status === "running" && "border-[var(--color-warning)]/30 bg-[var(--color-warning)]/[0.03] shadow-[0_0_0_1px_rgba(210,153,34,0.08)]",
-      job.status === "success" && "border-[var(--color-border)] hover:border-[var(--color-border-hover)]",
-      job.status === "error" && "border-[var(--color-error)]/30 bg-[var(--color-error)]/[0.03] shadow-[0_0_0_1px_rgba(248,81,73,0.08)]",
-      (job.status === "pending" || job.status === "queued") && "border-[var(--color-border)] opacity-50",
-    )}>
+    <div
+      className={cn(
+        "border rounded-lg overflow-hidden transition-all",
+        job.status === "running" &&
+          "border-[var(--color-warning)]/30 bg-[var(--color-warning)]/[0.03] shadow-[0_0_0_1px_rgba(210,153,34,0.08)]",
+        job.status === "success" && "border-[var(--color-border)] hover:border-[var(--color-border-hover)]",
+        job.status === "error" &&
+          "border-[var(--color-error)]/30 bg-[var(--color-error)]/[0.03] shadow-[0_0_0_1px_rgba(248,81,73,0.08)]",
+        (job.status === "pending" || job.status === "queued") && "border-[var(--color-border)] opacity-50",
+      )}
+    >
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
       >
         <StatusIcon status={job.status} />
-        <span className={cn(
-          "text-[13px] font-medium flex-1",
-          (job.status === "pending" || job.status === "queued") ? "text-[var(--color-text-quaternary)]" : "text-[var(--color-text-primary)]",
-        )}>
+        <span
+          className={cn(
+            "text-[13px] font-medium flex-1",
+            job.status === "pending" || job.status === "queued"
+              ? "text-[var(--color-text-quaternary)]"
+              : "text-[var(--color-text-primary)]",
+          )}
+        >
           {job.label}
         </span>
 
@@ -162,9 +202,7 @@ function JobCard({ job }: { job: WorkflowJob }) {
         )}
 
         {job.duration !== undefined && job.status !== "pending" && job.status !== "queued" && (
-          <span className="text-[11px] text-[var(--color-text-quaternary)] tabular-nums">
-            {formatMs(job.duration)}
-          </span>
+          <span className="text-[11px] text-[var(--color-text-quaternary)] tabular-nums">{formatMs(job.duration)}</span>
         )}
 
         <svg
@@ -209,21 +247,21 @@ function StepRow({ step, isLast }: { step: WorkflowStep; isLast: boolean }) {
         onClick={() => hasLogs && setShowLogs(!showLogs)}
       >
         <StatusIcon status={step.status} size="sm" />
-        <span className={cn(
-          "text-[12px] flex-1",
-          step.status === "pending" && "text-[var(--color-text-quaternary)]",
-          step.status === "running" && "text-[var(--color-text-primary)]",
-          step.status === "success" && "text-[var(--color-text-secondary)]",
-          step.status === "error" && "text-[var(--color-error-text)]",
-          step.status === "skipped" && "text-[var(--color-text-quaternary)] line-through",
-        )}>
+        <span
+          className={cn(
+            "text-[12px] flex-1",
+            step.status === "pending" && "text-[var(--color-text-quaternary)]",
+            step.status === "running" && "text-[var(--color-text-primary)]",
+            step.status === "success" && "text-[var(--color-text-secondary)]",
+            step.status === "error" && "text-[var(--color-error-text)]",
+            step.status === "skipped" && "text-[var(--color-text-quaternary)] line-through",
+          )}
+        >
           {step.label}
         </span>
 
         {step.detail && step.status !== "pending" && (
-          <span className="text-[11px] text-[var(--color-text-quaternary)] max-w-[200px] truncate">
-            {step.detail}
-          </span>
+          <span className="text-[11px] text-[var(--color-text-quaternary)] max-w-[200px] truncate">{step.detail}</span>
         )}
 
         {step.duration !== undefined && (step.status === "success" || step.status === "error") && (
@@ -273,9 +311,7 @@ export function WorkflowRun({ data }: WorkflowRunProps) {
       {/* Header */}
       <div className="flex items-center gap-3">
         <StatusIcon status={data.status} />
-        <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] flex-1">
-          {data.title}
-        </h3>
+        <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] flex-1">{data.title}</h3>
         {data.totalDuration !== undefined && data.status !== "pending" && (
           <span className="text-[12px] text-[var(--color-text-quaternary)] tabular-nums">
             {formatMs(data.totalDuration)}

@@ -1,6 +1,6 @@
 import { Header } from "@/components/Header";
-import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useFetch } from "@/hooks/useFetch";
 
@@ -49,10 +49,23 @@ export function Settings() {
                 { name: "setup-dns.yml", desc: "Create DNS records" },
                 { name: "cleanup-builds.yml", desc: "Apply retention policy" },
               ].map((wf, i) => (
-                <div key={wf.name} className={`flex items-center justify-between py-2.5 ${i > 0 ? "border-t border-[var(--color-border)]" : ""}`}>
+                <div
+                  key={wf.name}
+                  className={`flex items-center justify-between py-2.5 ${i > 0 ? "border-t border-[var(--color-border)]" : ""}`}
+                >
                   <div className="flex items-center gap-2.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-[var(--color-text-quaternary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-3.5 h-3.5 text-[var(--color-text-quaternary)]"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                      <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" />
                     </svg>
                     <code className="text-[12px] text-[var(--color-text-primary)]">{wf.name}</code>
                   </div>
@@ -82,7 +95,9 @@ export function Settings() {
                   <div key={svc.name} className="flex items-center justify-between">
                     <span className="text-[13px] text-[var(--color-text-secondary)]">{svc.name}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-[var(--color-text-quaternary)] tabular-nums">{svc.latency}ms</span>
+                      <span className="text-[11px] text-[var(--color-text-quaternary)] tabular-nums">
+                        {svc.latency}ms
+                      </span>
                       <Badge variant={svc.status === "connected" ? "success" : "danger"} dot>
                         {svc.status === "connected" ? "OK" : "Error"}
                       </Badge>

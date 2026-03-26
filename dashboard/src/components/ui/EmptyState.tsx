@@ -17,9 +17,7 @@ export function EmptyState({ icon, title, description, action, className }: Empt
         </div>
       )}
       <p className="text-[13px] text-[var(--color-text-secondary)]">{title}</p>
-      {description && (
-        <p className="text-[12px] text-[var(--color-text-quaternary)] mt-1">{description}</p>
-      )}
+      {description && <p className="text-[12px] text-[var(--color-text-quaternary)] mt-1">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );

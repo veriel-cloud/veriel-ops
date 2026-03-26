@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Header } from "@/components/Header";
 import { EnvironmentBadge } from "@/components/EnvironmentBadge";
+import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -22,9 +22,9 @@ export function Projects() {
 
   const allProjects = data?.projects ?? [];
   const projects = search
-    ? allProjects.filter((p: any) =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.domain.toLowerCase().includes(search.toLowerCase()),
+    ? allProjects.filter(
+        (p: any) =>
+          p.name.toLowerCase().includes(search.toLowerCase()) || p.domain.toLowerCase().includes(search.toLowerCase()),
       )
     : allProjects;
 
@@ -50,8 +50,18 @@ export function Projects() {
       {allProjects.length > 0 && (
         <div className="mb-4">
           <div className="relative max-w-xs">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-quaternary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="10" cy="10" r="7" /><path d="M21 21l-6 -6" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-quaternary)]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="10" cy="10" r="7" />
+              <path d="M21 21l-6 -6" />
             </svg>
             <input
               type="text"
@@ -66,18 +76,33 @@ export function Projects() {
 
       {/* Table */}
       {loading ? (
-        <Card padding={false}><SkeletonTable rows={5} /></Card>
+        <Card padding={false}>
+          <SkeletonTable rows={5} />
+        </Card>
       ) : projects.length === 0 && !search ? (
         <Card padding={false}>
           <EmptyState
             title="No projects yet"
             description="Create your first project to get started"
             icon={
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[var(--color-text-quaternary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-5 h-5 text-[var(--color-text-quaternary)]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M9 4h3l2 2h5a2 2 0 0 1 2 2v7a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2" />
               </svg>
             }
-            action={<Link to="/projects/new"><Button size="sm">New Project</Button></Link>}
+            action={
+              <Link to="/projects/new">
+                <Button size="sm">New Project</Button>
+              </Link>
+            }
           />
         </Card>
       ) : (
@@ -85,22 +110,39 @@ export function Projects() {
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-[var(--color-border)]">
-                <th className="text-left py-2.5 px-4 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Project</th>
-                <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Type</th>
-                <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Environments</th>
-                <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Domain</th>
-                <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Created</th>
-                <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Last deploy</th>
+                <th className="text-left py-2.5 px-4 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                  Project
+                </th>
+                <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                  Type
+                </th>
+                <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                  Environments
+                </th>
+                <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                  Domain
+                </th>
+                <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                  Created
+                </th>
+                <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                  Last deploy
+                </th>
               </tr>
             </thead>
             <tbody>
               {projects.map((p: any) => {
                 const latest = Object.values(p.environments as Record<string, any>)
                   .filter((e: any) => e.lastDeployAt)
-                  .sort((a: any, b: any) => new Date(b.lastDeployAt).getTime() - new Date(a.lastDeployAt).getTime())[0] as any;
+                  .sort(
+                    (a: any, b: any) => new Date(b.lastDeployAt).getTime() - new Date(a.lastDeployAt).getTime(),
+                  )[0] as any;
 
                 return (
-                  <tr key={p.name} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg-hover)] transition-colors duration-100">
+                  <tr
+                    key={p.name}
+                    className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg-hover)] transition-colors duration-100"
+                  >
                     <td className="py-3 px-4">
                       <Link to={`/projects/${p.name}`} className="group flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-md bg-[var(--color-bg-tertiary)] flex items-center justify-center flex-shrink-0">
@@ -108,16 +150,24 @@ export function Projects() {
                             {p.name.charAt(0).toUpperCase()}
                           </span>
                         </div>
-                        <span className="text-[var(--color-text-primary)] group-hover:underline font-medium">{p.name}</span>
+                        <span className="text-[var(--color-text-primary)] group-hover:underline font-medium">
+                          {p.name}
+                        </span>
                       </Link>
                     </td>
                     <td className="py-3 px-3">
-                      <span className="text-[12px] text-[var(--color-text-quaternary)]">{typeLabels[p.type] ?? p.type}</span>
+                      <span className="text-[12px] text-[var(--color-text-quaternary)]">
+                        {typeLabels[p.type] ?? p.type}
+                      </span>
                     </td>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-1.5">
                         {(["des", "pre", "pro"] as const).map((env) => (
-                          <EnvironmentBadge key={env} environment={env} status={p.environments?.[env]?.status ?? "idle"} />
+                          <EnvironmentBadge
+                            key={env}
+                            environment={env}
+                            status={p.environments?.[env]?.status ?? "idle"}
+                          />
                         ))}
                       </div>
                     </td>
@@ -125,10 +175,14 @@ export function Projects() {
                       <span className="text-[12px] text-[var(--color-text-quaternary)]">{p.domain}</span>
                     </td>
                     <td className="py-3 px-3">
-                      <span className="text-[12px] text-[var(--color-text-quaternary)]">{p.createdAt ? timeAgo(p.createdAt) : "—"}</span>
+                      <span className="text-[12px] text-[var(--color-text-quaternary)]">
+                        {p.createdAt ? timeAgo(p.createdAt) : "—"}
+                      </span>
                     </td>
                     <td className="py-3 px-3">
-                      <span className="text-[12px] text-[var(--color-text-quaternary)]">{latest?.lastDeployAt ? timeAgo(latest.lastDeployAt) : "—"}</span>
+                      <span className="text-[12px] text-[var(--color-text-quaternary)]">
+                        {latest?.lastDeployAt ? timeAgo(latest.lastDeployAt) : "—"}
+                      </span>
                     </td>
                   </tr>
                 );

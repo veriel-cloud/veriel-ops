@@ -27,12 +27,8 @@ export function Input({ label, hint, error, className, id, ...props }: InputProp
         )}
         {...props}
       />
-      {hint && !error && (
-        <p className="mt-1 text-[11px] text-[var(--color-text-quaternary)]">{hint}</p>
-      )}
-      {error && (
-        <p className="mt-1 text-[11px] text-[var(--color-error-text)]">{error}</p>
-      )}
+      {hint && !error && <p className="mt-1 text-[11px] text-[var(--color-text-quaternary)]">{hint}</p>}
+      {error && <p className="mt-1 text-[11px] text-[var(--color-error-text)]">{error}</p>}
     </div>
   );
 }

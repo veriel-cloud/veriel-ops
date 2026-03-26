@@ -1,17 +1,16 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Header } from "@/components/Header";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Tabs } from "@/components/ui/Tabs";
-import { EnvironmentBadge } from "@/components/EnvironmentBadge";
-import { StatusDot } from "@/components/StatusDot";
+import { Link, useParams } from "react-router-dom";
 import { DeployTable } from "@/components/DeployTable";
-import { Skeleton, SkeletonTable } from "@/components/ui/Skeleton";
+import { EnvironmentBadge } from "@/components/EnvironmentBadge";
+import { Header } from "@/components/Header";
+import { StatusDot } from "@/components/StatusDot";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton, SkeletonTable } from "@/components/ui/Skeleton";
+import { Tabs } from "@/components/ui/Tabs";
 import { useFetch } from "@/hooks/useFetch";
-import { timeAgo, formatDate, cn } from "@/lib/utils";
+import { cn, timeAgo } from "@/lib/utils";
 
 export function ProjectDetail() {
   const { name } = useParams<{ name: string }>();
@@ -44,230 +43,389 @@ export function ProjectDetail() {
     <>
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-[13px] text-[var(--color-text-quaternary)] mb-6">
-        <Link to="/projects" className="hover:text-[var(--color-text-secondary)] transition-colors">Projects</Link>
+        <Link to="/projects" className="hover:text-[var(--color-text-secondary)] transition-colors">
+          Projects
+        </Link>
         <span>/</span>
         <span className="text-[var(--color-text-secondary)]">{name}</span>
       </nav>
 
       {loading ? (
         <div className="space-y-6">
-          <div className="flex justify-between"><Skeleton className="h-6 w-40" /><Skeleton className="h-8 w-28" /></div>
+          <div className="flex justify-between">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-8 w-28" />
+          </div>
           <div className="grid grid-cols-3 gap-3">
-            {[1, 2, 3].map((i) => (<div key={i} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-4 space-y-3"><Skeleton className="h-4 w-16" /><Skeleton className="h-5 w-24" /><Skeleton className="h-3 w-full" /></div>))}
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-4 space-y-3"
+              >
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-3 w-full" />
+              </div>
+            ))}
           </div>
         </div>
-      ) : project && (
-        <>
-          <Header
-            title={project.name}
-            description={project.description || project.domain || ""}
-            actions={
-              <div className="flex items-center gap-2">
-                <a href={`https://github.com/${project.repo}`} target="_blank" rel="noopener">
-                  <Button variant="secondary" size="sm" icon={
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
-                    </svg>
-                  }>Repository</Button>
-                </a>
-              </div>
-            }
-          />
-
-          {/* Environments */}
-          <div className="grid grid-cols-3 gap-3 mb-8">
-            {(["des", "pre", "pro"] as const).map((env) => {
-              const envData = project.environments?.[env];
-              const config = {
-                des: { label: "Development", border: "border-[var(--color-env-des-border)]", bg: "bg-[var(--color-env-des-bg)]", color: "text-[var(--color-env-des)]" },
-                pre: { label: "Preview", border: "border-[var(--color-env-pre-border)]", bg: "bg-[var(--color-env-pre-bg)]", color: "text-[var(--color-env-pre)]" },
-                pro: { label: "Production", border: "border-[var(--color-env-pro-border)]", bg: "bg-[var(--color-env-pro-bg)]", color: "text-[var(--color-env-pro)]" },
-              }[env];
-
-              return (
-                <div key={env} className={cn("rounded-lg border p-4", config.border, config.bg)}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <StatusDot status={envData?.status ?? "idle"} pulse={envData?.status === "healthy"} />
-                      <span className={cn("text-[12px] font-semibold uppercase tracking-wider", config.color)}>{env}</span>
-                      <span className="text-[11px] text-[var(--color-text-quaternary)]">{config.label}</span>
-                    </div>
-                    {envData?.url && envData?.status !== "idle" && (
-                      <a href={envData.url} target="_blank" rel="noopener" className="text-[var(--color-text-quaternary)] hover:text-[var(--color-text-secondary)] transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" /><path d="M11 13l9 -9" /><path d="M15 4h5v5" />
+      ) : (
+        project && (
+          <>
+            <Header
+              title={project.name}
+              description={project.description || project.domain || ""}
+              actions={
+                <div className="flex items-center gap-2">
+                  <a href={`https://github.com/${project.repo}`} target="_blank" rel="noopener">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
                         </svg>
-                      </a>
+                      }
+                    >
+                      Repository
+                    </Button>
+                  </a>
+                </div>
+              }
+            />
+
+            {/* Environments */}
+            <div className="grid grid-cols-3 gap-3 mb-8">
+              {(["des", "pre", "pro"] as const).map((env) => {
+                const envData = project.environments?.[env];
+                const config = {
+                  des: {
+                    label: "Development",
+                    border: "border-[var(--color-env-des-border)]",
+                    bg: "bg-[var(--color-env-des-bg)]",
+                    color: "text-[var(--color-env-des)]",
+                  },
+                  pre: {
+                    label: "Preview",
+                    border: "border-[var(--color-env-pre-border)]",
+                    bg: "bg-[var(--color-env-pre-bg)]",
+                    color: "text-[var(--color-env-pre)]",
+                  },
+                  pro: {
+                    label: "Production",
+                    border: "border-[var(--color-env-pro-border)]",
+                    bg: "bg-[var(--color-env-pro-bg)]",
+                    color: "text-[var(--color-env-pro)]",
+                  },
+                }[env];
+
+                return (
+                  <div key={env} className={cn("rounded-lg border p-4", config.border, config.bg)}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <StatusDot status={envData?.status ?? "idle"} pulse={envData?.status === "healthy"} />
+                        <span className={cn("text-[12px] font-semibold uppercase tracking-wider", config.color)}>
+                          {env}
+                        </span>
+                        <span className="text-[11px] text-[var(--color-text-quaternary)]">{config.label}</span>
+                      </div>
+                      {envData?.url && envData?.status !== "idle" && (
+                        <a
+                          href={envData.url}
+                          target="_blank"
+                          rel="noopener"
+                          className="text-[var(--color-text-quaternary)] hover:text-[var(--color-text-secondary)] transition-colors"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-3.5 h-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
+                            <path d="M11 13l9 -9" />
+                            <path d="M15 4h5v5" />
+                          </svg>
+                        </a>
+                      )}
+                    </div>
+
+                    {envData?.status === "idle" || !envData?.version ? (
+                      <p className="text-[12px] text-[var(--color-text-quaternary)] text-center py-3">No deployments</p>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-[11px] text-[var(--color-text-quaternary)]">Version</span>
+                          <span className="font-mono text-[12px] text-[var(--color-text-primary)]">
+                            {envData.version}
+                          </span>
+                        </div>
+                        {envData.commitSha && (
+                          <div className="flex justify-between">
+                            <span className="text-[11px] text-[var(--color-text-quaternary)]">Commit</span>
+                            <code className="text-[11px] text-[var(--color-text-tertiary)]">{envData.commitSha}</code>
+                          </div>
+                        )}
+                        {envData.lastDeployAt && (
+                          <div className="flex justify-between">
+                            <span className="text-[11px] text-[var(--color-text-quaternary)]">Deployed</span>
+                            <span className="text-[11px] text-[var(--color-text-tertiary)]">
+                              {timeAgo(envData.lastDeployAt)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
+                );
+              })}
+            </div>
 
-                  {envData?.status === "idle" || !envData?.version ? (
-                    <p className="text-[12px] text-[var(--color-text-quaternary)] text-center py-3">No deployments</p>
+            {/* Tabs */}
+            <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
+
+            <div className="mt-4">
+              {/* Deployments tab */}
+              {activeTab === "deploys" && (
+                <Card padding={false}>
+                  {deploys.length > 0 ? (
+                    <DeployTable deploys={deploys} showProject={false} />
                   ) : (
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-[11px] text-[var(--color-text-quaternary)]">Version</span>
-                        <span className="font-mono text-[12px] text-[var(--color-text-primary)]">{envData.version}</span>
-                      </div>
-                      {envData.commitSha && (
-                        <div className="flex justify-between">
-                          <span className="text-[11px] text-[var(--color-text-quaternary)]">Commit</span>
-                          <code className="text-[11px] text-[var(--color-text-tertiary)]">{envData.commitSha}</code>
-                        </div>
-                      )}
-                      {envData.lastDeployAt && (
-                        <div className="flex justify-between">
-                          <span className="text-[11px] text-[var(--color-text-quaternary)]">Deployed</span>
-                          <span className="text-[11px] text-[var(--color-text-tertiary)]">{timeAgo(envData.lastDeployAt)}</span>
-                        </div>
-                      )}
-                    </div>
+                    <EmptyState title="No deployments yet" />
                   )}
-                </div>
-              );
-            })}
-          </div>
+                </Card>
+              )}
 
-          {/* Tabs */}
-          <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
-
-          <div className="mt-4">
-            {/* Deployments tab */}
-            {activeTab === "deploys" && (
-              <Card padding={false}>
-                {deploys.length > 0 ? (
-                  <DeployTable deploys={deploys} showProject={false} />
-                ) : (
-                  <EmptyState title="No deployments yet" />
-                )}
-              </Card>
-            )}
-
-            {/* Actions tab */}
-            {activeTab === "actions" && (
-              <Card padding={false}>
-                {workflowRuns.length > 0 ? (
-                  <table className="w-full text-[13px]">
-                    <thead>
-                      <tr className="border-b border-[var(--color-border)]">
-                        <th className="text-left py-2.5 px-4 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Workflow</th>
-                        <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Branch</th>
-                        <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Commit</th>
-                        <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Status</th>
-                        <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {workflowRuns.slice(0, 15).map((run: any) => (
-                        <tr key={run.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg-hover)] transition-colors duration-100">
-                          <td className="py-2.5 px-4">
-                            <a href={run.html_url} target="_blank" rel="noopener" className="text-[var(--color-text-primary)] hover:underline">{run.name}</a>
-                          </td>
-                          <td className="py-2.5 px-3">
-                            <code className="text-[11px] text-[var(--color-text-tertiary)] font-mono">{run.head_branch}</code>
-                          </td>
-                          <td className="py-2.5 px-3">
-                            <code className="text-[11px] text-[var(--color-text-tertiary)] font-mono">{run.head_sha?.slice(0, 7)}</code>
-                          </td>
-                          <td className="py-2.5 px-3">
-                            <span className={cn(
-                              "inline-flex items-center gap-1.5 text-[12px] font-medium",
-                              run.conclusion === "success" && "text-[var(--color-success-text)]",
-                              run.conclusion === "failure" && "text-[var(--color-error-text)]",
-                              (!run.conclusion || run.status === "in_progress") && "text-[var(--color-warning-text)]",
-                            )}>
-                              {run.conclusion === "success" && (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5l10 -10" /></svg>
-                              )}
-                              {run.conclusion === "failure" && (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>
-                              )}
-                              {run.conclusion ?? run.status ?? "pending"}
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-3">
-                            <span className="text-[12px] text-[var(--color-text-quaternary)]">{timeAgo(run.created_at)}</span>
-                          </td>
+              {/* Actions tab */}
+              {activeTab === "actions" && (
+                <Card padding={false}>
+                  {workflowRuns.length > 0 ? (
+                    <table className="w-full text-[13px]">
+                      <thead>
+                        <tr className="border-b border-[var(--color-border)]">
+                          <th className="text-left py-2.5 px-4 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                            Workflow
+                          </th>
+                          <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                            Branch
+                          </th>
+                          <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                            Commit
+                          </th>
+                          <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                            Date
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <EmptyState title="No workflow runs" />
-                )}
-              </Card>
-            )}
+                      </thead>
+                      <tbody>
+                        {workflowRuns.slice(0, 15).map((run: any) => (
+                          <tr
+                            key={run.id}
+                            className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg-hover)] transition-colors duration-100"
+                          >
+                            <td className="py-2.5 px-4">
+                              <a
+                                href={run.html_url}
+                                target="_blank"
+                                rel="noopener"
+                                className="text-[var(--color-text-primary)] hover:underline"
+                              >
+                                {run.name}
+                              </a>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <code className="text-[11px] text-[var(--color-text-tertiary)] font-mono">
+                                {run.head_branch}
+                              </code>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <code className="text-[11px] text-[var(--color-text-tertiary)] font-mono">
+                                {run.head_sha?.slice(0, 7)}
+                              </code>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 text-[12px] font-medium",
+                                  run.conclusion === "success" && "text-[var(--color-success-text)]",
+                                  run.conclusion === "failure" && "text-[var(--color-error-text)]",
+                                  (!run.conclusion || run.status === "in_progress") &&
+                                    "text-[var(--color-warning-text)]",
+                                )}
+                              >
+                                {run.conclusion === "success" && (
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="w-3.5 h-3.5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M5 12l5 5l10 -10" />
+                                  </svg>
+                                )}
+                                {run.conclusion === "failure" && (
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="w-3.5 h-3.5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M18 6l-12 12" />
+                                    <path d="M6 6l12 12" />
+                                  </svg>
+                                )}
+                                {run.conclusion ?? run.status ?? "pending"}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className="text-[12px] text-[var(--color-text-quaternary)]">
+                                {timeAgo(run.created_at)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <EmptyState title="No workflow runs" />
+                  )}
+                </Card>
+              )}
 
-            {/* Builds tab */}
-            {activeTab === "builds" && (
-              <Card padding={false}>
-                {lb ? <SkeletonTable rows={3} /> : builds.length > 0 ? (
-                  <table className="w-full text-[13px]">
-                    <thead>
-                      <tr className="border-b border-[var(--color-border)]">
-                        <th className="text-left py-2.5 px-4 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Environment</th>
-                        <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Version</th>
-                        <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Commit</th>
-                        <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Size</th>
-                        <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {builds.map((b: any, i: number) => (
-                        <tr key={i} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg-hover)] transition-colors duration-100">
-                          <td className="py-2.5 px-4"><EnvironmentBadge environment={b.environment} status="healthy" /></td>
-                          <td className="py-2.5 px-3"><span className="font-mono text-[12px] text-[var(--color-text-secondary)]">{b.version}</span></td>
-                          <td className="py-2.5 px-3"><code className="text-[11px] text-[var(--color-text-tertiary)]">{b.commitSha}</code></td>
-                          <td className="py-2.5 px-3"><span className="text-[12px] text-[var(--color-text-quaternary)]">{typeof b.size === "number" ? `${(b.size / 1024).toFixed(0)} KB` : b.size}</span></td>
-                          <td className="py-2.5 px-3"><span className="text-[12px] text-[var(--color-text-quaternary)]">{timeAgo(b.lastModified)}</span></td>
+              {/* Builds tab */}
+              {activeTab === "builds" && (
+                <Card padding={false}>
+                  {lb ? (
+                    <SkeletonTable rows={3} />
+                  ) : builds.length > 0 ? (
+                    <table className="w-full text-[13px]">
+                      <thead>
+                        <tr className="border-b border-[var(--color-border)]">
+                          <th className="text-left py-2.5 px-4 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                            Environment
+                          </th>
+                          <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                            Version
+                          </th>
+                          <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                            Commit
+                          </th>
+                          <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                            Size
+                          </th>
+                          <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
+                            Date
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <EmptyState title="No builds stored" />
-                )}
-              </Card>
-            )}
+                      </thead>
+                      <tbody>
+                        {builds.map((b: any, i: number) => (
+                          <tr
+                            key={i}
+                            className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-bg-hover)] transition-colors duration-100"
+                          >
+                            <td className="py-2.5 px-4">
+                              <EnvironmentBadge environment={b.environment} status="healthy" />
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className="font-mono text-[12px] text-[var(--color-text-secondary)]">
+                                {b.version}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <code className="text-[11px] text-[var(--color-text-tertiary)]">{b.commitSha}</code>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className="text-[12px] text-[var(--color-text-quaternary)]">
+                                {typeof b.size === "number" ? `${(b.size / 1024).toFixed(0)} KB` : b.size}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className="text-[12px] text-[var(--color-text-quaternary)]">
+                                {timeAgo(b.lastModified)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <EmptyState title="No builds stored" />
+                  )}
+                </Card>
+              )}
 
-            {/* Settings tab */}
-            {activeTab === "settings" && (
-              <Card>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-[13px] text-[var(--color-text-primary)]">Coverage threshold</p>
-                      <p className="text-[11px] text-[var(--color-text-quaternary)]">Minimum coverage to deploy to PRE/PRO</p>
+              {/* Settings tab */}
+              {activeTab === "settings" && (
+                <Card>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-[13px] text-[var(--color-text-primary)]">Coverage threshold</p>
+                        <p className="text-[11px] text-[var(--color-text-quaternary)]">
+                          Minimum coverage to deploy to PRE/PRO
+                        </p>
+                      </div>
+                      <span className="text-[13px] font-mono text-[var(--color-text-secondary)]">80%</span>
                     </div>
-                    <span className="text-[13px] font-mono text-[var(--color-text-secondary)]">80%</span>
-                  </div>
-                  <div className="border-t border-[var(--color-border)] pt-4 flex justify-between items-center">
-                    <div>
-                      <p className="text-[13px] text-[var(--color-text-primary)]">Domain</p>
-                      <p className="text-[11px] text-[var(--color-text-quaternary)]">{project.domain}</p>
+                    <div className="border-t border-[var(--color-border)] pt-4 flex justify-between items-center">
+                      <div>
+                        <p className="text-[13px] text-[var(--color-text-primary)]">Domain</p>
+                        <p className="text-[11px] text-[var(--color-text-quaternary)]">{project.domain}</p>
+                      </div>
+                    </div>
+                    <div className="border-t border-[var(--color-border)] pt-4 flex justify-between items-center">
+                      <div>
+                        <p className="text-[13px] text-[var(--color-text-primary)]">Repository</p>
+                        <p className="text-[11px] text-[var(--color-text-quaternary)]">{project.repo}</p>
+                      </div>
+                      <a href={`https://github.com/${project.repo}`} target="_blank" rel="noopener">
+                        <Button variant="ghost" size="sm">
+                          Open →
+                        </Button>
+                      </a>
+                    </div>
+                    <div className="border-t border-[var(--color-border)] pt-4">
+                      <div>
+                        <p className="text-[13px] text-[var(--color-error-text)]">Danger zone</p>
+                        <p className="text-[11px] text-[var(--color-text-quaternary)] mt-1">
+                          Permanently delete this project and all its data
+                        </p>
+                      </div>
+                      <Button variant="danger" size="sm" className="mt-3">
+                        Delete project
+                      </Button>
                     </div>
                   </div>
-                  <div className="border-t border-[var(--color-border)] pt-4 flex justify-between items-center">
-                    <div>
-                      <p className="text-[13px] text-[var(--color-text-primary)]">Repository</p>
-                      <p className="text-[11px] text-[var(--color-text-quaternary)]">{project.repo}</p>
-                    </div>
-                    <a href={`https://github.com/${project.repo}`} target="_blank" rel="noopener">
-                      <Button variant="ghost" size="sm">Open →</Button>
-                    </a>
-                  </div>
-                  <div className="border-t border-[var(--color-border)] pt-4">
-                    <div>
-                      <p className="text-[13px] text-[var(--color-error-text)]">Danger zone</p>
-                      <p className="text-[11px] text-[var(--color-text-quaternary)] mt-1">Permanently delete this project and all its data</p>
-                    </div>
-                    <Button variant="danger" size="sm" className="mt-3">Delete project</Button>
-                  </div>
-                </div>
-              </Card>
-            )}
-          </div>
-        </>
+                </Card>
+              )}
+            </div>
+          </>
+        )
       )}
     </>
   );

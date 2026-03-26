@@ -1,10 +1,10 @@
-import { Routes, Route } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { Dashboard } from "./pages/Dashboard";
-import { Projects } from "./pages/Projects";
-import { ProjectDetail } from "./pages/ProjectDetail";
-import { NewProject } from "./pages/NewProject";
 import { Deploys } from "./pages/Deploys";
+import { NewProject } from "./pages/NewProject";
+import { ProjectDetail } from "./pages/ProjectDetail";
+import { Projects } from "./pages/Projects";
 import { Settings } from "./pages/Settings";
 
 export function App() {

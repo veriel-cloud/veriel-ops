@@ -9,10 +9,14 @@ interface CoverageBarProps {
 export function CoverageBar({ percentage, threshold = 80, showLabel = true }: CoverageBarProps) {
   const isAbove = percentage >= threshold;
   const barColor = isAbove
-    ? percentage >= 90 ? "bg-[var(--color-success)]" : "bg-[var(--color-accent)]"
+    ? percentage >= 90
+      ? "bg-[var(--color-success)]"
+      : "bg-[var(--color-accent)]"
     : "bg-[var(--color-error)]";
   const textColor = isAbove
-    ? percentage >= 90 ? "text-[var(--color-success-text)]" : "text-[var(--color-accent-text)]"
+    ? percentage >= 90
+      ? "text-[var(--color-success-text)]"
+      : "text-[var(--color-accent-text)]"
     : "text-[var(--color-error-text)]";
 
   return (
@@ -23,11 +27,7 @@ export function CoverageBar({ percentage, threshold = 80, showLabel = true }: Co
           style={{ width: `${Math.min(percentage, 100)}%` }}
         />
       </div>
-      {showLabel && (
-        <span className={cn("text-[11px] font-medium tabular-nums", textColor)}>
-          {percentage}%
-        </span>
-      )}
+      {showLabel && <span className={cn("text-[11px] font-medium tabular-nums", textColor)}>{percentage}%</span>}
     </div>
   );
 }
