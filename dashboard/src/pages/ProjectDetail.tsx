@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ActivityFeed } from "@/components/ActivityFeed";
 import { DeployModal } from "@/components/DeployModal";
 import { DeployTable } from "@/components/DeployTable";
 import { EnvironmentBadge } from "@/components/EnvironmentBadge";
+import { EnvironmentCompare } from "@/components/EnvironmentCompare";
 import { Header } from "@/components/Header";
 import { PromoteModal } from "@/components/PromoteModal";
 import { RollbackModal } from "@/components/RollbackModal";
@@ -34,8 +36,19 @@ export function ProjectDetail() {
   const builds = buildsData?.builds ?? [];
   const workflowRuns = project?.workflowRuns ?? [];
 
+  const activityItems = deploys.map((d: any) => ({
+    type: "deploy" as const,
+    environment: d.environment,
+    version: d.version,
+    commitSha: d.commitSha,
+    branch: d.branch,
+    status: d.status,
+    timestamp: d.timestamp,
+  }));
+
   const tabs = [
     { id: "deploys", label: "Deployments", count: deploys.length },
+    { id: "activity", label: "Activity", count: activityItems.length },
     { id: "actions", label: "Actions", count: workflowRuns.length },
     { id: "builds", label: "Builds", count: builds.length },
     { id: "settings", label: "Settings" },
@@ -213,6 +226,11 @@ export function ProjectDetail() {
               })}
             </div>
 
+            {/* Environment Compare */}
+            <div className="mb-8">
+              <EnvironmentCompare environments={project.environments} />
+            </div>
+
             {/* Tabs */}
             <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
 
@@ -225,6 +243,13 @@ export function ProjectDetail() {
                   ) : (
                     <EmptyState title="No deployments yet" />
                   )}
+                </Card>
+              )}
+
+              {/* Activity tab */}
+              {activeTab === "activity" && (
+                <Card>
+                  <ActivityFeed deploys={activityItems} />
                 </Card>
               )}
 
