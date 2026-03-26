@@ -184,6 +184,38 @@ projectsRoutes.post("/:name/promote", async (c) => {
   return c.json({ error: `Cannot promote from ${from}` }, 400);
 });
 
+// ─── Deploy ──────────────────────────────────────────────────────────
+
+projectsRoutes.post("/:name/deploy", async (c) => {
+  const name = c.req.param("name");
+  const { environment } = await c.req.json();
+
+  const envConfig: Record<string, { workflow: string; ref: string }> = {
+    des: { workflow: "deploy-des.yml", ref: "develop" },
+    pre: { workflow: "deploy-pre.yml", ref: "main" },
+    pro: { workflow: "deploy-pro.yml", ref: "main" },
+  };
+
+  const config = envConfig[environment];
+  if (!config) return c.json({ error: `Invalid environment: ${environment}` }, 400);
+
+  c.get("logger").info(
+    { project: name, environment, workflow: config.workflow, ref: config.ref },
+    "triggering manual deploy",
+  );
+  await c.get("github").dispatchWorkflow(name, config.workflow, {}, config.ref);
+  return c.json({ success: true, action: "deploy", project: name, environment, workflow: config.workflow });
+});
+
+// ─── Branches ────────────────────────────────────────────────────────
+
+projectsRoutes.get("/:name/branches", async (c) => {
+  const branches = await c.get("github").getRepoBranches(c.req.param("name"));
+  return c.json({ branches: branches.map((b) => b.name) });
+});
+
+// ─── Rollback ────────────────────────────────────────────────────────
+
 projectsRoutes.post("/:name/rollback", async (c) => {
   const name = c.req.param("name");
   const { environment, buildArtifact } = await c.req.json();

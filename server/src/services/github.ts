@@ -105,8 +105,8 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     }
   }
 
-  const dispatchWorkflow = (repo: string, workflowId: string, inputs: Record<string, string>) =>
-    octokit.rest.actions.createWorkflowDispatch({ owner: org, repo, workflow_id: workflowId, ref: "main", inputs });
+  const dispatchWorkflow = (repo: string, workflowId: string, inputs: Record<string, string>, ref = "main") =>
+    octokit.rest.actions.createWorkflowDispatch({ owner: org, repo, workflow_id: workflowId, ref, inputs });
 
   async function createWebhook(repo: string, webhookUrl: string, secret: string) {
     logger?.info({ repo }, "creating webhook");
@@ -162,6 +162,7 @@ function buildWorkflowCallerFiles(org: string, projectName: string) {
       content: `${[
         "name: Deploy DES",
         "on:",
+        "  workflow_dispatch:",
         "  push:",
         "    branches: [develop]",
         "jobs:",
@@ -177,6 +178,7 @@ function buildWorkflowCallerFiles(org: string, projectName: string) {
       content: `${[
         "name: Deploy PRE",
         "on:",
+        "  workflow_dispatch:",
         "  push:",
         '    branches: ["release/**"]',
         "permissions:",
@@ -196,6 +198,7 @@ function buildWorkflowCallerFiles(org: string, projectName: string) {
       content: `${[
         "name: Deploy PRO",
         "on:",
+        "  workflow_dispatch:",
         "  push:",
         "    branches: [main]",
         "    paths-ignore:",
