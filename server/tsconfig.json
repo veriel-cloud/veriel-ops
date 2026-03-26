@@ -6,10 +6,10 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "outDir": "dist-server",
-    "rootDir": "server",
+    "outDir": "dist",
+    "rootDir": "src",
     "types": ["node"]
   },
-  "include": ["server"],
-  "exclude": ["node_modules"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }

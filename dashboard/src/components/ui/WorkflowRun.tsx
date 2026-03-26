@@ -92,11 +92,37 @@ function formatMs(ms: number): string {
 function JobConnector({ status }: { status: JobStatus }) {
   return (
     <div className={cn(
-      "w-0.5 h-6 mx-auto",
+      "w-0.5 h-5 mx-auto",
       status === "success" ? "bg-[var(--color-success)]/40" :
       status === "error" ? "bg-[var(--color-error)]/40" :
       "bg-[var(--color-border)]",
     )} />
+  );
+}
+
+function ProgressBar({ jobs, status }: { jobs: WorkflowJob[]; status: JobStatus }) {
+  const total = jobs.length;
+  const done = jobs.filter((j) => j.status === "success").length;
+  const failed = jobs.filter((j) => j.status === "error").length;
+  const pct = total > 0 ? ((done + failed) / total) * 100 : 0;
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex-1 h-1.5 rounded-full bg-[var(--color-bg-tertiary)] overflow-hidden">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all duration-500",
+            failed > 0 ? "bg-[var(--color-error)]" :
+            status === "running" ? "bg-[var(--color-warning)]" :
+            "bg-[var(--color-success)]",
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-[11px] text-[var(--color-text-quaternary)] tabular-nums flex-shrink-0">
+        {done + failed}/{total} jobs
+      </span>
+    </div>
   );
 }
 
@@ -110,17 +136,16 @@ function JobCard({ job }: { job: WorkflowJob }) {
 
   return (
     <div className={cn(
-      "border rounded-lg overflow-hidden transition-colors",
-      job.status === "running" && "border-[var(--color-warning)]/30 bg-[var(--color-warning)]/[0.02]",
-      job.status === "success" && "border-[var(--color-border)]",
-      job.status === "error" && "border-[var(--color-error)]/30 bg-[var(--color-error)]/[0.02]",
-      (job.status === "pending" || job.status === "queued") && "border-[var(--color-border)] opacity-60",
+      "border rounded-lg overflow-hidden transition-all",
+      job.status === "running" && "border-[var(--color-warning)]/30 bg-[var(--color-warning)]/[0.03] shadow-[0_0_0_1px_rgba(210,153,34,0.08)]",
+      job.status === "success" && "border-[var(--color-border)] hover:border-[var(--color-border-hover)]",
+      job.status === "error" && "border-[var(--color-error)]/30 bg-[var(--color-error)]/[0.03] shadow-[0_0_0_1px_rgba(248,81,73,0.08)]",
+      (job.status === "pending" || job.status === "queued") && "border-[var(--color-border)] opacity-50",
     )}>
-      {/* Job header */}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-bg-secondary)]/50 transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
       >
         <StatusIcon status={job.status} />
         <span className={cn(
@@ -145,7 +170,7 @@ function JobCard({ job }: { job: WorkflowJob }) {
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className={cn(
-            "w-4 h-4 text-[var(--color-text-quaternary)] transition-transform",
+            "w-4 h-4 text-[var(--color-text-quaternary)] transition-transform duration-200",
             expanded && "rotate-90",
           )}
           viewBox="0 0 24 24"
@@ -159,9 +184,8 @@ function JobCard({ job }: { job: WorkflowJob }) {
         </svg>
       </button>
 
-      {/* Steps */}
       {expanded && (
-        <div className="border-t border-[var(--color-border)] bg-[var(--color-bg-secondary)]/30">
+        <div className="border-t border-[var(--color-border)] bg-white/[0.01]">
           {job.steps.map((step, i) => (
             <StepRow key={step.id} step={step} isLast={i === job.steps.length - 1} />
           ))}
@@ -176,11 +200,11 @@ function StepRow({ step, isLast }: { step: WorkflowStep; isLast: boolean }) {
   const hasLogs = step.logs && step.logs.length > 0;
 
   return (
-    <div className={cn(!isLast && "border-b border-[var(--color-border)]/50")}>
+    <div className={cn(!isLast && "border-b border-[var(--color-border)]/40")}>
       <div
         className={cn(
-          "flex items-center gap-3 px-4 py-2.5 pl-8",
-          hasLogs && "cursor-pointer hover:bg-[var(--color-bg-secondary)]/50",
+          "flex items-center gap-3 px-4 py-2.5 pl-8 transition-colors",
+          hasLogs && "cursor-pointer hover:bg-white/[0.03]",
         )}
         onClick={() => hasLogs && setShowLogs(!showLogs)}
       >
@@ -207,11 +231,28 @@ function StepRow({ step, isLast }: { step: WorkflowStep; isLast: boolean }) {
             {formatMs(step.duration)}
           </span>
         )}
+
+        {hasLogs && (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className={cn(
+              "w-3 h-3 text-[var(--color-text-quaternary)] transition-transform duration-200 flex-shrink-0",
+              showLogs && "rotate-90",
+            )}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 6l6 6l-6 6" />
+          </svg>
+        )}
       </div>
 
-      {/* Log output */}
       {showLogs && hasLogs && (
-        <div className="mx-4 mb-2.5 ml-8 rounded bg-[#0d1117] border border-[var(--color-border)] overflow-x-auto">
+        <div className="mx-4 mb-2.5 ml-8 rounded-md bg-[#0d1117] border border-[var(--color-border)] overflow-x-auto">
           <pre className="p-3 text-[11px] leading-relaxed font-mono text-[#c9d1d9]">
             {step.logs!.map((line, i) => (
               <div key={i} className="flex">
@@ -226,35 +267,11 @@ function StepRow({ step, isLast }: { step: WorkflowStep; isLast: boolean }) {
   );
 }
 
-function ProgressBar({ jobs }: { jobs: WorkflowJob[] }) {
-  const total = jobs.length;
-  const done = jobs.filter((j) => j.status === "success").length;
-  const failed = jobs.filter((j) => j.status === "error").length;
-  const pct = total > 0 ? ((done + failed) / total) * 100 : 0;
-
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex-1 h-1.5 rounded-full bg-[var(--color-bg-tertiary)] overflow-hidden">
-        <div
-          className={cn(
-            "h-full rounded-full transition-all duration-500",
-            failed > 0 ? "bg-[var(--color-error)]" : "bg-[var(--color-success)]",
-          )}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-[11px] text-[var(--color-text-quaternary)] tabular-nums flex-shrink-0">
-        {done + failed}/{total} jobs
-      </span>
-    </div>
-  );
-}
-
 export function WorkflowRun({ data }: WorkflowRunProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-1">
+      <div className="flex items-center gap-3">
         <StatusIcon status={data.status} />
         <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] flex-1">
           {data.title}
@@ -266,8 +283,8 @@ export function WorkflowRun({ data }: WorkflowRunProps) {
         )}
       </div>
 
-      {/* Progress bar */}
-      {data.status === "running" && <ProgressBar jobs={data.jobs} />}
+      {/* Progress bar — always visible */}
+      <ProgressBar jobs={data.jobs} status={data.status} />
 
       {/* Jobs */}
       <div className="space-y-0">

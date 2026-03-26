@@ -244,8 +244,8 @@ export function NewProject() {
 
                 {domainType === "default" && name && (
                   <div className="bg-[var(--color-bg-secondary)] rounded-md p-3 space-y-1 border border-[var(--color-border)]">
-                    <p className="text-[12px] text-[var(--color-env-des)]">DES → dev.{name}.veriel.dev</p>
-                    <p className="text-[12px] text-[var(--color-env-pre)]">PRE → pre.{name}.veriel.dev</p>
+                    <p className="text-[12px] text-[var(--color-env-des)]">DES → {name}-des.veriel.dev</p>
+                    <p className="text-[12px] text-[var(--color-env-pre)]">PRE → {name}-pre.veriel.dev</p>
                     <p className="text-[12px] text-[var(--color-env-pro)]">PRO → {name}.veriel.dev</p>
                   </div>
                 )}

@@ -1,6 +1,12 @@
-import * as github from "./github.js";
-import * as cloudflare from "./cloudflare.js";
-import * as r2 from "./r2.js";
+import type { GitHubService } from "./github.js";
+import type { CloudflareService } from "./cloudflare.js";
+import type { R2Service } from "./r2.js";
+
+export interface Services {
+  github: GitHubService;
+  cloudflare: CloudflareService;
+  r2: R2Service;
+}
 
 type Environment = "des" | "pre" | "pro";
 type HealthStatus = "healthy" | "degraded" | "down" | "idle";
@@ -55,11 +61,11 @@ interface SystemStats {
 
 // ─── Fetch & transform to dashboard types ───────────────────────────
 
-export async function getProjects(): Promise<Project[]> {
+export async function getProjects(s: Services): Promise<Project[]> {
   const [repos, pagesProjects, allBuilds] = await Promise.all([
-    github.listOrgRepos(),
-    cloudflare.listPagesProjects().catch(() => []),
-    r2.listAllProjectBuilds().catch(() => []),
+    s.github.listOrgRepos(),
+    s.cloudflare.listPagesProjects().catch(() => []),
+    s.r2.listAllProjectBuilds().catch(() => []),
   ]);
 
   const pagesMap = new Map(
@@ -86,14 +92,14 @@ export async function getProjects(): Promise<Project[]> {
           des: {
             version: null,
             commitSha: null,
-            url: `https://dev.${baseDomain}`,
+            url: `https://${repo.name}-des.veriel.dev`,
             status: (pages ? "healthy" : "idle") as HealthStatus,
             lastDeployAt: null,
           },
           pre: {
             version: null,
             commitSha: null,
-            url: `https://pre.${baseDomain}`,
+            url: `https://${repo.name}-pre.veriel.dev`,
             status: "idle" as HealthStatus,
             lastDeployAt: null,
           },
@@ -116,18 +122,18 @@ export async function getProjects(): Promise<Project[]> {
     });
 }
 
-export async function getProjectDetail(name: string): Promise<{
+export async function getProjectDetail(name: string, s: Services): Promise<{
   project: Project;
   deploys: DeployEntry[];
   builds: BuildArtifact[];
-  workflowRuns: Awaited<ReturnType<typeof github.getWorkflowRuns>>;
+  workflowRuns: Awaited<ReturnType<GitHubService["getWorkflowRuns"]>>;
 }> {
   const [repo, pages, deployments, workflowRuns, builds] = await Promise.all([
-    github.getRepo(name),
-    cloudflare.getPagesProject(name).catch(() => null),
-    cloudflare.getDeployments(name, 30).catch(() => []),
-    github.getWorkflowRuns(name, 20),
-    r2.listBuilds(name).catch(() => []),
+    s.github.getRepo(name),
+    s.cloudflare.getPagesProject(name).catch(() => null),
+    s.cloudflare.getDeployments(name, 30).catch(() => []),
+    s.github.getWorkflowRuns(name, 20),
+    s.r2.listBuilds(name).catch(() => []),
   ]);
 
   const baseDomain = pages?.domains?.[0] ?? `${name}.veriel.dev`;
@@ -158,9 +164,9 @@ export async function getProjectDetail(name: string): Promise<{
     coverage: 0,
     coverageThreshold: 80,
     environments: {
-      des: { ...latestByEnv("des"), url: `https://dev.${baseDomain}` },
-      pre: { ...latestByEnv("pre"), url: `https://pre.${baseDomain}` },
-      pro: { ...latestByEnv("pro"), url: `https://${baseDomain}` },
+      des: { ...latestByEnv("des"), url: `https://${name}-des.veriel.dev` },
+      pre: { ...latestByEnv("pre"), url: `https://${name}-pre.veriel.dev` },
+      pro: { ...latestByEnv("pro"), url: `https://${name}.veriel.dev` },
     },
     createdAt: repo.created_at ?? "",
   };
@@ -198,17 +204,17 @@ export async function getProjectDetail(name: string): Promise<{
   return { project, deploys, builds: buildArtifacts, workflowRuns };
 }
 
-export async function getDeploys(): Promise<DeployEntry[]> {
+export async function getDeploys(s: Services): Promise<DeployEntry[]> {
   const [orgRepos, pagesProjects] = await Promise.all([
-    github.listOrgRepos(),
-    cloudflare.listPagesProjects().catch(() => []),
+    s.github.listOrgRepos(),
+    s.cloudflare.listPagesProjects().catch(() => []),
   ]);
 
   const orgRepoNames = new Set(orgRepos.map((r) => r.name));
   const allDeploys: DeployEntry[] = [];
 
   for (const project of pagesProjects.filter((p) => orgRepoNames.has(p.name))) {
-    const deployments = await cloudflare.getDeployments(project.name, 10).catch(() => []);
+    const deployments = await s.cloudflare.getDeployments(project.name, 10).catch(() => []);
     const deduplicated = deduplicateDeployments(deployments);
 
     for (const d of deduplicated) {
@@ -234,10 +240,10 @@ export async function getDeploys(): Promise<DeployEntry[]> {
   return allDeploys.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
-export async function getSystemStats(): Promise<SystemStats> {
+export async function getSystemStats(s: Services): Promise<SystemStats> {
   const [projects, allBuilds] = await Promise.all([
-    getProjects(),
-    r2.listAllProjectBuilds().catch(() => []),
+    getProjects(s),
+    s.r2.listAllProjectBuilds().catch(() => []),
   ]);
 
   return {

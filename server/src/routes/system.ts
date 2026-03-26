@@ -1,9 +1,7 @@
 import { Hono } from "hono";
-import * as github from "../services/github.js";
-import * as cloudflare from "../services/cloudflare.js";
-import * as r2 from "../services/r2.js";
+import type { Env } from "../env.js";
 
-export const systemRoutes = new Hono();
+export const systemRoutes = new Hono<Env>();
 
 async function checkService(name: string, fn: () => Promise<unknown>) {
   const start = Date.now();
@@ -16,6 +14,10 @@ async function checkService(name: string, fn: () => Promise<unknown>) {
 }
 
 systemRoutes.get("/status", async (c) => {
+  const github = c.get("github");
+  const cloudflare = c.get("cloudflare");
+  const r2 = c.get("r2");
+
   const checks = await Promise.all([
     checkService("GitHub API", () => github.listOrgRepos()),
     checkService("Cloudflare Pages", () => cloudflare.listPagesProjects()),

@@ -1,16 +1,33 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import * as github from "../services/github.js";
-import * as cloudflare from "../services/cloudflare.js";
+import { env } from "hono/adapter";
+import { getDomainForEnv } from "../services/cloudflare.js";
 import { getProjects, getProjectDetail } from "../services/data.js";
-import * as r2 from "../services/r2.js";
+import type { Env } from "../env.js";
 
-export const projectsRoutes = new Hono();
+interface PipelineStep {
+  id: string;
+  label: string;
+  fn: () => Promise<{ detail?: string; logs?: string[] }>;
+}
+
+interface PipelineJob {
+  id: string;
+  label: string;
+  steps: PipelineStep[];
+}
+
+export const projectsRoutes = new Hono<Env>();
 
 // GET /api/projects
 projectsRoutes.get("/", async (c) => {
   try {
-    const projects = await getProjects();
+    const s = {
+      github: c.get("github"),
+      cloudflare: c.get("cloudflare"),
+      r2: c.get("r2"),
+    };
+    const projects = await getProjects(s);
     return c.json({ projects });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -28,44 +45,56 @@ projectsRoutes.post("/", async (c) => {
       return c.json({ error: "Project name is required" }, 400);
     }
 
-    const org = process.env.GITHUB_ORG ?? "veriel-cloud";
+    const gh = c.get("github");
+    const cf = c.get("cloudflare");
+    const e = env(c);
+    const org = e.GITHUB_ORG || "veriel-cloud";
 
-    const repo = await github.createRepo(name, {
-      description: description ?? `${type ?? "web"} project managed by veriel-ops`,
+    const repo = await gh.createRepo(name, {
+      description:
+        description ?? `${type ?? "web"} project managed by veriel-ops`,
       isPrivate: true,
       type: type ?? "astro-static",
     });
 
-    await github.addWorkflowCallers(name, name);
-    await github.createBranch(name, "develop", "main");
+    await gh.addWorkflowCallers(name, name);
+    await gh.createBranch(name, "develop", "main");
 
-    const pagesProject = await cloudflare.createPagesProject(name, org, name);
-    const dnsRecords = await cloudflare.setupProjectDns(name, customDomain);
-    await cloudflare.setupCustomDomains(name, customDomain);
+    const pagesProject = await cf.createPagesProjectForEnv(
+      name,
+      "des",
+      org,
+      name,
+    );
+    const { dnsRecord } = await cf.setupEnvDns(
+      name,
+      "des",
+      pagesProject.subdomain,
+      customDomain,
+    );
 
-    const webhookUrl = process.env.WEBHOOK_URL;
-    const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
+    const webhookUrl = e.WEBHOOK_URL;
+    const webhookSecret = e.GITHUB_WEBHOOK_SECRET;
     if (webhookUrl && webhookSecret) {
-      await github.createWebhook(name, webhookUrl, webhookSecret);
+      await gh.createWebhook(name, webhookUrl, webhookSecret);
     }
 
-    const baseDomain = customDomain ?? `${name}.veriel.dev`;
+    const desDomain = getDomainForEnv(name, "des", customDomain);
 
-    return c.json({
-      success: true,
-      project: {
-        name,
-        repo: repo.full_name,
-        urls: {
-          des: `https://dev.${baseDomain}`,
-          pre: `https://pre.${baseDomain}`,
-          pro: `https://${baseDomain}`,
+    return c.json(
+      {
+        success: true,
+        project: {
+          name,
+          repo: repo.full_name,
+          urls: { des: `https://${desDomain}` },
+          github: repo.html_url,
+          pages: pagesProject.subdomain,
+          dns: [dnsRecord.name],
         },
-        github: repo.html_url,
-        pages: pagesProject.subdomain,
-        dns: dnsRecords.map((r: any) => r.name),
       },
-    }, 201);
+      201,
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return c.json({ error: message }, 500);
@@ -83,23 +112,16 @@ projectsRoutes.post("/create-stream", async (c) => {
     return c.json({ error: "Project name is required" }, 400);
   }
 
-  const org = process.env.GITHUB_ORG ?? "veriel-cloud";
-  const baseDomain = customDomain ?? `${name}.veriel.dev`;
-  const webhookUrl = process.env.WEBHOOK_URL;
-  const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
+  const gh = c.get("github");
+  const cf = c.get("cloudflare");
+  const e = env(c);
+  const org = e.GITHUB_ORG || "veriel-cloud";
+  const desDomain = getDomainForEnv(name, "des", customDomain);
+  const webhookUrl = e.WEBHOOK_URL;
+  const webhookSecret = e.GITHUB_WEBHOOK_SECRET;
   const hasWebhook = !!(webhookUrl && webhookSecret);
 
-  interface PipelineStep {
-    id: string;
-    label: string;
-    fn: () => Promise<{ detail?: string; logs?: string[] }>;
-  }
-
-  interface PipelineJob {
-    id: string;
-    label: string;
-    steps: PipelineStep[];
-  }
+  let pagesSubdomain = name;
 
   const setupPipeline: PipelineJob[] = [
     {
@@ -110,8 +132,9 @@ projectsRoutes.post("/create-stream", async (c) => {
           id: "create-repo",
           label: "Create repository",
           fn: async () => {
-            const repo = await github.createRepo(name, {
-              description: description ?? `${type ?? "web"} project managed by veriel-ops`,
+            const repo = await gh.createRepo(name, {
+              description:
+                description ?? `${type ?? "web"} project managed by veriel-ops`,
               isPrivate: true,
               type: type ?? "astro-static",
             });
@@ -130,7 +153,7 @@ projectsRoutes.post("/create-stream", async (c) => {
           id: "add-workflows",
           label: "Add CI/CD workflows",
           fn: async () => {
-            await github.addWorkflowCallers(name, name);
+            await gh.addWorkflowCallers(name, name);
             return {
               detail: "5 workflow callers",
               logs: [
@@ -149,7 +172,7 @@ projectsRoutes.post("/create-stream", async (c) => {
           id: "create-branches",
           label: "Create develop branch",
           fn: async () => {
-            await github.createBranch(name, "develop", "main");
+            await gh.createBranch(name, "develop", "main");
             return {
               detail: "develop ← main",
               logs: [
@@ -170,46 +193,42 @@ projectsRoutes.post("/create-stream", async (c) => {
           id: "cf-pages",
           label: "Create Cloudflare Pages project",
           fn: async () => {
-            const pages = await cloudflare.createPagesProject(name, org, name);
+            const pages = await cf.createPagesProjectForEnv(
+              name,
+              "des",
+              org,
+              name,
+            );
+            pagesSubdomain = pages.subdomain;
             return {
-              detail: `${pages.subdomain}.pages.dev`,
+              detail: `${name}-des → ${pages.subdomain}`,
               logs: [
-                `Creating Pages project: ${name}...`,
+                `Creating Pages project: ${name}-des...`,
                 `Connected to GitHub: ${org}/${name}`,
-                `Production branch: main`,
-                `Preview URL: ${pages.subdomain}.pages.dev`,
+                `Auto-deploys: disabled (wrangler only)`,
+                `Pages URL: ${pages.subdomain}`,
               ],
             };
           },
         },
         {
-          id: "dns-records",
-          label: "Setup DNS records",
+          id: "dns-setup",
+          label: "Setup DNS + custom domain",
           fn: async () => {
-            const records = await cloudflare.setupProjectDns(name, customDomain);
+            const result = await cf.setupEnvDns(
+              name,
+              "des",
+              pagesSubdomain,
+              customDomain,
+            );
             return {
-              detail: `${records.length} CNAME records`,
+              detail: `${desDomain} → ${result.pagesTarget}`,
               logs: [
-                "Configuring DNS records on Cloudflare...",
-                ...records.map((r: any) => `  → CNAME ${r.name} → ${r.content}`),
-                `${records.length} DNS records created.`,
-              ],
-            };
-          },
-        },
-        {
-          id: "custom-domains",
-          label: "Assign custom domains",
-          fn: async () => {
-            await cloudflare.setupCustomDomains(name, customDomain);
-            return {
-              detail: `dev.${baseDomain}, pre.${baseDomain}, ${baseDomain}`,
-              logs: [
-                "Assigning custom domains to Pages project...",
-                `  → dev.${baseDomain} (DES)`,
-                `  → pre.${baseDomain} (PRE)`,
-                `  → ${baseDomain} (PRO)`,
-                "All custom domains assigned.",
+                `Creating CNAME record...`,
+                `  → ${result.domain} → ${result.pagesTarget}`,
+                `Assigning custom domain to ${name}-des...`,
+                `  → ${result.domain}`,
+                `DNS + custom domain configured.`,
               ],
             };
           },
@@ -226,7 +245,7 @@ projectsRoutes.post("/create-stream", async (c) => {
                 id: "webhook",
                 label: "Configure GitHub webhook",
                 fn: async () => {
-                  await github.createWebhook(name, webhookUrl!, webhookSecret!);
+                  await gh.createWebhook(name, webhookUrl!, webhookSecret!);
                   return {
                     detail: "Webhook active",
                     logs: [
@@ -269,7 +288,11 @@ projectsRoutes.post("/create-stream", async (c) => {
         label: "Deploy DES (GitHub Actions)",
         status: "pending" as const,
         steps: [
-          { id: "waiting-run", label: "Waiting for workflow run...", status: "pending" as const },
+          {
+            id: "waiting-run",
+            label: "Waiting for workflow run...",
+            status: "pending" as const,
+          },
         ],
       },
     ];
@@ -295,7 +318,11 @@ projectsRoutes.post("/create-stream", async (c) => {
         const step = job.steps[si];
 
         await stream.writeSSE({
-          data: JSON.stringify({ jobId: job.id, stepId: step.id, status: "running" }),
+          data: JSON.stringify({
+            jobId: job.id,
+            stepId: step.id,
+            status: "running",
+          }),
           event: "step",
         });
 
@@ -339,7 +366,11 @@ projectsRoutes.post("/create-stream", async (c) => {
 
           for (let rs = si + 1; rs < job.steps.length; rs++) {
             await stream.writeSSE({
-              data: JSON.stringify({ jobId: job.id, stepId: job.steps[rs].id, status: "skipped" }),
+              data: JSON.stringify({
+                jobId: job.id,
+                stepId: job.steps[rs].id,
+                status: "skipped",
+              }),
               event: "step",
             });
           }
@@ -400,7 +431,13 @@ projectsRoutes.post("/create-stream", async (c) => {
     try {
       // Wait for the workflow run to appear
       const searchFrom = branchCreatedAt ?? new Date(globalStart);
-      const runId = await github.waitForWorkflowRun(name, "develop", searchFrom, 120_000, 4_000);
+      const runId = await gh.waitForWorkflowRun(
+        name,
+        "develop",
+        searchFrom,
+        120_000,
+        4_000,
+      );
 
       if (!runId) {
         throw new Error("Timeout waiting for GitHub Actions workflow run");
@@ -433,8 +470,8 @@ projectsRoutes.post("/create-stream", async (c) => {
 
       while (!runCompleted && Date.now() - runStart < RUN_TIMEOUT) {
         const [run, jobs] = await Promise.all([
-          github.getWorkflowRun(name, runId),
-          github.getWorkflowRunJobs(name, runId),
+          gh.getWorkflowRun(name, runId),
+          gh.getWorkflowRunJobs(name, runId),
         ]);
 
         // Process each GitHub Actions job
@@ -459,11 +496,14 @@ projectsRoutes.post("/create-stream", async (c) => {
           }
 
           const stepId = ghJobIdMap.get(ghJobKey)!;
-          const currentStatus = ghJob.status === "completed"
-            ? (ghJob.conclusion === "success" ? "success" : "error")
-            : ghJob.status === "in_progress"
-              ? "running"
-              : "pending";
+          const currentStatus =
+            ghJob.status === "completed"
+              ? ghJob.conclusion === "success"
+                ? "success"
+                : "error"
+              : ghJob.status === "in_progress"
+                ? "running"
+                : "pending";
 
           const prevStatus = sentJobs.get(ghJobKey);
 
@@ -473,7 +513,9 @@ projectsRoutes.post("/create-stream", async (c) => {
             // Calculate real duration from GitHub's timestamps
             let duration: number | undefined;
             if (ghJob.completed_at && ghJob.started_at) {
-              duration = new Date(ghJob.completed_at).getTime() - new Date(ghJob.started_at).getTime();
+              duration =
+                new Date(ghJob.completed_at).getTime() -
+                new Date(ghJob.started_at).getTime();
             }
 
             // Build detail from the job's steps
@@ -482,7 +524,9 @@ projectsRoutes.post("/create-stream", async (c) => {
               const totalSteps = ghJob.steps.length;
               detail = `${totalSteps} steps completed`;
             } else if (ghJob.conclusion === "failure" && ghJob.steps) {
-              const failedStep = ghJob.steps.find((s) => s.conclusion === "failure");
+              const failedStep = ghJob.steps.find(
+                (s) => s.conclusion === "failure",
+              );
               detail = failedStep ? `Failed at: ${failedStep.name}` : "Failed";
             }
 
@@ -490,15 +534,22 @@ projectsRoutes.post("/create-stream", async (c) => {
             const logs: string[] = [];
             if (ghJob.steps) {
               for (const step of ghJob.steps) {
-                const icon = step.conclusion === "success" ? "✓"
-                  : step.conclusion === "failure" ? "✗"
-                  : step.status === "in_progress" ? "●"
-                  : "○";
+                const icon =
+                  step.conclusion === "success"
+                    ? "✓"
+                    : step.conclusion === "failure"
+                      ? "✗"
+                      : step.status === "in_progress"
+                        ? "●"
+                        : "○";
 
                 let stepDuration = "";
                 if (step.completed_at && step.started_at) {
-                  const ms = new Date(step.completed_at).getTime() - new Date(step.started_at).getTime();
-                  stepDuration = ms < 1000 ? ` (${ms}ms)` : ` (${(ms / 1000).toFixed(1)}s)`;
+                  const ms =
+                    new Date(step.completed_at).getTime() -
+                    new Date(step.started_at).getTime();
+                  stepDuration =
+                    ms < 1000 ? ` (${ms}ms)` : ` (${(ms / 1000).toFixed(1)}s)`;
                 }
 
                 logs.push(`${icon} ${step.name}${stepDuration}`);
@@ -529,10 +580,12 @@ projectsRoutes.post("/create-stream", async (c) => {
       }
 
       // Calculate total duration of the GitHub Actions run
-      const finalRun = await github.getWorkflowRun(name, runId);
+      const finalRun = await gh.getWorkflowRun(name, runId);
       let ghRunDuration: number | undefined;
       if (finalRun.updated_at && finalRun.run_started_at) {
-        ghRunDuration = new Date(finalRun.updated_at).getTime() - new Date(finalRun.run_started_at).getTime();
+        ghRunDuration =
+          new Date(finalRun.updated_at).getTime() -
+          new Date(finalRun.run_started_at).getTime();
       }
 
       const ghRunSuccess = lastRunStatus === "success";
@@ -560,16 +613,26 @@ projectsRoutes.post("/create-stream", async (c) => {
 
       // ── Complete ─────────────────────────────────────────────────────
       // Fetch the run summary for the result
-      const finalJobs = await github.getWorkflowRunJobs(name, runId);
-      const deployJob = finalJobs.find((j) => j.name.toLowerCase().includes("deploy"));
-      const buildJob = finalJobs.find((j) => j.name.toLowerCase().includes("build") && !j.name.toLowerCase().includes("r2"));
+      const finalJobs = await gh.getWorkflowRunJobs(name, runId);
+      const deployJob = finalJobs.find((j) =>
+        j.name.toLowerCase().includes("deploy"),
+      );
+      const buildJob = finalJobs.find(
+        (j) =>
+          j.name.toLowerCase().includes("build") &&
+          !j.name.toLowerCase().includes("r2"),
+      );
 
       // Try to extract commit and build info from job outputs/steps
       let commit = finalRun.head_sha?.substring(0, 7) ?? "";
       let buildVersion = "";
 
       // Look for the deploy summary in annotations
-      const storeJob = finalJobs.find((j) => j.name.toLowerCase().includes("store") || j.name.toLowerCase().includes("r2"));
+      const storeJob = finalJobs.find(
+        (j) =>
+          j.name.toLowerCase().includes("store") ||
+          j.name.toLowerCase().includes("r2"),
+      );
 
       const totalDuration = Date.now() - globalStart;
       await stream.writeSSE({
@@ -582,9 +645,7 @@ projectsRoutes.post("/create-stream", async (c) => {
             name,
             repo: `${org}/${name}`,
             urls: {
-              des: `https://dev.${baseDomain}`,
-              pre: `https://pre.${baseDomain}`,
-              pro: `https://${baseDomain}`,
+              des: `https://${desDomain}`,
             },
             github: `https://github.com/${org}/${name}`,
             commit,
@@ -630,8 +691,17 @@ projectsRoutes.post("/create-stream", async (c) => {
 projectsRoutes.get("/:name", async (c) => {
   const name = c.req.param("name");
   try {
-    const detail = await getProjectDetail(name);
-    return c.json({ project: { ...detail.project, workflowRuns: detail.workflowRuns }, deploys: detail.deploys, builds: detail.builds });
+    const s = {
+      github: c.get("github"),
+      cloudflare: c.get("cloudflare"),
+      r2: c.get("r2"),
+    };
+    const detail = await getProjectDetail(name, s);
+    return c.json({
+      project: { ...detail.project, workflowRuns: detail.workflowRuns },
+      deploys: detail.deploys,
+      builds: detail.builds,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return c.json({ error: message }, 500);
@@ -642,7 +712,12 @@ projectsRoutes.get("/:name", async (c) => {
 projectsRoutes.get("/:name/deploys", async (c) => {
   const name = c.req.param("name");
   try {
-    const detail = await getProjectDetail(name);
+    const s = {
+      github: c.get("github"),
+      cloudflare: c.get("cloudflare"),
+      r2: c.get("r2"),
+    };
+    const detail = await getProjectDetail(name, s);
     return c.json({ deploys: detail.deploys });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -654,7 +729,7 @@ projectsRoutes.get("/:name/deploys", async (c) => {
 projectsRoutes.get("/:name/builds", async (c) => {
   const name = c.req.param("name");
   try {
-    const builds = await r2.listBuilds(name);
+    const builds = await c.get("r2").listBuilds(name);
     return c.json({ builds });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -671,11 +746,21 @@ projectsRoutes.post("/:name/promote", async (c) => {
   try {
     if (from === "des") {
       if (!version) return c.json({ error: "Version required" }, 400);
-      await github.createBranch(name, `release/${version}`, "develop");
-      return c.json({ success: true, from: "des", to: "pre", branch: `release/${version}` });
+      await c.get("github").createBranch(name, `release/${version}`, "develop");
+      return c.json({
+        success: true,
+        from: "des",
+        to: "pre",
+        branch: `release/${version}`,
+      });
     }
     if (from === "pre") {
-      return c.json({ success: true, from: "pre", to: "pro", message: "Merge release to main via PR" });
+      return c.json({
+        success: true,
+        from: "pre",
+        to: "pro",
+        message: "Merge release to main via PR",
+      });
     }
     return c.json({ error: `Cannot promote from ${from}` }, 400);
   } catch (error) {
@@ -695,8 +780,17 @@ projectsRoutes.post("/:name/rollback", async (c) => {
   }
 
   try {
-    await github.dispatchWorkflow(name, "rollback.yml", { environment, build_artifact: buildArtifact });
-    return c.json({ success: true, action: "rollback", project: name, environment, buildArtifact });
+    await c.get("github").dispatchWorkflow(name, "rollback.yml", {
+      environment,
+      build_artifact: buildArtifact,
+    });
+    return c.json({
+      success: true,
+      action: "rollback",
+      project: name,
+      environment,
+      buildArtifact,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return c.json({ error: message }, 500);

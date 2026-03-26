@@ -3,6 +3,7 @@ dist/
 .turbo/
 .env
 .env.*
+.dev.vars
 !.env.example
 *.tgz
 .DS_Store

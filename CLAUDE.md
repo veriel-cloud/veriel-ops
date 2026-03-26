@@ -18,16 +18,13 @@ Sistema centralizado de DevOps para gestionar el ciclo de vida de despliegue de 
 
 ```
 veriel-ops/
-├── .claude/
-│   ├── agents/          # Agentes especializados de Claude Code
-│   └── skills/          # Skills invocables con /comando
-├── dashboard/           # App Astro — panel central de control
-├── workflows/           # GitHub Actions reutilizables
-├── scripts/             # Scripts de automatización (CLI)
+├── dashboard/           # App Vite + React — frontend del panel
+├── server/              # App Hono — API backend (Workers-ready)
+├── .github-org/         # Reusable workflows de la org GitHub
+├── docs/                # Documentación del sistema
 ├── packages/
 │   └── shared/          # Tipos, utilidades y config compartida
-├── docs/                # Documentación del sistema
-│   └── spec.md          # Especificación completa
+├── scripts/             # Scripts de automatización (CLI)
 └── package.json
 ```
 
@@ -45,8 +42,8 @@ veriel-ops/
 
 | Entorno | Branch | Subdominio patrón |
 |---------|--------|-------------------|
-| DES | `develop` | `dev.<proyecto>.veriel.dev` |
-| PRE | `release/*` | `pre.<proyecto>.veriel.dev` |
+| DES | `develop` | `<proyecto>-des.veriel.dev` |
+| PRE | `release/*` | `<proyecto>-pre.veriel.dev` |
 | PRO | `main` | `<proyecto>.veriel.dev` |
 
 ## Reglas de despliegue
@@ -71,10 +68,12 @@ Los workflows viven en el repo `.github` de la organización y se invocan desde 
 ## Comandos
 
 ```bash
-pnpm dev          # Dashboard en modo desarrollo
-pnpm build        # Build del dashboard
-pnpm lint         # Lint de todo el proyecto
-pnpm test         # Tests de todo el proyecto
+pnpm dev              # Levanta dashboard + server en paralelo
+pnpm dev:dashboard    # Solo frontend (Vite :5173)
+pnpm dev:server       # Solo API (Hono :3001)
+pnpm build            # Build de ambas apps
+pnpm lint             # Lint de todo el proyecto
+pnpm test             # Tests de todo el proyecto
 ```
 
 ## Antes de commitear
