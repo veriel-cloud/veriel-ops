@@ -18,6 +18,8 @@ async function checkService(name: string, fn: () => Promise<unknown>) {
   }
 }
 
+systemRoutes.get("/health", (c) => c.json({ status: "ok" }));
+
 systemRoutes.get("/status", async (c) => {
   const github = c.get("github");
   const cloudflare = c.get("cloudflare");

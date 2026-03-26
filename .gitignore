@@ -19,3 +19,4 @@ dashboard/dist-server/
 .mcp.json
 image.png
 docs/hono-best-practices.md
+server/logs/

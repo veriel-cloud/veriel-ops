@@ -1,4 +1,5 @@
 import { GH_ACTIONS_POLL_INTERVAL_MS, GH_ACTIONS_POLL_TIMEOUT_MS } from "../constants.js";
+import type { Logger } from "../lib/logger.js";
 import type { PipelineJob } from "../types.js";
 import type { GitHubService } from "./github.js";
 
@@ -16,6 +17,7 @@ export async function executeSetupPipeline(
   stream: SSEWriter,
   jobs: PipelineJob[],
   globalStart: number,
+  logger?: Logger,
 ): Promise<{ branchCreatedAt: Date | null; failed: boolean }> {
   let branchCreatedAt: Date | null = null;
 
@@ -45,6 +47,7 @@ export async function executeSetupPipeline(
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
+        logger?.error({ jobId: job.id, stepId: step.id, error: message }, "pipeline step failed");
         await emit(stream, "step", {
           jobId: job.id,
           stepId: step.id,
@@ -91,6 +94,7 @@ export async function pollWorkflowRun(
   repo: string,
   branchCreatedAt: Date | null,
   globalStart: number,
+  logger?: Logger,
 ) {
   const deployJobId = "deploy-des";
 
@@ -106,6 +110,7 @@ export async function pollWorkflowRun(
   const runId = await gh.waitForWorkflowRun(repo, "develop", searchFrom);
 
   if (!runId) {
+    logger?.error({ repo }, "timeout waiting for workflow run");
     await emitDeployError(stream, "Timeout waiting for GitHub Actions workflow run", globalStart);
     return null;
   }

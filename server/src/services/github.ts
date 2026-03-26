@@ -9,9 +9,10 @@ import {
   WORKFLOW_POLL_INTERVAL_MS,
   WORKFLOW_POLL_TIMEOUT_MS,
 } from "../constants.js";
+import type { Logger } from "../lib/logger.js";
 import type { GitHubConfig } from "../types.js";
 
-export function createGitHubService(config: GitHubConfig) {
+export function createGitHubService(config: GitHubConfig, logger?: Logger) {
   const octokit = new Octokit({ auth: config.token });
   const { org } = config;
 
@@ -45,14 +46,19 @@ export function createGitHubService(config: GitHubConfig) {
 
   async function waitForWorkflowRun(repo: string, branch: string, createdAfter: Date): Promise<number | null> {
     const deadline = Date.now() + WORKFLOW_POLL_TIMEOUT_MS;
+    logger?.debug({ repo, branch }, "polling for workflow run");
 
     while (Date.now() < deadline) {
       const runs = await getWorkflowRunsByBranch(repo, branch, 5);
       const run = runs.find((r) => new Date(r.created_at) >= createdAfter);
-      if (run) return run.id;
+      if (run) {
+        logger?.info({ repo, branch, runId: run.id }, "workflow run found");
+        return run.id;
+      }
       await new Promise((r) => setTimeout(r, WORKFLOW_POLL_INTERVAL_MS));
     }
 
+    logger?.warn({ repo, branch }, "workflow run poll timed out");
     return null;
   }
 
@@ -60,6 +66,7 @@ export function createGitHubService(config: GitHubConfig) {
 
   async function createRepo(name: string, options: { description?: string; isPrivate?: boolean; type?: string } = {}) {
     const templateRepo = PROJECT_TEMPLATES[options.type ?? "astro-static"] ?? "template-astro";
+    logger?.info({ name, templateRepo }, "creating repository from template");
 
     const { data } = await octokit.rest.repos.createUsingTemplate({
       template_owner: org,
@@ -76,6 +83,7 @@ export function createGitHubService(config: GitHubConfig) {
   }
 
   async function createBranch(repo: string, branch: string, fromBranch = "main") {
+    logger?.info({ repo, branch, fromBranch }, "creating branch");
     const { data: ref } = await octokit.rest.git.getRef({ owner: org, repo, ref: `heads/${fromBranch}` });
     await octokit.rest.git.createRef({ owner: org, repo, ref: `refs/heads/${branch}`, sha: ref.object.sha });
   }
@@ -101,6 +109,7 @@ export function createGitHubService(config: GitHubConfig) {
     octokit.rest.actions.createWorkflowDispatch({ owner: org, repo, workflow_id: workflowId, ref: "main", inputs });
 
   async function createWebhook(repo: string, webhookUrl: string, secret: string) {
+    logger?.info({ repo }, "creating webhook");
     await octokit.rest.repos.createWebhook({
       owner: org,
       repo,

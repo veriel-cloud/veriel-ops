@@ -1,7 +1,8 @@
 import { AwsClient } from "aws4fetch";
+import type { Logger } from "../lib/logger.js";
 import type { BuildInfo, R2Config } from "../types.js";
 
-export function createR2Service(config: R2Config) {
+export function createR2Service(config: R2Config, logger?: Logger) {
   const endpoint = `https://${config.accountId}.r2.cloudflarestorage.com`;
   const { bucketName } = config;
 
@@ -13,6 +14,7 @@ export function createR2Service(config: R2Config) {
   });
 
   async function listObjects(prefix = ""): Promise<BuildInfo[]> {
+    logger?.debug({ prefix }, "r2 list objects");
     const url = new URL(`/${bucketName}`, endpoint);
     url.searchParams.set("list-type", "2");
     if (prefix) url.searchParams.set("prefix", prefix);
@@ -30,6 +32,7 @@ export function createR2Service(config: R2Config) {
     listAllProjectBuilds: () => listObjects(),
 
     async downloadBuild(project: string, environment: string, artifact: string) {
+      logger?.info({ project, environment, artifact }, "r2 download build");
       const url = new URL(`/${bucketName}/${project}/${environment}/${artifact}`, endpoint);
       const res = await r2.fetch(url.toString());
       if (!res.ok) throw new Error(`Failed to download build: ${res.status}`);

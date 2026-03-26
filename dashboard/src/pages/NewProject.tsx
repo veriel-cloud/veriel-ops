@@ -17,6 +17,85 @@ export function NewProject() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const handleSSEEvent = useCallback((event: string, data: any) => {
+    if (event === "init") {
+      setWorkflow({
+        title: data.title,
+        status: "running",
+        jobs: data.jobs.map((job: any) => ({
+          ...job,
+          steps: job.steps.map((step: any) => ({ ...step })),
+        })),
+      });
+    } else if (event === "job") {
+      setWorkflow((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          jobs: prev.jobs.map((job) =>
+            job.id === data.jobId
+              ? { ...job, status: data.status as JobStatus, duration: data.duration ?? job.duration }
+              : job,
+          ),
+        };
+      });
+    } else if (event === "step") {
+      setWorkflow((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          jobs: prev.jobs.map((job) => {
+            if (job.id !== data.jobId) return job;
+
+            const existingStep = job.steps.find((s) => s.id === data.stepId);
+
+            if (existingStep) {
+              return {
+                ...job,
+                steps: job.steps.map((step) =>
+                  step.id === data.stepId
+                    ? {
+                        ...step,
+                        status: data.status as StepStatus,
+                        detail: data.detail ?? step.detail,
+                        logs: data.logs ?? step.logs,
+                        duration: data.duration ?? step.duration,
+                      }
+                    : step,
+                ),
+              };
+            }
+
+            return {
+              ...job,
+              steps: [
+                ...job.steps,
+                {
+                  id: data.stepId,
+                  label: data.label ?? data.stepId,
+                  status: data.status as StepStatus,
+                  detail: data.detail,
+                  logs: data.logs,
+                  duration: data.duration,
+                },
+              ],
+            };
+          }),
+        };
+      });
+    } else if (event === "complete") {
+      setResult(data);
+      setWorkflow((prev) =>
+        prev ? { ...prev, status: "success" as JobStatus, totalDuration: data.totalDuration } : prev,
+      );
+    } else if (event === "error") {
+      setError(data.error);
+      setWorkflow((prev) =>
+        prev ? { ...prev, status: "error" as JobStatus, totalDuration: data.totalDuration } : prev,
+      );
+    }
+  }, []);
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -84,89 +163,6 @@ export function NewProject() {
     },
     [name, type, description, domainType, customDomain, handleSSEEvent],
   );
-
-  const handleSSEEvent = useCallback((event: string, data: any) => {
-    if (event === "init") {
-      // Initialize the full workflow with all jobs/steps pending
-      setWorkflow({
-        title: data.title,
-        status: "running",
-        jobs: data.jobs.map((job: any) => ({
-          ...job,
-          steps: job.steps.map((step: any) => ({ ...step })),
-        })),
-      });
-    } else if (event === "job") {
-      // Update a job's status/duration
-      setWorkflow((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          jobs: prev.jobs.map((job) =>
-            job.id === data.jobId
-              ? { ...job, status: data.status as JobStatus, duration: data.duration ?? job.duration }
-              : job,
-          ),
-        };
-      });
-    } else if (event === "step") {
-      // Update a step within a job, or add it dynamically (GitHub Actions steps)
-      setWorkflow((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          jobs: prev.jobs.map((job) => {
-            if (job.id !== data.jobId) return job;
-
-            const existingStep = job.steps.find((s) => s.id === data.stepId);
-
-            if (existingStep) {
-              return {
-                ...job,
-                steps: job.steps.map((step) =>
-                  step.id === data.stepId
-                    ? {
-                        ...step,
-                        status: data.status as StepStatus,
-                        detail: data.detail ?? step.detail,
-                        logs: data.logs ?? step.logs,
-                        duration: data.duration ?? step.duration,
-                      }
-                    : step,
-                ),
-              };
-            }
-
-            // New step discovered from GitHub Actions — add it
-            return {
-              ...job,
-              steps: [
-                ...job.steps,
-                {
-                  id: data.stepId,
-                  label: data.label ?? data.stepId,
-                  status: data.status as StepStatus,
-                  detail: data.detail,
-                  logs: data.logs,
-                  duration: data.duration,
-                },
-              ],
-            };
-          }),
-        };
-      });
-    } else if (event === "complete") {
-      setResult(data);
-      setWorkflow((prev) =>
-        prev ? { ...prev, status: "success" as JobStatus, totalDuration: data.totalDuration } : prev,
-      );
-    } else if (event === "error") {
-      setError(data.error);
-      setWorkflow((prev) =>
-        prev ? { ...prev, status: "error" as JobStatus, totalDuration: data.totalDuration } : prev,
-      );
-    }
-  }, []);
 
   return (
     <>

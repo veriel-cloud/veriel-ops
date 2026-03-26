@@ -28,10 +28,13 @@ projectsRoutes.post("/", async (c) => {
   const { name, type, description, customDomain } = await c.req.json();
   if (!name) return c.json({ error: "Project name is required" }, 400);
 
+  const log = c.get("logger");
   const gh = c.get("github");
   const cf = c.get("cloudflare");
   const e = env(c);
   const org = e.GITHUB_ORG || DEFAULT_ORG;
+
+  log.info({ project: name, type, customDomain }, "creating project");
 
   const repo = await gh.createRepo(name, {
     description: description ?? `${type ?? "web"} project managed by veriel-ops`,
@@ -71,10 +74,13 @@ projectsRoutes.post("/create-stream", async (c) => {
   const { name, type, description, customDomain } = await c.req.json();
   if (!name) return c.json({ error: "Project name is required" }, 400);
 
+  const log = c.get("logger");
   const gh = c.get("github");
   const cf = c.get("cloudflare");
   const e = env(c);
   const org = e.GITHUB_ORG || DEFAULT_ORG;
+
+  log.info({ project: name, type, customDomain }, "creating project via SSE stream");
   const desDomain = domainForEnv(name, "des", customDomain);
 
   const { jobs } = buildSetupPipeline(
@@ -105,12 +111,12 @@ projectsRoutes.post("/create-stream", async (c) => {
     await stream.writeSSE({ event: "init", data: JSON.stringify({ title: `Deploy ${name}`, jobs: initJobs }) });
 
     // Phase 1: Setup repo + infra
-    const { branchCreatedAt, failed } = await executeSetupPipeline(stream, jobs, globalStart);
+    const { branchCreatedAt, failed } = await executeSetupPipeline(stream, jobs, globalStart, log);
     if (failed) return;
 
     // Phase 2: Poll real GitHub Actions workflow
     try {
-      const result = await pollWorkflowRun(stream, gh, name, branchCreatedAt, globalStart);
+      const result = await pollWorkflowRun(stream, gh, name, branchCreatedAt, globalStart, log);
       if (!result) return;
 
       await stream.writeSSE({
@@ -165,6 +171,7 @@ projectsRoutes.get("/:name/builds", async (c) => {
 projectsRoutes.post("/:name/promote", async (c) => {
   const name = c.req.param("name");
   const { from, version } = await c.req.json();
+  c.get("logger").info({ project: name, from, version }, "promoting project");
 
   if (from === "des") {
     if (!version) return c.json({ error: "Version required" }, 400);
@@ -183,6 +190,7 @@ projectsRoutes.post("/:name/rollback", async (c) => {
 
   if (!environment || !buildArtifact) return c.json({ error: "environment and buildArtifact required" }, 400);
 
+  c.get("logger").info({ project: name, environment, buildArtifact }, "triggering rollback");
   await c.get("github").dispatchWorkflow(name, "rollback.yml", { environment, build_artifact: buildArtifact });
   return c.json({ success: true, action: "rollback", project: name, environment, buildArtifact });
 });
