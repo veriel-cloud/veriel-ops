@@ -1,4 +1,4 @@
-import { DEFAULT_COVERAGE_THRESHOLD, urlForEnv } from "../constants.js";
+import { DEFAULT_COVERAGE_THRESHOLD, pagesProjectName, urlForEnv } from "../constants.js";
 import type {
   BuildArtifact,
   DeployEntry,
@@ -61,21 +61,29 @@ export async function getProjects(s: Services): Promise<Project[]> {
 }
 
 export async function getProjectDetail(name: string, s: Services) {
-  const [repo, pages, deployments, workflowRuns, builds] = await Promise.all([
+  const [repo, pages, deploysPerEnv, workflowRuns, builds] = await Promise.all([
     s.github.getRepo(name),
     s.cloudflare.getPagesProject(name).catch(() => null),
-    s.cloudflare.getDeployments(name, 30).catch(() => []),
+    Promise.all(
+      (["des", "pre", "pro"] as const).map((env) =>
+        s.cloudflare
+          .getDeployments(pagesProjectName(name, env), 15)
+          .then((d) => [env, d] as const)
+          .catch(() => [env, []] as const),
+      ),
+    ),
     s.github.getWorkflowRuns(name),
     s.r2.listBuilds(name).catch(() => []),
   ]);
 
   const domain = pages?.domains?.[0] ?? `${name}.veriel.dev`;
 
-  const byEnv = {
-    des: deployments.filter((d) => d.deployment_trigger?.metadata?.branch === "develop"),
-    pre: deployments.filter((d) => d.deployment_trigger?.metadata?.branch?.startsWith("release")),
-    pro: deployments.filter((d) => d.environment === "production"),
-  };
+  const byEnv: Record<Environment, PagesDeployment[]> = { des: [], pre: [], pro: [] };
+  const allDeployments: PagesDeployment[] = [];
+  for (const [env, deploys] of deploysPerEnv) {
+    byEnv[env] = deploys;
+    allDeployments.push(...deploys);
+  }
 
   const latestOf = (env: Environment) => {
     const d = byEnv[env][0];
@@ -100,7 +108,7 @@ export async function getProjectDetail(name: string, s: Services) {
     createdAt: repo.created_at ?? "",
   };
 
-  const deploys = deduplicateByCommit(deployments).map(toDeployEntry(name));
+  const deploys = deduplicateByCommit(allDeployments).map(toDeployEntry(name));
 
   const buildArtifacts: BuildArtifact[] = builds.map((b) => ({
     name: b.name,

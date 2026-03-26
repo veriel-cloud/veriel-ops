@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { DeployModal } from "@/components/DeployModal";
 import { DeployTable } from "@/components/DeployTable";
 import { EnvironmentBadge } from "@/components/EnvironmentBadge";
 import { Header } from "@/components/Header";
+import { PromoteModal } from "@/components/PromoteModal";
+import { RollbackModal } from "@/components/RollbackModal";
 import { StatusDot } from "@/components/StatusDot";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -15,9 +18,16 @@ import { cn, timeAgo } from "@/lib/utils";
 export function ProjectDetail() {
   const { name } = useParams<{ name: string }>();
   const [activeTab, setActiveTab] = useState("deploys");
+  const [showPromote, setShowPromote] = useState(false);
+  const [showRollback, setShowRollback] = useState(false);
+  const [showDeploy, setShowDeploy] = useState(false);
 
-  const { data, loading, error } = useFetch<{ project: any; deploys: any[]; builds: any[] }>(`/api/projects/${name}`);
-  const { data: buildsData, loading: lb } = useFetch<{ builds: any[] }>(`/api/projects/${name}/builds`);
+  const { data, loading, error, refetch } = useFetch<{ project: any; deploys: any[]; builds: any[] }>(
+    `/api/projects/${name}`,
+  );
+  const { data: buildsData, loading: lb, refetch: refetchBuilds } = useFetch<{ builds: any[] }>(
+    `/api/projects/${name}/builds`,
+  );
 
   const project = data?.project;
   const deploys = data?.deploys ?? [];
@@ -77,9 +87,18 @@ export function ProjectDetail() {
               description={project.description || project.domain || ""}
               actions={
                 <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={() => setShowDeploy(true)}>
+                    Deploy
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => setShowPromote(true)}>
+                    Promote
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => setShowRollback(true)}>
+                    Rollback
+                  </Button>
                   <a href={`https://github.com/${project.repo}`} target="_blank" rel="noopener">
                     <Button
-                      variant="secondary"
+                      variant="ghost"
                       size="sm"
                       icon={
                         <svg
@@ -426,6 +445,39 @@ export function ProjectDetail() {
             </div>
           </>
         )
+      )}
+
+      {project && name && (
+        <>
+          <DeployModal
+            open={showDeploy}
+            onClose={() => setShowDeploy(false)}
+            projectName={name}
+            onSuccess={() => {
+              refetch();
+            }}
+          />
+          <PromoteModal
+            open={showPromote}
+            onClose={() => setShowPromote(false)}
+            projectName={name}
+            environments={project.environments}
+            onSuccess={() => {
+              refetch();
+              refetchBuilds();
+            }}
+          />
+          <RollbackModal
+            open={showRollback}
+            onClose={() => setShowRollback(false)}
+            projectName={name}
+            builds={builds}
+            onSuccess={() => {
+              refetch();
+              refetchBuilds();
+            }}
+          />
+        </>
       )}
     </>
   );

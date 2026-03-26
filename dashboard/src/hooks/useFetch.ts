@@ -39,7 +39,7 @@ export function useFetch<T>(url: string): UseFetchResult<T> {
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, _trigger]);
 
   return { data, loading, error, refetch: () => setTrigger((t) => t + 1) };
 }
