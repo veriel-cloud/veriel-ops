@@ -2,20 +2,10 @@ import type { MiddlewareHandler } from "hono";
 import type { Env } from "../env.js";
 import { verifyToken } from "../lib/token.js";
 
-const PUBLIC_PATHS = ["/api/system/health", "/api/webhooks/"];
+const PUBLIC_PATHS = ["/api/system/health", "/api/webhooks/", "/api/actions/"];
 
 function isPublicPath(path: string): boolean {
   return PUBLIC_PATHS.some((p) => path.startsWith(p));
-}
-
-function extractToken(c: {
-  req: { header: (name: string) => string | undefined; query: (name: string) => string | undefined };
-}): string | null {
-  const header = c.req.header("Authorization");
-  if (header?.startsWith("Bearer ")) {
-    return header.slice(7);
-  }
-  return c.req.query("token") ?? null;
 }
 
 export const authMiddleware: MiddlewareHandler<Env> = async (c, next) => {
@@ -23,11 +13,12 @@ export const authMiddleware: MiddlewareHandler<Env> = async (c, next) => {
     return next();
   }
 
-  const token = extractToken(c);
-  if (!token) {
+  const header = c.req.header("Authorization");
+  if (!header?.startsWith("Bearer ")) {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
+  const token = header.slice(7);
   const store = c.get("store");
   const tokenEntries = store.getTokenHashes();
 

@@ -28,7 +28,14 @@ const cachedData = createCachedData(apiCache);
 
 const app = new Hono<Env>();
 
-app.use("/*", cors());
+app.use(
+  "/*",
+  cors({
+    origin: ["http://localhost:5173", "https://veriel-ops.veriel.dev"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use("/*", loggerMiddleware);
 
 app.use("/*", async (c, next) => {

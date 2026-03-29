@@ -46,7 +46,7 @@ export function ProjectDetail() {
 
   const deploys = data?.deploys ?? [];
   const builds = buildsData?.builds ?? [];
-  const workflowRuns = project?.workflowRuns ?? [];
+  const workflowRuns = data?.workflowRuns ?? [];
 
   const activityItems = deploys.map((d: any) => ({
     type: "deploy" as const,

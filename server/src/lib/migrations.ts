@@ -107,8 +107,10 @@ export function runMigrations(db: Database): void {
 
   const pending = migrations.filter((m) => m.version > currentVersion);
 
+  const updateVersion = db.prepare("UPDATE schema_version SET version = $version");
+
   for (const migration of pending) {
     db.exec(migration.sql);
-    db.exec(`UPDATE schema_version SET version = ${migration.version}`);
+    updateVersion.run({ $version: migration.version });
   }
 }

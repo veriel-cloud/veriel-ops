@@ -97,11 +97,7 @@ export function WorkflowLogViewer({ open, onClose, repo, runId, runName, initial
       return;
     }
 
-    const sseToken = localStorage.getItem("veriel-ops-token");
-    const streamUrl = sseToken
-      ? `/api/actions/${repo}/${runId}/stream?token=${encodeURIComponent(sseToken)}`
-      : `/api/actions/${repo}/${runId}/stream`;
-    const es = new EventSource(streamUrl);
+    const es = new EventSource(`/api/actions/${repo}/${runId}/stream`);
     eventSourceRef.current = es;
 
     es.addEventListener("update", (e) => {

@@ -31,6 +31,8 @@ webhooksRoutes.post("/github", async (c) => {
       c.get("logger").warn("Invalid GitHub webhook signature");
       return c.json({ error: "Invalid signature" }, 401);
     }
+  } else {
+    c.get("logger").warn("GITHUB_WEBHOOK_SECRET not configured — webhook signature not verified");
   }
 
   const event = c.req.header("x-github-event") ?? "unknown";

@@ -159,7 +159,11 @@ export function createDbStore(db: Database): DbStore {
   function getProjectSettings(name: string): ProjectSettings | null {
     const row = stmts.selectSettings.get({ $name: name }) as { settings: string } | null;
     if (!row) return null;
-    return JSON.parse(row.settings) as ProjectSettings;
+    try {
+      return JSON.parse(row.settings) as ProjectSettings;
+    } catch {
+      return { coverageThreshold: 80 };
+    }
   }
 
   function setProjectSettings(name: string, settings: Partial<ProjectSettings>): ProjectSettings {
@@ -203,12 +207,20 @@ export function createDbStore(db: Database): DbStore {
 
   // ─── Row mappers ─────────────────────────────────────────────────
 
+  function safeJsonParse(value: string): Record<string, unknown> {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+
   function rowToEvent(row: Record<string, unknown>): WebhookEvent {
     return {
       source: row.source as WebhookEvent["source"],
       type: row.type as string,
       project: row.project as string,
-      data: JSON.parse(row.data as string),
+      data: safeJsonParse(row.data as string),
       timestamp: row.timestamp as string,
     };
   }
@@ -229,7 +241,7 @@ export function createDbStore(db: Database): DbStore {
       id: row.id as number,
       action: row.action as string,
       resource: row.resource as string,
-      detail: JSON.parse(row.detail as string),
+      detail: safeJsonParse(row.detail as string),
       timestamp: row.timestamp as string,
       actor: row.actor as string,
     };

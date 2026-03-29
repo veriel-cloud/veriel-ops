@@ -107,8 +107,9 @@ describe("authMiddleware", () => {
     expect(res.status).toBe(200);
   });
 
-  it("accepts token via query param", async () => {
-    const res = await app.request(`/api/projects?token=${validToken}`);
+  it("allows /api/actions/* without token (SSE streams)", async () => {
+    app.get("/api/actions/repo/123/stream", (c) => c.json({ ok: true }));
+    const res = await app.request("/api/actions/repo/123/stream");
     expect(res.status).toBe(200);
   });
 });
