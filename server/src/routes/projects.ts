@@ -3,7 +3,6 @@ import { env } from "hono/adapter";
 import { streamSSE } from "hono/streaming";
 import { DEFAULT_ORG, domainForEnv, pagesProjectName } from "../constants.js";
 import type { Env } from "../env.js";
-import { getProjectDetail, getProjects } from "../services/data.js";
 import { buildSetupPipeline } from "../services/pipeline.js";
 import { executeSetupPipeline, pollWorkflowRun } from "../services/sse.js";
 
@@ -18,7 +17,7 @@ const services = (c: { get: (k: "github" | "cloudflare" | "r2") => unknown }) =>
 // ─── List ─────────────────────────────────────────────────────────────
 
 projectsRoutes.get("/", async (c) => {
-  const projects = await getProjects(services(c));
+  const projects = await c.get("cachedData").getProjects(services(c));
   return c.json({ projects });
 });
 
@@ -148,7 +147,7 @@ projectsRoutes.post("/create-stream", async (c) => {
 // ─── Detail ───────────────────────────────────────────────────────────
 
 projectsRoutes.get("/:name", async (c) => {
-  const detail = await getProjectDetail(c.req.param("name"), services(c));
+  const detail = await c.get("cachedData").getProjectDetail(c.req.param("name"), services(c));
   return c.json({
     project: { ...detail.project, workflowRuns: detail.workflowRuns },
     deploys: detail.deploys,
@@ -157,7 +156,7 @@ projectsRoutes.get("/:name", async (c) => {
 });
 
 projectsRoutes.get("/:name/deploys", async (c) => {
-  const detail = await getProjectDetail(c.req.param("name"), services(c));
+  const detail = await c.get("cachedData").getProjectDetail(c.req.param("name"), services(c));
   return c.json({ deploys: detail.deploys });
 });
 
@@ -177,10 +176,12 @@ projectsRoutes.post("/:name/promote", async (c) => {
     if (!version) return c.json({ error: "Version required" }, 400);
     await c.get("github").createBranch(name, `release/${version}`, "develop");
     c.get("store").addAuditEntry("promote", name, { from: "des", to: "pre", version });
+    c.get("cachedData").invalidateProject(name);
     return c.json({ success: true, from: "des", to: "pre", branch: `release/${version}` });
   }
   if (from === "pre") {
     c.get("store").addAuditEntry("promote", name, { from: "pre", to: "pro" });
+    c.get("cachedData").invalidateProject(name);
     return c.json({ success: true, from: "pre", to: "pro", message: "Merge release to main via PR" });
   }
   return c.json({ error: `Cannot promote from ${from}` }, 400);
@@ -207,6 +208,7 @@ projectsRoutes.post("/:name/deploy", async (c) => {
   );
   await c.get("github").dispatchWorkflow(name, config.workflow, {}, config.ref);
   c.get("store").addAuditEntry("deploy", name, { environment, workflow: config.workflow });
+  c.get("cachedData").invalidateProject(name);
   return c.json({ success: true, action: "deploy", project: name, environment, workflow: config.workflow });
 });
 
@@ -228,6 +230,7 @@ projectsRoutes.post("/:name/rollback", async (c) => {
   c.get("logger").info({ project: name, environment, buildArtifact }, "triggering rollback");
   await c.get("github").dispatchWorkflow(name, "rollback.yml", { environment, build_artifact: buildArtifact });
   c.get("store").addAuditEntry("rollback", name, { environment, buildArtifact });
+  c.get("cachedData").invalidateProject(name);
   return c.json({ success: true, action: "rollback", project: name, environment, buildArtifact });
 });
 
@@ -407,6 +410,7 @@ projectsRoutes.delete("/:name", async (c) => {
   const store = c.get("store");
   store.deleteProjectSettings(name);
   store.addAuditEntry("project_delete", name);
+  c.get("cachedData").invalidateProject(name);
 
   return c.json({ success: true, deleted });
 });

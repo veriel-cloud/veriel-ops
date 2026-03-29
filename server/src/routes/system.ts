@@ -38,3 +38,9 @@ systemRoutes.get("/status", async (c) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+systemRoutes.get("/cache", (c) => {
+  const stats = c.get("cachedData").stats();
+  const hitRate = stats.hits + stats.misses > 0 ? Math.round((stats.hits / (stats.hits + stats.misses)) * 100) : 0;
+  return c.json({ ...stats, hitRate: `${hitRate}%` });
+});

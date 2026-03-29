@@ -1,12 +1,11 @@
 import { Hono } from "hono";
 import type { Env } from "../env.js";
-import { getDeploys } from "../services/data.js";
 
 export const deploysRoutes = new Hono<Env>();
 
 deploysRoutes.get("/", async (c) => {
   try {
-    const deploys = await getDeploys({
+    const deploys = await c.get("cachedData").getDeploys({
       github: c.get("github"),
       cloudflare: c.get("cloudflare"),
       r2: c.get("r2"),

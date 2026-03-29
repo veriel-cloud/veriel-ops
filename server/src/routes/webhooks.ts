@@ -39,6 +39,7 @@ webhooksRoutes.post("/github", async (c) => {
 
   const project = payload.repository?.name ?? "unknown";
   store.addEvent({ source: "github", type: event, project, data: payload });
+  c.get("cachedData").invalidateProject(project);
 
   if (event === "workflow_run" && payload.action === "completed") {
     const conclusion = payload.workflow_run?.conclusion;
