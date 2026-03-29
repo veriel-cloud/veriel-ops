@@ -190,7 +190,7 @@ function envState(status: HealthStatus, url: string, commitSha?: string | null, 
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
-function resolveEnv(d: PagesDeployment): Environment {
+export function resolveEnv(d: PagesDeployment): Environment {
   const branch = d.deployment_trigger?.metadata?.branch ?? "";
   if (branch === "develop") return "des";
   if (branch.startsWith("release")) return "pre";
@@ -198,14 +198,14 @@ function resolveEnv(d: PagesDeployment): Environment {
   return d.environment === "production" ? "pro" : "des";
 }
 
-function deployStatus(d: PagesDeployment): DeployStatus {
+export function deployStatus(d: PagesDeployment): DeployStatus {
   const s = d.latest_stage?.status;
   if (s === "success") return "success";
   if (s === "active") return "in_progress";
   return "failed";
 }
 
-function deduplicateByCommit(deployments: PagesDeployment[]): PagesDeployment[] {
+export function deduplicateByCommit(deployments: PagesDeployment[]): PagesDeployment[] {
   const seen = new Map<string, PagesDeployment>();
 
   for (const d of deployments) {
@@ -219,17 +219,17 @@ function deduplicateByCommit(deployments: PagesDeployment[]): PagesDeployment[] 
   return Array.from(seen.values());
 }
 
-function durationSecs(d: PagesDeployment): number {
+export function durationSecs(d: PagesDeployment): number {
   if (!d.latest_stage?.ended_on || !d.latest_stage?.started_on) return 0;
   const diff = (new Date(d.latest_stage.ended_on).getTime() - new Date(d.latest_stage.started_on).getTime()) / 1000;
   return Math.max(0, Math.round(diff));
 }
 
-function commitShort(hash?: string | null): string | null {
+export function commitShort(hash?: string | null): string | null {
   return hash?.slice(0, 7) ?? null;
 }
 
-function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;
   const units = ["B", "KB", "MB", "GB"];

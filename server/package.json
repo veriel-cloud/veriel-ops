@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "bun --watch --env-file=.dev.vars src/index.ts",
     "dev:pretty": "bun --watch --env-file=.dev.vars src/index.ts | pnpm dlx pino-pretty",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bunx --bun vitest run",
+    "test:watch": "bunx --bun vitest",
+    "test:coverage": "vitest run --coverage --exclude 'src/**/__tests__/db*.test.ts'"
   },
   "dependencies": {
     "aws4fetch": "^1.0.20",
@@ -16,6 +19,8 @@
   },
   "devDependencies": {
     "@types/bun": "^1.2.14",
-    "typescript": "^5.9.3"
+    "@vitest/coverage-v8": "^4.1.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.2"
   }
 }
