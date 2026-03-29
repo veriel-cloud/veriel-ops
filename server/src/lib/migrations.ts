@@ -66,6 +66,26 @@ const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_audit_log_resource ON audit_log(resource);
     `,
   },
+  {
+    version: 2,
+    description: "Create auth_tokens table",
+    sql: `
+      CREATE TABLE IF NOT EXISTS auth_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        token_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        last_used_at TEXT
+      );
+    `,
+  },
+  {
+    version: 3,
+    description: "Add expires_at to auth_tokens",
+    sql: `
+      ALTER TABLE auth_tokens ADD COLUMN expires_at TEXT;
+    `,
+  },
 ];
 
 export function runMigrations(db: Database): void {

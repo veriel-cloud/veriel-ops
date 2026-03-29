@@ -105,9 +105,13 @@ export function NewProject() {
       setWorkflow(null);
 
       try {
+        const token = localStorage.getItem("veriel-ops-token");
         const response = await fetch("/api/projects/create-stream", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({
             name,
             type,

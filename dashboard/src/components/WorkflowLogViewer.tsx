@@ -73,7 +73,10 @@ export function WorkflowLogViewer({ open, onClose, repo, runId, runName, initial
     if (!open) return;
 
     if (initialStatus === "completed") {
-      fetch(`/api/actions/${repo}/${runId}/logs`)
+      const token = localStorage.getItem("veriel-ops-token");
+      fetch(`/api/actions/${repo}/${runId}/logs`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
         .then((r) => r.json())
         .then((data) => {
           setState({
@@ -94,7 +97,11 @@ export function WorkflowLogViewer({ open, onClose, repo, runId, runName, initial
       return;
     }
 
-    const es = new EventSource(`/api/actions/${repo}/${runId}/stream`);
+    const sseToken = localStorage.getItem("veriel-ops-token");
+    const streamUrl = sseToken
+      ? `/api/actions/${repo}/${runId}/stream?token=${encodeURIComponent(sseToken)}`
+      : `/api/actions/${repo}/${runId}/stream`;
+    const es = new EventSource(streamUrl);
     eventSourceRef.current = es;
 
     es.addEventListener("update", (e) => {

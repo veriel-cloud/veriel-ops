@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getStoredToken } from "../lib/api";
 
 interface UseFetchResult<T> {
   data: T | null;
@@ -18,8 +19,18 @@ export function useFetch<T>(url: string): UseFetchResult<T> {
     setLoading(true);
     setError(null);
 
-    fetch(url)
+    const token = getStoredToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    fetch(url, { headers })
       .then((res) => {
+        if (res.status === 401) {
+          window.location.href = "/login";
+          throw new Error("Unauthorized");
+        }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })

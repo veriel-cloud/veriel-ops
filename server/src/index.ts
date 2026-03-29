@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { DEFAULT_BUCKET, DEFAULT_ORG } from "./constants.js";
 import type { Env } from "./env.js";
 import { createDatabase } from "./lib/db.js";
+import { authMiddleware } from "./middleware/auth.js";
 import { loggerMiddleware } from "./middleware/logger.js";
 import { actionsRoutes } from "./routes/actions.js";
 import { deploysRoutes } from "./routes/deploys.js";
@@ -69,6 +70,8 @@ app.use("/*", async (c, next) => {
 
   await next();
 });
+
+app.use("/*", authMiddleware);
 
 app.route("/api/projects", projectsRoutes);
 app.route("/api/deploys", deploysRoutes);

@@ -1,0 +1,220 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 920" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#7a7a9a"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#34d399"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#f87171"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#f6821f"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="920" rx="12" fill="#0f0f1a"/>
+
+  <!-- Title -->
+  <text x="550" y="40" text-anchor="middle" fill="#f6821f" font-size="20" font-weight="700">Flujo de Autenticación — veriel-ops</text>
+  <text x="550" y="62" text-anchor="middle" fill="#7a7a9a" font-size="12">Bearer Token + SQLite + bcrypt (Bun nativo)</text>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- SECTION 1: Token Generation -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <text x="40" y="105" fill="#60a5fa" font-size="13" font-weight="600">1. GENERACIÓN DEL TOKEN (una sola vez)</text>
+
+  <!-- CLI box -->
+  <rect x="40" y="120" width="240" height="60" rx="8" fill="#16162a" stroke="#252548"/>
+  <text x="160" y="145" text-anchor="middle" fill="#22d3ee" font-size="11" font-weight="600">Terminal</text>
+  <text x="160" y="163" text-anchor="middle" fill="#7a7a9a" font-size="9">bun server/scripts/generate-token.ts</text>
+
+  <!-- Arrow -->
+  <line x1="280" y1="150" x2="340" y2="150" stroke="#7a7a9a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="310" y="140" text-anchor="middle" fill="#7a7a9a" font-size="9">genera</text>
+
+  <!-- Token generation -->
+  <rect x="345" y="120" width="200" height="60" rx="8" fill="#16162a" stroke="#f6821f" stroke-width="1.5"/>
+  <text x="445" y="142" text-anchor="middle" fill="#f6821f" font-size="11" font-weight="600">token.ts</text>
+  <text x="445" y="158" text-anchor="middle" fill="#7a7a9a" font-size="9">crypto.getRandomValues(32)</text>
+  <text x="445" y="171" text-anchor="middle" fill="#7a7a9a" font-size="9">→ 64 chars hex</text>
+
+  <!-- Arrow -->
+  <line x1="545" y1="150" x2="605" y2="150" stroke="#7a7a9a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="575" y="140" text-anchor="middle" fill="#7a7a9a" font-size="9">hashea</text>
+
+  <!-- Bun.password.hash -->
+  <rect x="610" y="120" width="190" height="60" rx="8" fill="#16162a" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="705" y="142" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="600">Bun.password.hash()</text>
+  <text x="705" y="158" text-anchor="middle" fill="#7a7a9a" font-size="9">bcrypt cost=10</text>
+  <text x="705" y="171" text-anchor="middle" fill="#7a7a9a" font-size="9">token → $2b$10$...</text>
+
+  <!-- Arrow -->
+  <line x1="800" y1="150" x2="860" y2="150" stroke="#7a7a9a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="830" y="140" text-anchor="middle" fill="#7a7a9a" font-size="9">guarda</text>
+
+  <!-- SQLite -->
+  <rect x="865" y="120" width="190" height="60" rx="8" fill="#16162a" stroke="#34d399" stroke-width="1.5"/>
+  <text x="960" y="142" text-anchor="middle" fill="#34d399" font-size="11" font-weight="600">SQLite: auth_tokens</text>
+  <text x="960" y="158" text-anchor="middle" fill="#7a7a9a" font-size="9">name: "dashboard"</text>
+  <text x="960" y="171" text-anchor="middle" fill="#7a7a9a" font-size="9">token_hash: "$2b$10$..."</text>
+
+  <!-- Output to user -->
+  <line x1="445" y1="180" x2="445" y2="210" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <rect x="310" y="215" width="270" height="40" rx="6" fill="rgba(52,211,153,0.08)" stroke="#34d399" stroke-dasharray="4"/>
+  <text x="445" y="232" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">Token en texto plano → se muestra UNA vez</text>
+  <text x="445" y="246" text-anchor="middle" fill="#34d399" font-size="9">ed9ccda1f47f0523c07a...  (el usuario lo copia)</text>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- SECTION 2: Login Flow -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <text x="40" y="295" fill="#60a5fa" font-size="13" font-weight="600">2. LOGIN (dashboard)</text>
+
+  <!-- Browser -->
+  <rect x="40" y="310" width="180" height="55" rx="8" fill="#16162a" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="130" y="332" text-anchor="middle" fill="#60a5fa" font-size="11" font-weight="600">Login.tsx</text>
+  <text x="130" y="350" text-anchor="middle" fill="#7a7a9a" font-size="9">Usuario pega el token</text>
+
+  <!-- Arrow to verify -->
+  <line x1="220" y1="337" x2="305" y2="337" stroke="#7a7a9a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="262" y="328" text-anchor="middle" fill="#7a7a9a" font-size="9">POST /api/system/status</text>
+  <text x="262" y="352" text-anchor="middle" fill="#7a7a9a" font-size="8">Authorization: Bearer &lt;token&gt;</text>
+
+  <!-- Server verify -->
+  <rect x="310" y="310" width="200" height="55" rx="8" fill="#16162a" stroke="#f6821f" stroke-width="1.5"/>
+  <text x="410" y="332" text-anchor="middle" fill="#f6821f" font-size="11" font-weight="600">authMiddleware</text>
+  <text x="410" y="350" text-anchor="middle" fill="#7a7a9a" font-size="9">Verifica token contra DB</text>
+
+  <!-- 200 OK arrow -->
+  <line x1="410" y1="365" x2="410" y2="400" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <text x="430" y="388" fill="#34d399" font-size="9" font-weight="600">200 OK</text>
+
+  <!-- localStorage -->
+  <rect x="310" y="405" width="200" height="45" rx="8" fill="rgba(52,211,153,0.06)" stroke="#34d399"/>
+  <text x="410" y="424" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">localStorage.setItem()</text>
+  <text x="410" y="440" text-anchor="middle" fill="#7a7a9a" font-size="9">"veriel-ops-token" → token</text>
+
+  <!-- 401 arrow -->
+  <line x1="510" y1="337" x2="600" y2="337" stroke="#f87171" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+  <text x="555" y="328" fill="#f87171" font-size="9" font-weight="600">401</text>
+
+  <rect x="605" y="315" width="150" height="45" rx="8" fill="rgba(248,113,113,0.06)" stroke="#f87171"/>
+  <text x="680" y="335" text-anchor="middle" fill="#f87171" font-size="10" font-weight="600">"Token inválido"</text>
+  <text x="680" y="350" text-anchor="middle" fill="#7a7a9a" font-size="9">Se queda en /login</text>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- SECTION 3: Authenticated Request -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <text x="40" y="490" fill="#60a5fa" font-size="13" font-weight="600">3. PETICIÓN AUTENTICADA (cada request)</text>
+
+  <!-- Dashboard -->
+  <rect x="40" y="510" width="160" height="70" rx="8" fill="#16162a" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="120" y="533" text-anchor="middle" fill="#60a5fa" font-size="11" font-weight="600">Dashboard</text>
+  <text x="120" y="549" text-anchor="middle" fill="#7a7a9a" font-size="9">useFetch / api.ts</text>
+  <text x="120" y="565" text-anchor="middle" fill="#7a7a9a" font-size="9">Lee token de localStorage</text>
+
+  <!-- Arrow -->
+  <line x1="200" y1="545" x2="280" y2="545" stroke="#f6821f" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <text x="240" y="535" text-anchor="middle" fill="#f6821f" font-size="8" font-weight="600">Authorization:</text>
+  <text x="240" y="560" text-anchor="middle" fill="#f6821f" font-size="8">Bearer &lt;token&gt;</text>
+
+  <!-- Auth Middleware -->
+  <rect x="285" y="505" width="170" height="80" rx="8" fill="#16162a" stroke="#f6821f" stroke-width="1.5"/>
+  <text x="370" y="528" text-anchor="middle" fill="#f6821f" font-size="11" font-weight="600">authMiddleware</text>
+
+  <!-- Steps inside -->
+  <text x="300" y="546" fill="#7a7a9a" font-size="9">1. Extrae token del header</text>
+  <text x="300" y="559" fill="#7a7a9a" font-size="9">2. Lee hashes de SQLite</text>
+  <text x="300" y="572" fill="#7a7a9a" font-size="9">3. Bun.password.verify()</text>
+
+  <!-- Valid path -->
+  <line x1="455" y1="530" x2="530" y2="530" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <text x="492" y="522" fill="#34d399" font-size="9" font-weight="600">Válido</text>
+
+  <rect x="535" y="510" width="150" height="55" rx="8" fill="#16162a" stroke="#34d399"/>
+  <text x="610" y="533" text-anchor="middle" fill="#34d399" font-size="11" font-weight="600">Route Handler</text>
+  <text x="610" y="549" text-anchor="middle" fill="#7a7a9a" font-size="9">Ejecuta la lógica</text>
+  <text x="610" y="562" text-anchor="middle" fill="#7a7a9a" font-size="9">→ responde JSON</text>
+
+  <!-- Arrow to update last_used -->
+  <line x1="370" y1="585" x2="370" y2="615" stroke="#7a7a9a" stroke-width="1" stroke-dasharray="4" marker-end="url(#arrow)"/>
+  <rect x="295" y="620" width="150" height="30" rx="5" fill="rgba(52,211,153,0.05)" stroke="#252548"/>
+  <text x="370" y="640" text-anchor="middle" fill="#7a7a9a" font-size="9">Actualiza last_used_at</text>
+
+  <!-- Invalid path -->
+  <line x1="455" y1="560" x2="530" y2="560" stroke="#f87171" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+  <text x="492" y="574" fill="#f87171" font-size="9" font-weight="600">Inválido</text>
+
+  <rect x="535" y="575" width="150" height="35" rx="8" fill="rgba(248,113,113,0.06)" stroke="#f87171"/>
+  <text x="610" y="596" text-anchor="middle" fill="#f87171" font-size="10">401 Unauthorized</text>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- SECTION 4: Public paths -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <text x="40" y="690" fill="#60a5fa" font-size="13" font-weight="600">4. RUTAS PÚBLICAS (sin token)</text>
+
+  <rect x="40" y="705" width="480" height="55" rx="8" fill="#16162a" stroke="#252548"/>
+
+  <!-- Health -->
+  <rect x="55" y="715" width="205" height="35" rx="6" fill="rgba(52,211,153,0.06)" stroke="#34d399" stroke-dasharray="3"/>
+  <text x="157" y="731" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">/api/system/health</text>
+  <text x="157" y="744" text-anchor="middle" fill="#7a7a9a" font-size="8">Uptime checks, load balancers</text>
+
+  <!-- Webhooks -->
+  <rect x="275" y="715" width="230" height="35" rx="6" fill="rgba(251,191,36,0.06)" stroke="#fbbf24" stroke-dasharray="3"/>
+  <text x="390" y="731" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="600">/api/webhooks/*</text>
+  <text x="390" y="744" text-anchor="middle" fill="#7a7a9a" font-size="8">GitHub (firma HMAC) · Cloudflare</text>
+
+  <!-- Webhook signature detail -->
+  <line x1="390" y1="750" x2="390" y2="775" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3" marker-end="url(#arrow)"/>
+  <rect x="270" y="780" width="240" height="50" rx="6" fill="#16162a" stroke="#fbbf24"/>
+  <text x="390" y="800" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="600">Verificación webhook GitHub</text>
+  <text x="390" y="815" text-anchor="middle" fill="#7a7a9a" font-size="9">x-hub-signature-256 vs HMAC-SHA256</text>
+  <text x="390" y="826" text-anchor="middle" fill="#7a7a9a" font-size="9">con GITHUB_WEBHOOK_SECRET</text>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- SECTION 5: Token via query param (SSE) -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <text x="600" y="690" fill="#60a5fa" font-size="13" font-weight="600">5. SSE (EventSource — sin headers)</text>
+
+  <rect x="600" y="705" width="460" height="55" rx="8" fill="#16162a" stroke="#22d3ee"/>
+  <text x="830" y="726" text-anchor="middle" fill="#22d3ee" font-size="10" font-weight="600">EventSource no soporta headers custom</text>
+  <text x="830" y="742" text-anchor="middle" fill="#7a7a9a" font-size="9">/api/actions/:repo/:runId/stream<tspan fill="#f6821f">?token=&lt;token&gt;</tspan></text>
+  <text x="830" y="755" text-anchor="middle" fill="#7a7a9a" font-size="8">El middleware acepta token via query param como fallback</text>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- SECTION 6: Logout -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <text x="600" y="800" fill="#60a5fa" font-size="13" font-weight="600">6. LOGOUT</text>
+
+  <rect x="600" y="815" width="180" height="40" rx="8" fill="#16162a" stroke="#f87171"/>
+  <text x="690" y="832" text-anchor="middle" fill="#f87171" font-size="10" font-weight="600">clearStoredToken()</text>
+  <text x="690" y="846" text-anchor="middle" fill="#7a7a9a" font-size="9">Borra localStorage</text>
+
+  <line x1="780" y1="835" x2="840" y2="835" stroke="#7a7a9a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="845" y="815" width="150" height="40" rx="8" fill="#16162a" stroke="#60a5fa"/>
+  <text x="920" y="832" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="600">navigate("/login")</text>
+  <text x="920" y="846" text-anchor="middle" fill="#7a7a9a" font-size="9">Vuelve al login</text>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- Legend -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <rect x="40" y="870" width="1020" height="35" rx="6" fill="#16162a" stroke="#252548"/>
+  <circle cx="70" cy="887" r="5" fill="#34d399"/>
+  <text x="82" y="891" fill="#7a7a9a" font-size="9">Token válido / OK</text>
+  <circle cx="200" cy="887" r="5" fill="#f87171"/>
+  <text x="212" y="891" fill="#7a7a9a" font-size="9">Token inválido / 401</text>
+  <circle cx="340" cy="887" r="5" fill="#f6821f"/>
+  <text x="352" y="891" fill="#7a7a9a" font-size="9">Auth middleware</text>
+  <circle cx="475" cy="887" r="5" fill="#60a5fa"/>
+  <text x="487" y="891" fill="#7a7a9a" font-size="9">Dashboard (React)</text>
+  <circle cx="610" cy="887" r="5" fill="#a78bfa"/>
+  <text x="622" y="891" fill="#7a7a9a" font-size="9">bcrypt (Bun nativo)</text>
+  <circle cx="760" cy="887" r="5" fill="#22d3ee"/>
+  <text x="772" y="891" fill="#7a7a9a" font-size="9">SSE / streaming</text>
+  <circle cx="880" cy="887" r="5" fill="#fbbf24"/>
+  <text x="892" y="891" fill="#7a7a9a" font-size="9">Webhooks (firma HMAC)</text>
+</svg>

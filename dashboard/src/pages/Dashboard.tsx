@@ -39,7 +39,7 @@ export function Dashboard() {
         <Card className="mb-6 border-[var(--color-error)]/10 bg-[var(--color-error-light)]">
           <p className="text-[13px] text-[var(--color-error-text)]">{error}</p>
           <p className="text-[11px] text-[var(--color-text-quaternary)] mt-1">
-            Verifica las variables de entorno en .env
+            Verifica que el servidor esté corriendo y las variables de entorno configuradas
           </p>
         </Card>
       )}

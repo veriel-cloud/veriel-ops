@@ -39,6 +39,12 @@ export interface DbStore {
   // Audit log
   addAuditEntry(action: string, resource: string, detail?: Record<string, unknown>, actor?: string): void;
   getAuditLog(resource?: string, limit?: number): AuditEntry[];
+
+  // Auth tokens
+  saveToken(name: string, tokenHash: string, expiresAt?: string): void;
+  getTokenHashes(): { name: string; hash: string; expiresAt: string | null }[];
+  updateLastUsed(name: string): void;
+  deleteToken(name: string): boolean;
 }
 
 export function createDbStore(db: Database): DbStore {
@@ -80,6 +86,13 @@ export function createDbStore(db: Database): DbStore {
     selectAuditByResource: db.prepare(
       "SELECT * FROM audit_log WHERE resource = $resource ORDER BY timestamp DESC LIMIT $limit",
     ),
+
+    insertToken: db.prepare(
+      "INSERT INTO auth_tokens (name, token_hash, created_at, expires_at) VALUES ($name, $tokenHash, $createdAt, $expiresAt)",
+    ),
+    selectTokens: db.prepare("SELECT name, token_hash, expires_at FROM auth_tokens"),
+    updateTokenLastUsed: db.prepare("UPDATE auth_tokens SET last_used_at = $now WHERE name = $name"),
+    deleteToken: db.prepare("DELETE FROM auth_tokens WHERE name = $name"),
   };
 
   // ─── Webhook events ──────────────────────────────────────────────
@@ -222,6 +235,31 @@ export function createDbStore(db: Database): DbStore {
     };
   }
 
+  // ─── Auth tokens ──────────────────────────────────────────────────
+
+  function saveToken(name: string, tokenHash: string, expiresAt?: string): void {
+    stmts.insertToken.run({
+      $name: name,
+      $tokenHash: tokenHash,
+      $createdAt: new Date().toISOString(),
+      $expiresAt: expiresAt ?? null,
+    });
+  }
+
+  function getTokenHashes(): { name: string; hash: string; expiresAt: string | null }[] {
+    const rows = stmts.selectTokens.all() as { name: string; token_hash: string; expires_at: string | null }[];
+    return rows.map((r) => ({ name: r.name, hash: r.token_hash, expiresAt: r.expires_at }));
+  }
+
+  function updateLastUsed(name: string): void {
+    stmts.updateTokenLastUsed.run({ $name: name, $now: new Date().toISOString() });
+  }
+
+  function deleteToken(name: string): boolean {
+    const result = stmts.deleteToken.run({ $name: name });
+    return result.changes > 0;
+  }
+
   return {
     addEvent,
     getEvents,
@@ -235,5 +273,9 @@ export function createDbStore(db: Database): DbStore {
     deleteProjectSettings,
     addAuditEntry,
     getAuditLog,
+    saveToken,
+    getTokenHashes,
+    updateLastUsed,
+    deleteToken,
   };
 }
