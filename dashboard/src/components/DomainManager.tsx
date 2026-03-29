@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useFetch } from "@/hooks/useFetch";
+import { useQueryClient } from "@tanstack/react-query";
+import { useDnsRecords } from "@/hooks/queries";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -18,7 +19,8 @@ interface DomainManagerProps {
 }
 
 export function DomainManager({ projectName, currentDomain }: DomainManagerProps) {
-  const { data, loading, refetch } = useFetch<{ records: DnsRecord[] }>(`/api/projects/${projectName}/dns`);
+  const queryClient = useQueryClient();
+  const { data, isLoading: loading } = useDnsRecords(projectName);
   const [customDomain, setCustomDomain] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export function DomainManager({ projectName, currentDomain }: DomainManagerProps
       );
       setMessage(`Configured ${result.domains.length} domain(s)`);
       setCustomDomain("");
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ["dns", projectName] });
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed");
     } finally {
@@ -48,7 +50,7 @@ export function DomainManager({ projectName, currentDomain }: DomainManagerProps
     setDeleting(recordId);
     try {
       await api.delete(`/projects/${projectName}/domain/${recordId}`);
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ["dns", projectName] });
     } finally {
       setDeleting(null);
     }

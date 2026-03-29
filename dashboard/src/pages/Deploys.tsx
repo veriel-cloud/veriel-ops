@@ -4,10 +4,10 @@ import { Header } from "@/components/Header";
 import { StatsCard } from "@/components/StatsCard";
 import { Card } from "@/components/ui/Card";
 import { SkeletonStats, SkeletonTable } from "@/components/ui/Skeleton";
-import { useFetch } from "@/hooks/useFetch";
+import { useDeploys } from "@/hooks/queries";
 
 export function Deploys() {
-  const { data, loading, error } = useFetch<{ deploys: any[] }>("/api/deploys");
+  const { data, isLoading: loading, error } = useDeploys();
   const [filter, setFilter] = useState<string>("all");
 
   const allDeploys = data?.deploys ?? [];
@@ -35,7 +35,7 @@ export function Deploys() {
 
       {error && (
         <Card className="mb-6 border-[var(--color-error)]/10 bg-[var(--color-error-light)]">
-          <p className="text-[13px] text-[var(--color-error-text)]">{error}</p>
+          <p className="text-[13px] text-[var(--color-error-text)]">{error.message}</p>
         </Card>
       )}
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAction } from "@/hooks/useAction";
+import { usePromoteProject } from "@/hooks/mutations";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -21,25 +21,27 @@ export function PromoteModal({ open, onClose, projectName, environments, onSucce
   const [version, setVersion] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const promote = useAction<{ success: boolean; from: string; to: string; branch?: string; message?: string }>(
-    `/projects/${projectName}/promote`,
-  );
+  const promote = usePromoteProject(projectName);
 
   const desActive = environments.des?.status !== "idle";
   const preActive = environments.pre?.status !== "idle";
 
   async function handlePromote(from: "des" | "pre") {
     const body = from === "des" ? { from, version } : { from };
-    const result = await promote.execute(body);
+    try {
+      const result = await promote.mutateAsync(body);
 
-    if (result?.success) {
-      setSuccessMessage(
-        from === "des"
-          ? `Branch release/${version} created. Deploy to PRE will start automatically.`
-          : result.message ?? "Merge release to main via PR to deploy to PRO.",
-      );
-      setVersion("");
-      onSuccess();
+      if (result?.success) {
+        setSuccessMessage(
+          from === "des"
+            ? `Branch release/${version} created. Deploy to PRE will start automatically.`
+            : result.message ?? "Merge release to main via PR to deploy to PRO.",
+        );
+        setVersion("");
+        onSuccess();
+      }
+    } catch {
+      // error is available via promote.error
     }
   }
 
@@ -60,7 +62,7 @@ export function PromoteModal({ open, onClose, projectName, environments, onSucce
 
         {promote.error && (
           <div className="rounded-md bg-[var(--color-error-light)] border border-[var(--color-error)]/10 p-3">
-            <p className="text-[13px] text-[var(--color-error-text)]">{promote.error}</p>
+            <p className="text-[13px] text-[var(--color-error-text)]">{promote.error.message}</p>
           </div>
         )}
 
@@ -88,7 +90,7 @@ export function PromoteModal({ open, onClose, projectName, environments, onSucce
                 size="sm"
                 variant="secondary"
                 onClick={() => handlePromote("des")}
-                loading={promote.loading}
+                loading={promote.isPending}
                 disabled={!version}
               >
                 Promote
@@ -118,7 +120,7 @@ export function PromoteModal({ open, onClose, projectName, environments, onSucce
                 size="sm"
                 variant="secondary"
                 onClick={() => handlePromote("pre")}
-                loading={promote.loading}
+                loading={promote.isPending}
               >
                 Promote
               </Button>

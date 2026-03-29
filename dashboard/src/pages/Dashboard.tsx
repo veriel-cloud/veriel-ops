@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonStats, SkeletonTable } from "@/components/ui/Skeleton";
-import { useFetch } from "@/hooks/useFetch";
+import { useDeploys, useProjects } from "@/hooks/queries";
 import { timeAgo } from "@/lib/utils";
 
 export function Dashboard() {
-  const { data: projectsData, loading: lp, error } = useFetch<{ projects: any[] }>("/api/projects");
-  const { data: deploysData, loading: ld } = useFetch<{ deploys: any[] }>("/api/deploys");
+  const { data: projectsData, isLoading: lp, error } = useProjects();
+  const { data: deploysData, isLoading: ld } = useDeploys();
 
   const projects = projectsData?.projects ?? [];
   const deploys = deploysData?.deploys ?? [];
@@ -37,7 +37,7 @@ export function Dashboard() {
 
       {error && (
         <Card className="mb-6 border-[var(--color-error)]/10 bg-[var(--color-error-light)]">
-          <p className="text-[13px] text-[var(--color-error-text)]">{error}</p>
+          <p className="text-[13px] text-[var(--color-error-text)]">{error.message}</p>
           <p className="text-[11px] text-[var(--color-text-quaternary)] mt-1">
             Verifica que el servidor esté corriendo y las variables de entorno configuradas
           </p>

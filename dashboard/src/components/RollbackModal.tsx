@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useAction } from "@/hooks/useAction";
+import { useRollbackProject } from "@/hooks/mutations";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
@@ -27,7 +27,7 @@ export function RollbackModal({ open, onClose, projectName, builds, onSuccess }:
   const [buildArtifact, setBuildArtifact] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const rollback = useAction<{ success: boolean }>(`/projects/${projectName}/rollback`);
+  const rollback = useRollbackProject(projectName);
 
   const filteredBuilds = useMemo(
     () => (environment ? builds.filter((b) => b.environment === environment) : []),
@@ -40,13 +40,14 @@ export function RollbackModal({ open, onClose, projectName, builds, onSuccess }:
   }));
 
   async function handleRollback() {
-    const result = await rollback.execute({ environment, buildArtifact });
-
-    if (result?.success) {
+    try {
+      await rollback.mutateAsync({ environment, buildArtifact });
       setSuccessMessage(`Rollback triggered for ${environment.toUpperCase()} → ${buildArtifact}`);
       setEnvironment("");
       setBuildArtifact("");
       onSuccess();
+    } catch {
+      // error handled by mutation state
     }
   }
 
@@ -68,7 +69,7 @@ export function RollbackModal({ open, onClose, projectName, builds, onSuccess }:
 
         {rollback.error && (
           <div className="rounded-md bg-[var(--color-error-light)] border border-[var(--color-error)]/10 p-3">
-            <p className="text-[13px] text-[var(--color-error-text)]">{rollback.error}</p>
+            <p className="text-[13px] text-[var(--color-error-text)]">{rollback.error.message}</p>
           </div>
         )}
 
@@ -109,7 +110,7 @@ export function RollbackModal({ open, onClose, projectName, builds, onSuccess }:
             variant="danger"
             size="sm"
             onClick={handleRollback}
-            loading={rollback.loading}
+            loading={rollback.isPending}
             disabled={!environment || !buildArtifact}
           >
             Rollback

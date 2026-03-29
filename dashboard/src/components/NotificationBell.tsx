@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useFetch } from "@/hooks/useFetch";
-import { api } from "@/lib/api";
+import { useNotifications } from "@/hooks/queries";
+import { useMarkNotificationRead } from "@/hooks/mutations";
 import { cn, timeAgo } from "@/lib/utils";
 
 interface Notification {
@@ -14,17 +14,13 @@ interface Notification {
 }
 
 export function NotificationBell() {
-  const { data, refetch } = useFetch<{ notifications: Notification[]; unreadCount: number }>("/api/notifications");
+  const { data } = useNotifications();
+  const markRead = useMarkNotificationRead();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const notifications = data?.notifications ?? [];
+  const notifications = (data?.notifications ?? []) as Notification[];
   const unreadCount = data?.unreadCount ?? 0;
-
-  useEffect(() => {
-    const interval = setInterval(refetch, 30_000);
-    return () => clearInterval(interval);
-  }, [refetch]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -34,9 +30,8 @@ export function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  async function handleMarkRead(id: string) {
-    await api.post(`/notifications/${id}/read`, {});
-    refetch();
+  function handleMarkRead(id: string) {
+    markRead.mutate(id);
   }
 
   return (

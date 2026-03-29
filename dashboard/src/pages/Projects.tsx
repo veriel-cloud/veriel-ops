@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonTable } from "@/components/ui/Skeleton";
-import { useFetch } from "@/hooks/useFetch";
+import { useProjects } from "@/hooks/queries";
 import { timeAgo } from "@/lib/utils";
 
 const typeLabels: Record<string, string> = {
@@ -17,7 +17,7 @@ const typeLabels: Record<string, string> = {
 };
 
 export function Projects() {
-  const { data, loading, error } = useFetch<{ projects: any[] }>("/api/projects");
+  const { data, isLoading: loading, error } = useProjects();
   const [search, setSearch] = useState("");
 
   const allProjects = data?.projects ?? [];
@@ -47,7 +47,7 @@ export function Projects() {
 
       {error && (
         <Card className="mb-6 border-[var(--color-error)]/10 bg-[var(--color-error-light)]">
-          <p className="text-[13px] text-[var(--color-error-text)]">{error}</p>
+          <p className="text-[13px] text-[var(--color-error-text)]">{error.message}</p>
         </Card>
       )}
 

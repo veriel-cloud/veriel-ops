@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useFetch } from "@/hooks/useFetch";
+import { useBranches, useProjectFiles } from "@/hooks/queries";
 import { api } from "@/lib/api";
 
 interface FileEntry {
@@ -21,10 +21,8 @@ export function FileEditor() {
   const [searchParams, setSearchParams] = useSearchParams();
   const branch = searchParams.get("branch") ?? "main";
 
-  const { data: branchData } = useFetch<{ branches: string[] }>(`/api/projects/${name}/branches`);
-  const { data: filesData, loading: filesLoading, refetch: refetchFiles } = useFetch<{ files: FileEntry[] }>(
-    `/api/projects/${name}/files?branch=${branch}`,
-  );
+  const { data: branchData } = useBranches(name ?? "");
+  const { data: filesData, isLoading: filesLoading, refetch: refetchFiles } = useProjectFiles(name ?? "", branch, "");
 
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState("");

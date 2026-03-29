@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAction } from "@/hooks/useAction";
+import { useCommitFiles } from "@/hooks/mutations";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -20,13 +20,17 @@ export function CommitForm({ projectName, branches, files, onSuccess }: CommitFo
   const [branch, setBranch] = useState(branches.includes("develop") ? "develop" : branches[0] ?? "main");
   const [message, setMessage] = useState("");
 
-  const commit = useAction<{ success: boolean }>(`/projects/${projectName}/commit`);
+  const commit = useCommitFiles(projectName);
 
   async function handleCommit() {
-    const result = await commit.execute({ branch, message, files });
-    if (result?.success) {
-      setMessage("");
-      onSuccess();
+    try {
+      const result = await commit.mutateAsync({ branch, message, files });
+      if (result?.success) {
+        setMessage("");
+        onSuccess();
+      }
+    } catch {
+      // error is available via commit.error
     }
   }
 
@@ -38,7 +42,7 @@ export function CommitForm({ projectName, branches, files, onSuccess }: CommitFo
 
       {commit.error && (
         <div className="rounded-md bg-[var(--color-error-light)] border border-[var(--color-error)]/10 p-2">
-          <p className="text-[12px] text-[var(--color-error-text)]">{commit.error}</p>
+          <p className="text-[12px] text-[var(--color-error-text)]">{commit.error.message}</p>
         </div>
       )}
 
@@ -66,7 +70,7 @@ export function CommitForm({ projectName, branches, files, onSuccess }: CommitFo
         ))}
       </div>
 
-      <Button size="sm" onClick={handleCommit} loading={commit.loading} disabled={!message || files.length === 0}>
+      <Button size="sm" onClick={handleCommit} loading={commit.isPending} disabled={!message || files.length === 0}>
         Commit changes
       </Button>
     </div>

@@ -20,7 +20,7 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton, SkeletonTable } from "@/components/ui/Skeleton";
 import { Tabs } from "@/components/ui/Tabs";
-import { useFetch } from "@/hooks/useFetch";
+import { useProjectBuilds, useProjectDetail } from "@/hooks/queries";
 import { api } from "@/lib/api";
 import { cn, timeAgo } from "@/lib/utils";
 
@@ -35,12 +35,8 @@ export function ProjectDetail() {
   const [coverageThreshold, setCoverageThreshold] = useState(80);
   const [savingSettings, setSavingSettings] = useState(false);
 
-  const { data, loading, error, refetch } = useFetch<{ project: any; deploys: any[]; builds: any[] }>(
-    `/api/projects/${name}`,
-  );
-  const { data: buildsData, loading: lb, refetch: refetchBuilds } = useFetch<{ builds: any[] }>(
-    `/api/projects/${name}/builds`,
-  );
+  const { data, isLoading: loading, error, refetch } = useProjectDetail(name!);
+  const { data: buildsData, isLoading: lb, refetch: refetchBuilds } = useProjectBuilds(name!);
 
   const project = data?.project;
 
@@ -75,7 +71,7 @@ export function ProjectDetail() {
   if (error) {
     return (
       <Card className="border-[var(--color-error)]/10 bg-[var(--color-error-light)]">
-        <p className="text-[13px] text-[var(--color-error-text)]">Error: {error}</p>
+        <p className="text-[13px] text-[var(--color-error-text)]">Error: {error.message}</p>
       </Card>
     );
   }

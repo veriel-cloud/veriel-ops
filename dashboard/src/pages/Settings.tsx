@@ -2,10 +2,10 @@ import { Header } from "@/components/Header";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useFetch } from "@/hooks/useFetch";
+import { useSystemStatus } from "@/hooks/queries";
 
 export function Settings() {
-  const { data: status, loading } = useFetch<{ status: string; services: any[] }>("/api/system/status");
+  const { data: status, isLoading: loading } = useSystemStatus();
 
   return (
     <>

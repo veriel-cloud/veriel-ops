@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useFetch } from "@/hooks/useFetch";
+import { useProjects } from "@/hooks/queries";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export function ImportProject() {
-  const { data: projectsData, loading: lp } = useFetch<{ projects: any[] }>("/api/projects");
+  const { data: projectsData, isLoading: lp } = useProjects();
   const [selected, setSelected] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useAction } from "@/hooks/useAction";
-import { useFetch } from "@/hooks/useFetch";
+import { useBranches } from "@/hooks/queries";
+import { useDeployProject } from "@/hooks/mutations";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
@@ -16,8 +16,8 @@ export function DeployModal({ open, onClose, projectName, onSuccess }: DeployMod
   const [environment, setEnvironment] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const { data } = useFetch<{ branches: string[] }>(`/api/projects/${projectName}/branches`);
-  const deploy = useAction<{ success: boolean }>(`/projects/${projectName}/deploy`);
+  const { data } = useBranches(projectName);
+  const deploy = useDeployProject(projectName);
 
   const branches = data?.branches ?? [];
 
@@ -28,18 +28,20 @@ export function DeployModal({ open, onClose, projectName, onSuccess }: DeployMod
   };
 
   async function handleDeploy() {
-    const result = await deploy.execute({ environment });
-
-    if (result?.success) {
+    try {
+      await deploy.mutateAsync({ environment });
       setSuccessMessage(`Deploy triggered for ${environment.toUpperCase()} (workflow dispatched)`);
       setEnvironment("");
       onSuccess();
+    } catch {
+      // error handled by mutation state
     }
   }
 
   function handleClose() {
     setSuccessMessage(null);
     setEnvironment("");
+    deploy.reset();
     onClose();
   }
 
@@ -54,7 +56,7 @@ export function DeployModal({ open, onClose, projectName, onSuccess }: DeployMod
 
         {deploy.error && (
           <div className="rounded-md bg-[var(--color-error-light)] border border-[var(--color-error)]/10 p-3">
-            <p className="text-[13px] text-[var(--color-error-text)]">{deploy.error}</p>
+            <p className="text-[13px] text-[var(--color-error-text)]">{deploy.error.message}</p>
           </div>
         )}
 
@@ -94,7 +96,7 @@ export function DeployModal({ open, onClose, projectName, onSuccess }: DeployMod
           <Button
             size="sm"
             onClick={handleDeploy}
-            loading={deploy.loading}
+            loading={deploy.isPending}
             disabled={!environment}
           >
             Deploy

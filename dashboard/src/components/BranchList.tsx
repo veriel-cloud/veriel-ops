@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useFetch } from "@/hooks/useFetch";
-import { useAction } from "@/hooks/useAction";
+import { useBranches } from "@/hooks/queries";
+import { useCreateBranch } from "@/hooks/mutations";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -13,20 +13,24 @@ interface BranchListProps {
 }
 
 export function BranchList({ projectName }: BranchListProps) {
-  const { data, loading, refetch } = useFetch<{ branches: string[] }>(`/api/projects/${projectName}/branches`);
+  const { data, isLoading: loading, refetch } = useBranches(projectName);
   const [showCreate, setShowCreate] = useState(false);
   const [branchName, setBranchName] = useState("");
   const [fromBranch, setFromBranch] = useState("develop");
 
-  const createBranch = useAction<{ success: boolean }>(`/projects/${projectName}/branches`);
+  const createBranch = useCreateBranch(projectName);
   const branches = data?.branches ?? [];
 
   async function handleCreate() {
-    const result = await createBranch.execute({ branch: branchName, from: fromBranch });
-    if (result?.success) {
-      setBranchName("");
-      setShowCreate(false);
-      refetch();
+    try {
+      const result = await createBranch.mutateAsync({ branch: branchName, from: fromBranch });
+      if (result?.success) {
+        setBranchName("");
+        setShowCreate(false);
+        refetch();
+      }
+    } catch {
+      // error is available via createBranch.error
     }
   }
 
@@ -67,7 +71,7 @@ export function BranchList({ projectName }: BranchListProps) {
         <div className="space-y-4">
           {createBranch.error && (
             <div className="rounded-md bg-[var(--color-error-light)] border border-[var(--color-error)]/10 p-3">
-              <p className="text-[13px] text-[var(--color-error-text)]">{createBranch.error}</p>
+              <p className="text-[13px] text-[var(--color-error-text)]">{createBranch.error.message}</p>
             </div>
           )}
           <Input
@@ -88,7 +92,7 @@ export function BranchList({ projectName }: BranchListProps) {
             <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)}>
               Cancel
             </Button>
-            <Button size="sm" onClick={handleCreate} loading={createBranch.loading} disabled={!branchName}>
+            <Button size="sm" onClick={handleCreate} loading={createBranch.isPending} disabled={!branchName}>
               Create
             </Button>
           </div>

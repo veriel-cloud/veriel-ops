@@ -1,4 +1,4 @@
-import { useFetch } from "@/hooks/useFetch";
+import { usePullRequests } from "@/hooks/queries";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn, timeAgo } from "@/lib/utils";
@@ -22,7 +22,7 @@ interface PullRequestListProps {
 }
 
 export function PullRequestList({ projectName }: PullRequestListProps) {
-  const { data, loading } = useFetch<{ pullRequests: PullRequest[] }>(`/api/projects/${projectName}/pull-requests`);
+  const { data, isLoading: loading } = usePullRequests(projectName);
   const prs = data?.pullRequests ?? [];
 
   return (
