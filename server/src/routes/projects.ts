@@ -144,6 +144,61 @@ projectsRoutes.post("/create-stream", async (c) => {
   });
 });
 
+// ─── Import (must be before /:name routes) ──────────────────────────
+
+projectsRoutes.post("/import", async (c) => {
+  const { repoName } = await c.req.json();
+  if (!repoName) return c.json({ error: "repoName is required" }, 400);
+
+  const log = c.get("logger");
+  const gh = c.get("github");
+  const cf = c.get("cloudflare");
+  const e = env(c);
+  const org = e.GITHUB_ORG || DEFAULT_ORG;
+
+  log.info({ project: repoName }, "importing existing project");
+
+  const repo = await gh.getRepo(repoName);
+  const pages = await cf.createPagesProjectForEnv(repoName, "des", org, repoName);
+  const { domain } = await cf.setupEnvDns(repoName, "des", pages.subdomain);
+
+  try {
+    await gh.addWorkflowCallers(repoName, repoName);
+  } catch {
+    log.warn({ project: repoName }, "workflows may already exist, skipping");
+  }
+
+  try {
+    await gh.createBranch(repoName, "develop", "main");
+  } catch {
+    log.warn({ project: repoName }, "develop branch may already exist, skipping");
+  }
+
+  if (e.WEBHOOK_URL && e.GITHUB_WEBHOOK_SECRET) {
+    try {
+      await gh.createWebhook(repoName, e.WEBHOOK_URL, e.GITHUB_WEBHOOK_SECRET);
+    } catch {
+      log.warn({ project: repoName }, "webhook may already exist, skipping");
+    }
+  }
+
+  c.get("cachedData").invalidateProject(repoName);
+
+  return c.json(
+    {
+      success: true,
+      project: {
+        name: repoName,
+        repo: repo.full_name,
+        urls: { des: `https://${domain}` },
+        github: repo.html_url,
+        pages: pages.subdomain,
+      },
+    },
+    201,
+  );
+});
+
 // ─── Detail ───────────────────────────────────────────────────────────
 
 projectsRoutes.get("/:name", async (c) => {
@@ -413,65 +468,4 @@ projectsRoutes.delete("/:name", async (c) => {
   c.get("cachedData").invalidateProject(name);
 
   return c.json({ success: true, deleted });
-});
-
-// ─── Import ──────────────────────────────────────────────────────────
-
-projectsRoutes.post("/import", async (c) => {
-  const { repoName } = await c.req.json();
-  if (!repoName) return c.json({ error: "repoName is required" }, 400);
-
-  const log = c.get("logger");
-  const gh = c.get("github");
-  const cf = c.get("cloudflare");
-  const e = env(c);
-  const org = e.GITHUB_ORG || DEFAULT_ORG;
-
-  log.info({ project: repoName }, "importing existing project");
-
-  // Verify repo exists
-  const repo = await gh.getRepo(repoName);
-
-  // Create Pages project for DES
-  const pages = await cf.createPagesProjectForEnv(repoName, "des", org, repoName);
-
-  // Setup DNS
-  const { domain } = await cf.setupEnvDns(repoName, "des", pages.subdomain);
-
-  // Add workflows if missing
-  try {
-    await gh.addWorkflowCallers(repoName, repoName);
-  } catch {
-    log.warn({ project: repoName }, "workflows may already exist, skipping");
-  }
-
-  // Create develop branch if missing
-  try {
-    await gh.createBranch(repoName, "develop", "main");
-  } catch {
-    log.warn({ project: repoName }, "develop branch may already exist, skipping");
-  }
-
-  // Setup webhook
-  if (e.WEBHOOK_URL && e.GITHUB_WEBHOOK_SECRET) {
-    try {
-      await gh.createWebhook(repoName, e.WEBHOOK_URL, e.GITHUB_WEBHOOK_SECRET);
-    } catch {
-      log.warn({ project: repoName }, "webhook may already exist, skipping");
-    }
-  }
-
-  return c.json(
-    {
-      success: true,
-      project: {
-        name: repoName,
-        repo: repo.full_name,
-        urls: { des: `https://${domain}` },
-        github: repo.html_url,
-        pages: pages.subdomain,
-      },
-    },
-    201,
-  );
 });

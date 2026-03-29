@@ -51,8 +51,10 @@ export function useDeleteProject(projectName: string) {
 }
 
 export function useUpdateSettings(projectName: string) {
+  const invalidate = useInvalidateProject();
   return useMutation({
     mutationFn: (body: Record<string, unknown>) => api.put<{ success: boolean }>(`/projects/${projectName}/settings`, body),
+    onSuccess: () => invalidate(projectName),
   });
 }
 
