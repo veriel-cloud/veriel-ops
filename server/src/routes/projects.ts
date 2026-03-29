@@ -3,7 +3,6 @@ import { env } from "hono/adapter";
 import { streamSSE } from "hono/streaming";
 import { DEFAULT_ORG, domainForEnv, pagesProjectName } from "../constants.js";
 import type { Env } from "../env.js";
-import { deleteProjectSettings, setProjectSettings } from "../services/config.js";
 import { getProjectDetail, getProjects } from "../services/data.js";
 import { buildSetupPipeline } from "../services/pipeline.js";
 import { executeSetupPipeline, pollWorkflowRun } from "../services/sse.js";
@@ -177,9 +176,11 @@ projectsRoutes.post("/:name/promote", async (c) => {
   if (from === "des") {
     if (!version) return c.json({ error: "Version required" }, 400);
     await c.get("github").createBranch(name, `release/${version}`, "develop");
+    c.get("store").addAuditEntry("promote", name, { from: "des", to: "pre", version });
     return c.json({ success: true, from: "des", to: "pre", branch: `release/${version}` });
   }
   if (from === "pre") {
+    c.get("store").addAuditEntry("promote", name, { from: "pre", to: "pro" });
     return c.json({ success: true, from: "pre", to: "pro", message: "Merge release to main via PR" });
   }
   return c.json({ error: `Cannot promote from ${from}` }, 400);
@@ -205,6 +206,7 @@ projectsRoutes.post("/:name/deploy", async (c) => {
     "triggering manual deploy",
   );
   await c.get("github").dispatchWorkflow(name, config.workflow, {}, config.ref);
+  c.get("store").addAuditEntry("deploy", name, { environment, workflow: config.workflow });
   return c.json({ success: true, action: "deploy", project: name, environment, workflow: config.workflow });
 });
 
@@ -225,6 +227,7 @@ projectsRoutes.post("/:name/rollback", async (c) => {
 
   c.get("logger").info({ project: name, environment, buildArtifact }, "triggering rollback");
   await c.get("github").dispatchWorkflow(name, "rollback.yml", { environment, build_artifact: buildArtifact });
+  c.get("store").addAuditEntry("rollback", name, { environment, buildArtifact });
   return c.json({ success: true, action: "rollback", project: name, environment, buildArtifact });
 });
 
@@ -344,8 +347,10 @@ projectsRoutes.put("/:name/settings", async (c) => {
   const name = c.req.param("name");
   const body = await c.req.json();
 
+  const store = c.get("store");
   c.get("logger").info({ project: name, settings: body }, "updating project settings");
-  const settings = await setProjectSettings(name, body);
+  const settings = store.setProjectSettings(name, body);
+  store.addAuditEntry("settings_update", name, body);
   return c.json({ success: true, settings });
 });
 
@@ -399,7 +404,9 @@ projectsRoutes.delete("/:name", async (c) => {
   }
 
   // Clean config
-  await deleteProjectSettings(name);
+  const store = c.get("store");
+  store.deleteProjectSettings(name);
+  store.addAuditEntry("project_delete", name);
 
   return c.json({ success: true, deleted });
 });

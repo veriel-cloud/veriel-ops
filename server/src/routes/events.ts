@@ -1,9 +1,10 @@
 import { Hono } from "hono";
-import { getEvents, getLastUpdated } from "../services/webhook-cache.js";
+import type { Env } from "../env.js";
 
-export const eventsRoutes = new Hono();
+export const eventsRoutes = new Hono<Env>();
 
 eventsRoutes.get("/", (c) => {
-  const events = getEvents(c.req.query("since"), c.req.query("project"));
-  return c.json({ events, lastUpdated: getLastUpdated(), count: events.length });
+  const store = c.get("store");
+  const events = store.getEvents(c.req.query("since"), c.req.query("project"));
+  return c.json({ events, lastUpdated: store.getLastUpdated(), count: events.length });
 });

@@ -20,3 +20,6 @@ dashboard/dist-server/
 image.png
 docs/hono-best-practices.md
 server/logs/
+server/data/*.db
+server/data/*.db-wal
+server/data/*.db-shm

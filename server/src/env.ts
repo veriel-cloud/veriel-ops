@@ -1,5 +1,6 @@
 import type { Logger } from "./lib/logger.js";
 import type { CloudflareService } from "./services/cloudflare.js";
+import type { DbStore } from "./services/db-store.js";
 import type { GitHubService } from "./services/github.js";
 import type { R2Service } from "./services/r2.js";
 
@@ -20,6 +21,7 @@ export interface Bindings {
 
 export interface Variables {
   logger: Logger;
+  store: DbStore;
   github: GitHubService;
   cloudflare: CloudflareService;
   r2: R2Service;
