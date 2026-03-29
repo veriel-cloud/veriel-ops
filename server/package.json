@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage --exclude 'src/lib/__tests__/db.test.ts' --exclude 'src/services/__tests__/db-store.test.ts' --exclude 'src/middleware/__tests__/auth.test.ts'"
   },
   "dependencies": {
+    "@veriel-ops/shared": "workspace:^",
     "aws4fetch": "^1.0.20",
     "hono": "^4.7.0",
     "octokit": "^5.0.5",

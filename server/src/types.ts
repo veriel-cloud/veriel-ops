@@ -1,84 +1,21 @@
-// ─── Domain types ─────────────────────────────────────────────────────
+// Re-export shared types
+export type {
+  BuildArtifact,
+  BuildInfo,
+  DeployAction,
+  DeployEntry,
+  DeployStatus,
+  DnsRecord,
+  Environment,
+  EnvironmentState,
+  HealthStatus,
+  Project,
+  ProjectSettings,
+  SystemStats,
+  WebhookEvent,
+} from "@veriel-ops/shared";
 
-export type Environment = "des" | "pre" | "pro";
-export type HealthStatus = "healthy" | "degraded" | "down" | "idle";
-export type DeployAction = "deploy" | "rollback" | "promote";
-export type DeployStatus = "success" | "failed" | "in_progress";
-
-// ─── Project ──────────────────────────────────────────────────────────
-
-export interface EnvironmentState {
-  version: string | null;
-  commitSha: string | null;
-  url: string;
-  status: HealthStatus;
-  lastDeployAt: string | null;
-}
-
-export interface Project {
-  name: string;
-  type: string;
-  repo: string;
-  domain: string;
-  customDomain: boolean;
-  coverage: number;
-  coverageThreshold: number;
-  environments: Record<Environment, EnvironmentState>;
-  createdAt: string;
-}
-
-// ─── Deploy ───────────────────────────────────────────────────────────
-
-export interface DeployEntry {
-  id: string;
-  project: string;
-  environment: Environment;
-  version: string;
-  commitSha: string;
-  branch: string;
-  timestamp: string;
-  coverage: number;
-  duration: number;
-  action: DeployAction;
-  triggeredBy: string;
-  status: DeployStatus;
-}
-
-// ─── Build ────────────────────────────────────────────────────────────
-
-export interface BuildArtifact {
-  name: string;
-  project: string;
-  environment: Environment;
-  version: string;
-  commitSha: string;
-  size: string;
-  timestamp: string;
-  coverage: number;
-}
-
-export interface BuildInfo {
-  name: string;
-  project: string;
-  environment: string;
-  size: number;
-  lastModified: string;
-  version: string;
-  commitSha: string;
-}
-
-// ─── System ───────────────────────────────────────────────────────────
-
-export interface SystemStats {
-  totalProjects: number;
-  totalDeploys: number;
-  avgCoverage: number;
-  activeEnvironments: number;
-  successRate: number;
-  buildsStored: number;
-}
-
-// ─── Cloudflare API responses ─────────────────────────────────────────
+// ─── Server-only: Cloudflare API responses ───────────────────────────
 
 export interface PagesProject {
   name: string;
@@ -117,28 +54,7 @@ export interface PagesDeployment {
   };
 }
 
-export interface DnsRecord {
-  id: string;
-  type: string;
-  name: string;
-  content: string;
-  proxied: boolean;
-  ttl: number;
-  created_on: string;
-  modified_on: string;
-}
-
-// ─── Webhook ──────────────────────────────────────────────────────────
-
-export interface WebhookEvent {
-  source: "github" | "cloudflare";
-  type: string;
-  project: string;
-  data: Record<string, unknown>;
-  timestamp: string;
-}
-
-// ─── SSE Pipeline ─────────────────────────────────────────────────────
+// ─── Server-only: SSE Pipeline ───────────────────────────────────────
 
 export interface PipelineStep {
   id: string;
@@ -152,13 +68,7 @@ export interface PipelineJob {
   steps: PipelineStep[];
 }
 
-// ─── Project settings (persisted) ────────────────────────────────────
-
-export interface ProjectSettings {
-  coverageThreshold: number;
-}
-
-// ─── Service configs ──────────────────────────────────────────────────
+// ─── Server-only: Service configs ────────────────────────────────────
 
 export interface GitHubConfig {
   token: string;

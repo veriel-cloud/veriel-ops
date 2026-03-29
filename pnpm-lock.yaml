@@ -20,6 +20,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.95.2
         version: 5.95.2(react@19.2.4)
+      '@veriel-ops/shared':
+        specifier: workspace:^
+        version: link:../packages/shared
       react:
         specifier: ^19.1.0
         version: 19.2.4
@@ -59,6 +62,9 @@ importers:
 
   server:
     dependencies:
+      '@veriel-ops/shared':
+        specifier: workspace:^
+        version: link:../packages/shared
       aws4fetch:
         specifier: ^1.0.20
         version: 1.0.20

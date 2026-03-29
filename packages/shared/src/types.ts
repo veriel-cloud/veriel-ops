@@ -1,104 +1,40 @@
-/** Entornos de despliegue disponibles */
+// ─── Core enums ──────────────────────────────────────────────────────
+
 export type Environment = "des" | "pre" | "pro";
+export type HealthStatus = "healthy" | "degraded" | "down" | "idle";
+export type DeployAction = "deploy" | "rollback" | "promote";
+export type DeployStatus = "success" | "failed" | "in_progress";
 
-/** Tipos de proyecto soportados */
-export type ProjectType =
-  | "astro-static"
-  | "astro-ssr"
-  | "react-spa"
-  | "backend-worker";
+// ─── Project ─────────────────────────────────────────────────────────
 
-/** Configuración de un proyecto registrado */
-export interface ProjectConfig {
-  name: string;
-  type: ProjectType;
-  repo: string;
-  domain: DomainConfig;
-  coverageThreshold: number;
-  createdAt: string;
-}
-
-/** Configuración de dominio de un proyecto */
-export interface DomainConfig {
-  base: string;
-  custom: boolean;
-  des: string;
-  pre: string;
-  pro: string;
-}
-
-/** Metadata de una build almacenada */
-export interface BuildMetadata {
-  project: string;
-  environment: Environment;
-  version: string;
-  commitSha: string;
-  branch: string;
-  timestamp: string;
-  coverage: CoverageReport;
-  buildDuration: number;
-  deployer: string;
-  isRollback: boolean;
-}
-
-/** Reporte de cobertura */
-export interface CoverageReport {
-  statements: number;
-  branches: number;
-  functions: number;
-  lines: number;
-  global: number;
-}
-
-/** Estado de un entorno */
-export interface EnvironmentStatus {
-  environment: Environment;
-  currentBuild: BuildMetadata | null;
+export interface EnvironmentState {
+  version: string | null;
+  commitSha: string | null;
   url: string;
-  healthy: boolean;
+  status: HealthStatus;
   lastDeployAt: string | null;
 }
 
-/** Estado completo de un proyecto */
-export interface ProjectStatus {
-  project: ProjectConfig;
-  environments: Record<Environment, EnvironmentStatus>;
-  latestCoverage: CoverageReport | null;
-}
-
-/** Resultado de una operación de deploy */
-export interface DeployResult {
-  success: boolean;
-  project: string;
-  environment: Environment;
-  url: string;
-  version: string;
-  commitSha: string;
-  coverage: CoverageReport | null;
-  error: string | null;
-}
-
-/** Resultado de un rollback */
-export interface RollbackResult {
-  success: boolean;
-  project: string;
-  environment: Environment;
-  fromVersion: string;
-  toVersion: string;
-  url: string;
-  error: string | null;
-}
-
-/** Registro DNS */
-export interface DnsRecord {
+export interface Project {
   name: string;
-  type: "CNAME" | "A" | "AAAA";
-  content: string;
-  proxied: boolean;
+  type: string;
+  repo: string;
+  domain: string;
+  customDomain: boolean;
+  coverage: number;
+  coverageThreshold: number;
+  environments: Record<Environment, EnvironmentState>;
+  createdAt: string;
+  description?: string;
 }
 
-/** Entrada del histórico de deploys */
-export interface DeployHistoryEntry {
+export interface ProjectSettings {
+  coverageThreshold: number;
+}
+
+// ─── Deploy ──────────────────────────────────────────────────────────
+
+export interface DeployEntry {
   id: string;
   project: string;
   environment: Environment;
@@ -106,7 +42,158 @@ export interface DeployHistoryEntry {
   commitSha: string;
   branch: string;
   timestamp: string;
-  coverage: CoverageReport;
-  action: "deploy" | "rollback" | "promote";
+  coverage: number;
+  duration: number;
+  action: string;
   triggeredBy: string;
+  status: DeployStatus;
+}
+
+// ─── Build ───────────────────────────────────────────────────────────
+
+export interface BuildArtifact {
+  name: string;
+  project: string;
+  environment: Environment;
+  version: string;
+  commitSha: string;
+  size: number;
+  timestamp: string;
+  lastModified: string;
+  coverage: number;
+}
+
+export interface BuildInfo {
+  name: string;
+  project: string;
+  environment: string;
+  size: number;
+  lastModified: string;
+  version: string;
+  commitSha: string;
+}
+
+// ─── System ──────────────────────────────────────────────────────────
+
+export interface SystemStats {
+  totalProjects: number;
+  totalDeploys: number;
+  avgCoverage: number;
+  activeEnvironments: number;
+  successRate: number;
+  buildsStored: number;
+}
+
+export interface ServiceCheck {
+  name: string;
+  status: string;
+  message: string;
+  latency: number;
+}
+
+// ─── Webhook ─────────────────────────────────────────────────────────
+
+export interface WebhookEvent {
+  source: "github" | "cloudflare";
+  type: string;
+  project: string;
+  data: Record<string, unknown>;
+  timestamp: string;
+}
+
+// ─── Notification ────────────────────────────────────────────────────
+
+export interface Notification {
+  id: string;
+  type: string;
+  project: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+}
+
+// ─── DNS ─────────────────────────────────────────────────────────────
+
+export interface DnsRecord {
+  id: string;
+  type: string;
+  name: string;
+  content: string;
+  proxied: boolean;
+}
+
+// ─── GitHub entities ─────────────────────────────────────────────────
+
+export interface WorkflowRun {
+  id: number;
+  name: string;
+  status: string;
+  conclusion: string | null;
+  branch: string;
+  commit: string;
+  created_at: string;
+  updated_at: string;
+  html_url: string;
+}
+
+export interface PullRequest {
+  id: number;
+  number: number;
+  title: string;
+  state: string;
+  branch: string;
+  baseBranch: string;
+  author: string;
+  createdAt: string;
+  updatedAt: string;
+  htmlUrl: string;
+  draft: boolean;
+}
+
+// ─── API Responses ───────────────────────────────────────────────────
+
+export interface ProjectsResponse {
+  projects: Project[];
+}
+
+export interface ProjectDetailResponse {
+  project: Project;
+  deploys: DeployEntry[];
+  builds: BuildArtifact[];
+  workflowRuns: WorkflowRun[];
+}
+
+export interface DeploysResponse {
+  deploys: DeployEntry[];
+}
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+  unreadCount: number;
+}
+
+export interface SystemStatusResponse {
+  status: string;
+  services: ServiceCheck[];
+  timestamp: string;
+}
+
+export interface BranchesResponse {
+  branches: string[];
+}
+
+export interface PullRequestsResponse {
+  pullRequests: PullRequest[];
+}
+
+export interface DnsRecordsResponse {
+  records: DnsRecord[];
+}
+
+export interface BuildsResponse {
+  builds: BuildArtifact[];
+}
+
+export interface FilesResponse {
+  files: { path: string; sha: string; size: number }[];
 }
