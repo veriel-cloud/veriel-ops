@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "@/lib/api";
+import { useDeleteProject } from "@/hooks/mutations";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -13,27 +13,21 @@ interface ConfirmDeleteModalProps {
 
 export function ConfirmDeleteModal({ open, onClose, projectName }: ConfirmDeleteModalProps) {
   const [confirmation, setConfirmation] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const deleteProject = useDeleteProject(projectName);
 
   async function handleDelete() {
-    setLoading(true);
-    setError(null);
-
     try {
-      await api.delete(`/projects/${projectName}`);
+      await deleteProject.mutateAsync();
       navigate("/projects");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete project");
-    } finally {
-      setLoading(false);
+    } catch {
+      // error handled by mutation state
     }
   }
 
   function handleClose() {
     setConfirmation("");
-    setError(null);
+    deleteProject.reset();
     onClose();
   }
 
@@ -47,9 +41,9 @@ export function ConfirmDeleteModal({ open, onClose, projectName }: ConfirmDelete
           This action cannot be undone.
         </p>
 
-        {error && (
+        {deleteProject.error && (
           <div className="rounded-md bg-[var(--color-error-light)] border border-[var(--color-error)]/10 p-3">
-            <p className="text-[13px] text-[var(--color-error-text)]">{error}</p>
+            <p className="text-[13px] text-[var(--color-error-text)]">{deleteProject.error.message}</p>
           </div>
         )}
 
@@ -69,7 +63,7 @@ export function ConfirmDeleteModal({ open, onClose, projectName }: ConfirmDelete
             variant="danger"
             size="sm"
             onClick={handleDelete}
-            loading={loading}
+            loading={deleteProject.isPending}
             disabled={!confirmed}
           >
             Delete project

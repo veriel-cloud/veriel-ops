@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton, SkeletonTable } from "@/components/ui/Skeleton";
 import { Tabs } from "@/components/ui/Tabs";
 import { useProjectBuilds, useProjectDetail } from "@/hooks/queries";
+import { useUpdateSettings } from "@/hooks/mutations";
 import { api } from "@/lib/api";
 import { cn, timeAgo } from "@/lib/utils";
 
@@ -33,7 +34,7 @@ export function ProjectDetail() {
   const [selectedRun, setSelectedRun] = useState<any>(null);
   const [showDelete, setShowDelete] = useState(false);
   const [coverageThreshold, setCoverageThreshold] = useState(80);
-  const [savingSettings, setSavingSettings] = useState(false);
+  const updateSettings = useUpdateSettings(name!);
 
   const { data, isLoading: loading, error, refetch } = useProjectDetail(name!);
   const { data: buildsData, isLoading: lb, refetch: refetchBuilds } = useProjectBuilds(name!);
@@ -488,15 +489,8 @@ export function ProjectDetail() {
                           <Button
                             variant="secondary"
                             size="sm"
-                            loading={savingSettings}
-                            onClick={async () => {
-                              setSavingSettings(true);
-                              try {
-                                await api.put(`/projects/${name}/settings`, { coverageThreshold });
-                              } finally {
-                                setSavingSettings(false);
-                              }
-                            }}
+                            loading={updateSettings.isPending}
+                            onClick={() => updateSettings.mutate({ coverageThreshold })}
                           >
                             Save
                           </Button>

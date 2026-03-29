@@ -6,34 +6,24 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useProjects } from "@/hooks/queries";
-import { api } from "@/lib/api";
+import { useImportProject } from "@/hooks/mutations";
 import { cn } from "@/lib/utils";
 
 export function ImportProject() {
   const { data: projectsData, isLoading: lp } = useProjects();
   const [selected, setSelected] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const importProject = useImportProject();
   const navigate = useNavigate();
 
   const registeredNames = new Set((projectsData?.projects ?? []).map((p: any) => p.name));
 
-  // We get repos from the projects endpoint — repos not yet registered are importable
-  // For now we show registered projects and indicate which aren't managed
-  // TODO: add a dedicated endpoint to list org repos not in veriel-ops
-
   async function handleImport() {
     if (!selected) return;
-    setImporting(true);
-    setError(null);
-
     try {
-      await api.post("/projects/import", { repoName: selected });
+      await importProject.mutateAsync({ repoName: selected });
       navigate(`/projects/${selected}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Import failed");
-    } finally {
-      setImporting(false);
+    } catch {
+      // error handled by mutation state
     }
   }
 
@@ -50,9 +40,9 @@ export function ImportProject() {
       <Header title="Import Project" description="Import an existing repository into veriel-ops" />
 
       <div className="max-w-2xl">
-        {error && (
+        {importProject.error && (
           <Card className="mb-4 border-[var(--color-error)]/10 bg-[var(--color-error-light)]">
-            <p className="text-[13px] text-[var(--color-error-text)]">{error}</p>
+            <p className="text-[13px] text-[var(--color-error-text)]">{importProject.error.message}</p>
           </Card>
         )}
 
@@ -100,7 +90,7 @@ export function ImportProject() {
         </Card>
 
         <div className="flex items-center gap-2 mt-4">
-          <Button size="sm" onClick={handleImport} loading={importing} disabled={!selected}>
+          <Button size="sm" onClick={handleImport} loading={importProject.isPending} disabled={!selected}>
             Import Project
           </Button>
           <Link to="/projects">

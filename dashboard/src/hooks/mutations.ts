@@ -82,3 +82,11 @@ export function useCommitFiles(projectName: string) {
     },
   });
 }
+
+export function useImportProject() {
+  const invalidate = useInvalidateProject();
+  return useMutation({
+    mutationFn: (body: { repoName: string }) => api.post<{ success: boolean }>("/projects/import", body),
+    onSuccess: () => invalidate(),
+  });
+}

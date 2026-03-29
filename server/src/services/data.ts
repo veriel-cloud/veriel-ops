@@ -116,8 +116,9 @@ export async function getProjectDetail(name: string, s: Services) {
     environment: b.environment as Environment,
     version: b.version,
     commitSha: b.commitSha,
-    size: formatBytes(b.size),
+    size: b.size,
     timestamp: b.lastModified,
+    lastModified: b.lastModified,
     coverage: 0,
   }));
 
