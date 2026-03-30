@@ -1,4 +1,10 @@
-import { DEFAULT_COVERAGE_THRESHOLD, pagesProjectName, urlForEnv } from "../constants.js";
+import {
+  DEFAULT_COVERAGE_THRESHOLD,
+  DEFAULT_PROJECT_TYPE,
+  PROJECT_TYPE_CONFIG,
+  pagesProjectName,
+  urlForEnv,
+} from "../constants.js";
 import type {
   BuildArtifact,
   DeployEntry,
@@ -10,6 +16,7 @@ import type {
   SystemStats,
 } from "../types.js";
 import type { CloudflareService } from "./cloudflare.js";
+import type { DbStore } from "./db-store.js";
 import type { GitHubService } from "./github.js";
 import type { R2Service } from "./r2.js";
 
@@ -17,6 +24,7 @@ export interface Services {
   github: GitHubService;
   cloudflare: CloudflareService;
   r2: R2Service;
+  store: DbStore;
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────
@@ -36,15 +44,20 @@ export async function getProjects(s: Services): Promise<Project[]> {
       const pages = pagesMap.get(repo.name);
       const domain = pages?.domains?.[0] ?? `${repo.name}.veriel.dev`;
       const latest = pages?.latest_deployment;
+      const settings = s.store.getProjectSettings(repo.name);
+      const projectType = settings?.projectType ?? DEFAULT_PROJECT_TYPE;
+      const typeConfig = PROJECT_TYPE_CONFIG[projectType];
 
       return {
         name: repo.name,
-        type: "astro-static",
+        type: projectType,
         repo: repo.full_name,
         domain,
         customDomain: (pages?.domains?.length ?? 0) > 0,
         coverage: 0,
-        coverageThreshold: DEFAULT_COVERAGE_THRESHOLD,
+        coverageThreshold: settings?.coverageThreshold ?? DEFAULT_COVERAGE_THRESHOLD,
+        deployTarget: typeConfig.deployTarget,
+        runtime: typeConfig.defaultRuntime,
         environments: {
           des: envState(pages ? "healthy" : "idle", urlForEnv(repo.name, "des")),
           pre: envState("idle", urlForEnv(repo.name, "pre")),
@@ -96,14 +109,20 @@ export async function getProjectDetail(name: string, s: Services) {
     );
   };
 
+  const settings = s.store.getProjectSettings(name);
+  const projectType = settings?.projectType ?? DEFAULT_PROJECT_TYPE;
+  const typeConfig = PROJECT_TYPE_CONFIG[projectType];
+
   const project: Project = {
     name: repo.name,
-    type: "astro-static",
+    type: projectType,
     repo: repo.full_name,
     domain,
     customDomain: (pages?.domains?.length ?? 0) > 0,
     coverage: 0,
-    coverageThreshold: DEFAULT_COVERAGE_THRESHOLD,
+    coverageThreshold: settings?.coverageThreshold ?? DEFAULT_COVERAGE_THRESHOLD,
+    deployTarget: typeConfig.deployTarget,
+    runtime: typeConfig.defaultRuntime,
     environments: { des: latestOf("des"), pre: latestOf("pre"), pro: latestOf("pro") },
     createdAt: repo.created_at ?? "",
   };

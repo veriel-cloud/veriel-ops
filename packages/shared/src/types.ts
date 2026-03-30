@@ -5,6 +5,12 @@ export type HealthStatus = "healthy" | "degraded" | "down" | "idle";
 export type DeployAction = "deploy" | "rollback" | "promote";
 export type DeployStatus = "success" | "failed" | "in_progress";
 
+// ─── Project types ──────────────────────────────────────────────────
+
+export type ProjectType = "static" | "ssr-edge" | "ssr-node" | "backend-js" | "backend-go" | "backend-java";
+export type DeployTarget = "cf-pages" | "cf-workers" | "container";
+export type ProjectRuntime = "node" | "bun" | "go" | "java";
+
 // ─── Project ─────────────────────────────────────────────────────────
 
 export interface EnvironmentState {
@@ -17,7 +23,7 @@ export interface EnvironmentState {
 
 export interface Project {
   name: string;
-  type: string;
+  type: ProjectType;
   repo: string;
   domain: string;
   customDomain: boolean;
@@ -26,10 +32,17 @@ export interface Project {
   environments: Record<Environment, EnvironmentState>;
   createdAt: string;
   description?: string;
+  deployTarget?: DeployTarget;
+  runtime?: ProjectRuntime;
 }
 
 export interface ProjectSettings {
   coverageThreshold: number;
+  projectType: ProjectType;
+  deployTarget: DeployTarget;
+  buildCommand: string;
+  outputDir: string;
+  runtime: ProjectRuntime;
 }
 
 // ─── Deploy ──────────────────────────────────────────────────────────

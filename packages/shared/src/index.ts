@@ -3,6 +3,9 @@ export type {
   HealthStatus,
   DeployAction,
   DeployStatus,
+  ProjectType,
+  DeployTarget,
+  ProjectRuntime,
   EnvironmentState,
   Project,
   ProjectSettings,
@@ -27,3 +30,18 @@ export type {
   BuildsResponse,
   FilesResponse,
 } from "./types.js";
+
+export type { ProjectTypeConfig } from "./constants.js";
+
+export {
+  BASE_DOMAIN,
+  ENV_BRANCHES,
+  DEFAULT_COVERAGE_THRESHOLD,
+  DEFAULT_PROJECT_TYPE,
+  DEFAULT_ORG,
+  DEFAULT_BUCKET,
+  PROJECT_TYPE_CONFIG,
+  pagesProjectName,
+  domainForEnv,
+  urlForEnv,
+} from "./constants.js";

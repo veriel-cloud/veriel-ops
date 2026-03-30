@@ -1,5 +1,16 @@
 import type { Database } from "bun:sqlite";
-import type { ProjectSettings, WebhookEvent } from "../types.js";
+import type { ProjectSettings } from "@veriel-ops/shared";
+import { DEFAULT_PROJECT_TYPE, PROJECT_TYPE_CONFIG } from "@veriel-ops/shared";
+import type { WebhookEvent } from "../types.js";
+
+const DEFAULT_SETTINGS: ProjectSettings = {
+  coverageThreshold: 80,
+  projectType: DEFAULT_PROJECT_TYPE,
+  deployTarget: PROJECT_TYPE_CONFIG[DEFAULT_PROJECT_TYPE].deployTarget,
+  buildCommand: PROJECT_TYPE_CONFIG[DEFAULT_PROJECT_TYPE].defaultBuildCommand,
+  outputDir: PROJECT_TYPE_CONFIG[DEFAULT_PROJECT_TYPE].defaultOutputDir,
+  runtime: PROJECT_TYPE_CONFIG[DEFAULT_PROJECT_TYPE].defaultRuntime,
+};
 
 export interface Notification {
   id: string;
@@ -162,12 +173,12 @@ export function createDbStore(db: Database): DbStore {
     try {
       return JSON.parse(row.settings) as ProjectSettings;
     } catch {
-      return { coverageThreshold: 80 };
+      return DEFAULT_SETTINGS;
     }
   }
 
   function setProjectSettings(name: string, settings: Partial<ProjectSettings>): ProjectSettings {
-    const current = getProjectSettings(name) ?? { coverageThreshold: 80 };
+    const current = getProjectSettings(name) ?? DEFAULT_SETTINGS;
     const updated = { ...current, ...settings };
     stmts.upsertSettings.run({
       $name: name,

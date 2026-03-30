@@ -9,6 +9,7 @@ deploysRoutes.get("/", async (c) => {
       github: c.get("github"),
       cloudflare: c.get("cloudflare"),
       r2: c.get("r2"),
+      store: c.get("store"),
     });
     return c.json({ deploys });
   } catch (error) {

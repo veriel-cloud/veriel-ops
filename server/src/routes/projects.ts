@@ -1,17 +1,19 @@
+import type { ProjectType } from "@veriel-ops/shared";
 import { Hono } from "hono";
 import { env } from "hono/adapter";
 import { streamSSE } from "hono/streaming";
-import { DEFAULT_ORG, domainForEnv, pagesProjectName } from "../constants.js";
+import { DEFAULT_ORG, domainForEnv, PROJECT_TYPE_CONFIG, pagesProjectName } from "../constants.js";
 import type { Env } from "../env.js";
 import { buildSetupPipeline } from "../services/pipeline.js";
 import { executeSetupPipeline, pollWorkflowRun } from "../services/sse.js";
 
 export const projectsRoutes = new Hono<Env>();
 
-const services = (c: { get: (k: "github" | "cloudflare" | "r2") => unknown }) => ({
+const services = (c: { get: (k: "github" | "cloudflare" | "r2" | "store") => unknown }) => ({
   github: c.get("github") as ReturnType<typeof import("../services/github.js").createGitHubService>,
   cloudflare: c.get("cloudflare") as ReturnType<typeof import("../services/cloudflare.js").createCloudflareService>,
   r2: c.get("r2") as ReturnType<typeof import("../services/r2.js").createR2Service>,
+  store: c.get("store") as import("../services/db-store.js").DbStore,
 });
 
 // ─── List ─────────────────────────────────────────────────────────────
@@ -27,18 +29,34 @@ projectsRoutes.post("/", async (c) => {
   const { name, type, description, customDomain } = await c.req.json();
   if (!name) return c.json({ error: "Project name is required" }, 400);
 
+  const projectType: ProjectType = type && type in PROJECT_TYPE_CONFIG ? type : "static";
+  const typeConfig = PROJECT_TYPE_CONFIG[projectType];
+
   const log = c.get("logger");
   const gh = c.get("github");
   const cf = c.get("cloudflare");
+  const store = c.get("store");
   const e = env(c);
   const org = e.GITHUB_ORG || DEFAULT_ORG;
 
-  log.info({ project: name, type, customDomain }, "creating project");
+  log.info(
+    { project: name, type: projectType, deployTarget: typeConfig.deployTarget, customDomain },
+    "creating project",
+  );
 
   const repo = await gh.createRepo(name, {
-    description: description ?? `${type ?? "web"} project managed by veriel-ops`,
+    description: description ?? `${projectType} project managed by veriel-ops`,
     isPrivate: true,
-    type: type ?? "astro-static",
+    type: projectType,
+  });
+
+  store.setProjectSettings(name, {
+    projectType,
+    deployTarget: typeConfig.deployTarget,
+    buildCommand: typeConfig.defaultBuildCommand,
+    outputDir: typeConfig.defaultOutputDir,
+    runtime: typeConfig.defaultRuntime,
+    coverageThreshold: 80,
   });
 
   await gh.addWorkflowCallers(name, name);
@@ -147,16 +165,29 @@ projectsRoutes.post("/create-stream", async (c) => {
 // ─── Import (must be before /:name routes) ──────────────────────────
 
 projectsRoutes.post("/import", async (c) => {
-  const { repoName } = await c.req.json();
+  const { repoName, type } = await c.req.json();
   if (!repoName) return c.json({ error: "repoName is required" }, 400);
+
+  const projectType: ProjectType = type && type in PROJECT_TYPE_CONFIG ? type : "static";
+  const typeConfig = PROJECT_TYPE_CONFIG[projectType];
 
   const log = c.get("logger");
   const gh = c.get("github");
   const cf = c.get("cloudflare");
+  const store = c.get("store");
   const e = env(c);
   const org = e.GITHUB_ORG || DEFAULT_ORG;
 
-  log.info({ project: repoName }, "importing existing project");
+  log.info({ project: repoName, type: projectType }, "importing existing project");
+
+  store.setProjectSettings(repoName, {
+    projectType,
+    deployTarget: typeConfig.deployTarget,
+    buildCommand: typeConfig.defaultBuildCommand,
+    outputDir: typeConfig.defaultOutputDir,
+    runtime: typeConfig.defaultRuntime,
+    coverageThreshold: 80,
+  });
 
   const repo = await gh.getRepo(repoName);
   const pages = await cf.createPagesProjectForEnv(repoName, "des", org, repoName);

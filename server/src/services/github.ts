@@ -3,7 +3,7 @@ import {
   DEFAULT_COVERAGE_THRESHOLD,
   PER_PAGE_REPOS,
   PER_PAGE_RUNS,
-  PROJECT_TEMPLATES,
+  PROJECT_TYPE_CONFIG,
   REPO_CREATION_DELAY_MS,
   WEBHOOK_GITHUB_EVENTS,
   WORKFLOW_POLL_INTERVAL_MS,
@@ -65,7 +65,8 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
   // ─── Repo setup ───────────────────────────────────────────────
 
   async function createRepo(name: string, options: { description?: string; isPrivate?: boolean; type?: string } = {}) {
-    const templateRepo = PROJECT_TEMPLATES[options.type ?? "astro-static"] ?? "template-astro";
+    const typeKey = (options.type ?? "static") as keyof typeof PROJECT_TYPE_CONFIG;
+    const templateRepo = PROJECT_TYPE_CONFIG[typeKey]?.template ?? "template-astro";
     logger?.info({ name, templateRepo }, "creating repository from template");
 
     const { data } = await octokit.rest.repos.createUsingTemplate({
