@@ -97,7 +97,10 @@ projectsRoutes.post("/create-stream", async (c) => {
   const e = env(c);
   const org = e.GITHUB_ORG || DEFAULT_ORG;
 
-  log.info({ project: name, type, customDomain }, "creating project via SSE stream");
+  const projectType = type && type in PROJECT_TYPE_CONFIG ? type : "astro-static";
+  const typeConfig = PROJECT_TYPE_CONFIG[projectType as keyof typeof PROJECT_TYPE_CONFIG];
+
+  log.info({ project: name, type: projectType, customDomain }, "creating project via SSE stream");
   const desDomain = domainForEnv(name, "des", customDomain);
 
   const { jobs } = buildSetupPipeline(
@@ -143,6 +146,20 @@ projectsRoutes.post("/create-stream", async (c) => {
     try {
       const result = await pollWorkflowRun(stream, gh, name, branchCreatedAt, globalStart, log);
       if (!result) return;
+
+      // Post-deploy: attach custom domain for Workers (Worker must exist first)
+      if (typeConfig.deployTarget === "cf-workers") {
+        const workerName = `${name}-des`;
+        log.info({ workerName, domain: desDomain }, "attaching custom domain to worker post-deploy");
+        try {
+          await cf.setupWorkerDomain(workerName, desDomain);
+        } catch (err) {
+          log.warn(
+            { workerName, error: err instanceof Error ? err.message : "unknown" },
+            "failed to attach worker domain",
+          );
+        }
+      }
 
       await stream.writeSSE({
         event: "complete",

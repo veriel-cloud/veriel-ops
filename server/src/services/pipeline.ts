@@ -202,31 +202,21 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
     };
   }
 
-  function buildCfWorkersInfraJob(opts: {
-    name: string;
-    desDomain: string;
-    customDomain?: string;
-    cf: CloudflareService;
-  }): PipelineJob {
+  function buildCfWorkersInfraJob(opts: { name: string; desDomain: string }): PipelineJob {
     return {
       id: "infra",
       label: "Configure Infrastructure (CF Workers)",
       steps: [
         {
-          id: "worker-domain",
-          label: "Attach custom domain to Worker",
+          id: "worker-info",
+          label: "Workers setup info",
           fn: async () => {
-            const workerName = `${opts.name}-des`;
-            const domain = opts.desDomain;
-            await opts.cf.setupWorkerDomain(workerName, domain);
             return {
-              detail: `${domain} → ${workerName}`,
+              detail: "Domain will be attached after deploy",
               logs: [
                 "Skipping Pages project (Workers target).",
-                `Attaching custom domain to worker ${workerName}...`,
-                `  → ${domain}`,
-                "Cloudflare creates DNS + route automatically.",
-                `URL: https://${domain}`,
+                "Custom domain will be attached after GitHub Actions deploys the Worker.",
+                `Pending: ${opts.desDomain} → ${opts.name}-des`,
               ],
             };
           },
