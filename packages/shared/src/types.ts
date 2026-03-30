@@ -7,7 +7,7 @@ export type DeployStatus = "success" | "failed" | "in_progress";
 
 // ─── Project types ──────────────────────────────────────────────────
 
-export type ProjectType = "static" | "ssr-edge" | "ssr-node" | "backend-js" | "backend-go" | "backend-java";
+export type ProjectType = "astro-static" | "astro-ssr" | "react-spa" | "hono-api" | "go-fiber" | "spring-boot";
 export type DeployTarget = "cf-pages" | "cf-workers" | "container";
 export type ProjectRuntime = "node" | "bun" | "go" | "java";
 

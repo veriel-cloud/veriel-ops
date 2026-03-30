@@ -53,7 +53,7 @@ describe("urlForEnv", () => {
 });
 
 describe("PROJECT_TYPE_CONFIG", () => {
-  const allTypes: ProjectType[] = ["static", "ssr-edge", "ssr-node", "backend-js", "backend-go", "backend-java"];
+  const allTypes: ProjectType[] = ["astro-static", "astro-ssr", "react-spa", "hono-api", "go-fiber", "spring-boot"];
   const validTargets: DeployTarget[] = ["cf-pages", "cf-workers", "container"];
 
   it("has an entry for every ProjectType", () => {
@@ -80,19 +80,27 @@ describe("PROJECT_TYPE_CONFIG", () => {
     }
   });
 
-  it("maps static to cf-pages", () => {
-    expect(PROJECT_TYPE_CONFIG.static.deployTarget).toBe("cf-pages");
+  it("maps astro-static to cf-pages", () => {
+    expect(PROJECT_TYPE_CONFIG["astro-static"].deployTarget).toBe("cf-pages");
   });
 
-  it("maps ssr-edge to cf-workers", () => {
-    expect(PROJECT_TYPE_CONFIG["ssr-edge"].deployTarget).toBe("cf-workers");
+  it("maps astro-ssr to cf-workers", () => {
+    expect(PROJECT_TYPE_CONFIG["astro-ssr"].deployTarget).toBe("cf-workers");
   });
 
-  it("maps backend-go to container", () => {
-    expect(PROJECT_TYPE_CONFIG["backend-go"].deployTarget).toBe("container");
+  it("maps react-spa to cf-pages", () => {
+    expect(PROJECT_TYPE_CONFIG["react-spa"].deployTarget).toBe("cf-pages");
   });
 
-  it("maps backend-java to container", () => {
-    expect(PROJECT_TYPE_CONFIG["backend-java"].deployTarget).toBe("container");
+  it("maps hono-api to cf-workers", () => {
+    expect(PROJECT_TYPE_CONFIG["hono-api"].deployTarget).toBe("cf-workers");
+  });
+
+  it("maps go-fiber to container", () => {
+    expect(PROJECT_TYPE_CONFIG["go-fiber"].deployTarget).toBe("container");
+  });
+
+  it("maps spring-boot to container", () => {
+    expect(PROJECT_TYPE_CONFIG["spring-boot"].deployTarget).toBe("container");
   });
 });

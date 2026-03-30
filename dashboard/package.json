@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@tabler/icons-react": "^3.41.1",
     "@tanstack/react-query": "^5.95.2",
     "@veriel-ops/shared": "workspace:^",
     "react": "^19.1.0",

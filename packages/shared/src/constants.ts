@@ -13,7 +13,7 @@ export const ENV_BRANCHES: Record<Environment, string> = {
 // ─── Defaults ─────────────────────────────────────────────────────────
 
 export const DEFAULT_COVERAGE_THRESHOLD = 80;
-export const DEFAULT_PROJECT_TYPE: ProjectType = "static";
+export const DEFAULT_PROJECT_TYPE: ProjectType = "astro-static";
 export const DEFAULT_ORG = "veriel-cloud";
 export const DEFAULT_BUCKET = "veriel-ops-builds";
 
@@ -29,48 +29,48 @@ export interface ProjectTypeConfig {
 }
 
 export const PROJECT_TYPE_CONFIG: Record<ProjectType, ProjectTypeConfig> = {
-  static: {
-    label: "Static site",
+  "astro-static": {
+    label: "Astro (Static)",
     deployTarget: "cf-pages",
     defaultBuildCommand: "pnpm build",
     defaultOutputDir: "dist",
     defaultRuntime: "node",
     template: "template-astro",
   },
-  "ssr-edge": {
-    label: "SSR Edge (Workers)",
+  "astro-ssr": {
+    label: "Astro (SSR)",
     deployTarget: "cf-workers",
     defaultBuildCommand: "pnpm build",
     defaultOutputDir: "dist",
     defaultRuntime: "node",
     template: "template-astro",
   },
-  "ssr-node": {
-    label: "SSR Node/Bun",
-    deployTarget: "container",
+  "react-spa": {
+    label: "React (SPA)",
+    deployTarget: "cf-pages",
     defaultBuildCommand: "pnpm build",
-    defaultOutputDir: ".output",
-    defaultRuntime: "bun",
-    template: "template-astro",
+    defaultOutputDir: "dist",
+    defaultRuntime: "node",
+    template: "template-react",
   },
-  "backend-js": {
-    label: "Backend JS/TS",
+  "hono-api": {
+    label: "Hono (API)",
     deployTarget: "cf-workers",
     defaultBuildCommand: "pnpm build",
     defaultOutputDir: "dist",
     defaultRuntime: "bun",
-    template: "template-astro",
+    template: "template-hono",
   },
-  "backend-go": {
-    label: "Backend Go",
+  "go-fiber": {
+    label: "Go / Fiber (API)",
     deployTarget: "container",
     defaultBuildCommand: "go build -o bin/server ./cmd/server",
     defaultOutputDir: "bin",
     defaultRuntime: "go",
     template: "template-go",
   },
-  "backend-java": {
-    label: "Backend Java",
+  "spring-boot": {
+    label: "Spring Boot (API)",
     deployTarget: "container",
     defaultBuildCommand: "mvn package -DskipTests",
     defaultOutputDir: "target",

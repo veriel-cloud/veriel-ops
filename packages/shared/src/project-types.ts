@@ -6,7 +6,6 @@ import { PROJECT_TYPE_CONFIG } from "./constants.js";
 export interface ProjectTypeUIConfig {
   label: string;
   description: string;
-  frameworks: string;
   deployTarget: DeployTarget;
   deployTargetLabel: string;
 }
@@ -18,45 +17,39 @@ const DEPLOY_TARGET_LABELS: Record<DeployTarget, string> = {
 };
 
 export const PROJECT_TYPE_UI: Record<ProjectType, ProjectTypeUIConfig> = {
-  static: {
-    label: "Static Site",
-    description: "Pre-rendered HTML, CSS and JS served from a CDN",
-    frameworks: "Astro, React SPA, Vue, Svelte",
+  "astro-static": {
+    label: "Astro (Static)",
+    description: "Static site pre-rendered and served from CDN",
     deployTarget: "cf-pages",
     deployTargetLabel: DEPLOY_TARGET_LABELS["cf-pages"],
   },
-  "ssr-edge": {
-    label: "SSR Edge",
-    description: "Server-side rendering on Cloudflare Workers",
-    frameworks: "Astro CF adapter, Next.js OpenNext, Hono",
+  "astro-ssr": {
+    label: "Astro (SSR)",
+    description: "Server-side rendered Astro on Workers",
     deployTarget: "cf-workers",
     deployTargetLabel: DEPLOY_TARGET_LABELS["cf-workers"],
   },
-  "ssr-node": {
-    label: "SSR Node/Bun",
-    description: "Server-side rendering with persistent process",
-    frameworks: "Next.js Node, Nuxt Node",
-    deployTarget: "container",
-    deployTargetLabel: DEPLOY_TARGET_LABELS.container,
+  "react-spa": {
+    label: "React (SPA)",
+    description: "Single-page React app served from CDN",
+    deployTarget: "cf-pages",
+    deployTargetLabel: DEPLOY_TARGET_LABELS["cf-pages"],
   },
-  "backend-js": {
-    label: "Backend JS/TS",
-    description: "JavaScript/TypeScript API server",
-    frameworks: "Hono, Express, Fastify",
+  "hono-api": {
+    label: "Hono (API)",
+    description: "Lightweight API on Cloudflare Workers",
     deployTarget: "cf-workers",
     deployTargetLabel: DEPLOY_TARGET_LABELS["cf-workers"],
   },
-  "backend-go": {
-    label: "Backend Go",
-    description: "Go HTTP server deployed as container",
-    frameworks: "Fiber, Gin, Echo, Chi",
+  "go-fiber": {
+    label: "Go / Fiber (API)",
+    description: "Go HTTP API deployed as container",
     deployTarget: "container",
     deployTargetLabel: DEPLOY_TARGET_LABELS.container,
   },
-  "backend-java": {
-    label: "Backend Java",
-    description: "Java server deployed as container",
-    frameworks: "Spring Boot, Quarkus",
+  "spring-boot": {
+    label: "Spring Boot (API)",
+    description: "Java API deployed as container",
     deployTarget: "container",
     deployTargetLabel: DEPLOY_TARGET_LABELS.container,
   },

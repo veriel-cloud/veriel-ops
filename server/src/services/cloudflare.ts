@@ -63,8 +63,8 @@ export function createCloudflareService(config: CloudflareConfig, logger?: Logge
             name: pagesProjectName(projectName, env),
             production_branch: ENV_BRANCHES[env],
             build_config: {
-              build_command: PROJECT_TYPE_CONFIG.static.defaultBuildCommand,
-              destination_dir: PROJECT_TYPE_CONFIG.static.defaultOutputDir,
+              build_command: PROJECT_TYPE_CONFIG["astro-static"].defaultBuildCommand,
+              destination_dir: PROJECT_TYPE_CONFIG["astro-static"].defaultOutputDir,
             },
             source: {
               type: "github",

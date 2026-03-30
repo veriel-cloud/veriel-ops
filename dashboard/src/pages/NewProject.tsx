@@ -1,8 +1,9 @@
 import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import type { ProjectType } from "@veriel-ops/shared";
-import { ALL_PROJECT_TYPES, PROJECT_TYPE_UI, getTypeDefaults } from "@veriel-ops/shared";
+import { PROJECT_TYPE_UI, getTypeDefaults } from "@veriel-ops/shared";
 import { Header } from "@/components/Header";
+import { ProjectTypeSelector } from "@/components/ProjectTypeSelector";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -11,9 +12,9 @@ import { type JobStatus, type StepStatus, WorkflowRun, type WorkflowRunData } fr
 export function NewProject() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState<ProjectType>("static");
-  const [buildCommand, setBuildCommand] = useState(getTypeDefaults("static").buildCommand);
-  const [outputDir, setOutputDir] = useState(getTypeDefaults("static").outputDir);
+  const [type, setType] = useState<ProjectType>("astro-static");
+  const [buildCommand, setBuildCommand] = useState(getTypeDefaults("astro-static").buildCommand);
+  const [outputDir, setOutputDir] = useState(getTypeDefaults("astro-static").outputDir);
   const [showBuildConfig, setShowBuildConfig] = useState(false);
   const [domainType, setDomainType] = useState<"default" | "custom">("default");
   const [customDomain, setCustomDomain] = useState("");
@@ -220,23 +221,12 @@ export function NewProject() {
                     placeholder="Optional description"
                   />
                   <div>
-                    <label htmlFor="type" className="block text-[13px] text-[var(--color-text-secondary)] mb-1.5">
+                    <label className="block text-[13px] text-[var(--color-text-secondary)] mb-1.5">
                       Project type
                     </label>
-                    <select
-                      id="type"
-                      value={type}
-                      onChange={(e) => handleTypeChange(e.target.value as ProjectType)}
-                      className="w-full h-9 px-3 rounded-md text-[13px] bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-text-quaternary)] transition-colors appearance-none cursor-pointer"
-                    >
-                      {ALL_PROJECT_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {PROJECT_TYPE_UI[t].label}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-[11px] text-[var(--color-text-quaternary)] mt-1">
-                      {PROJECT_TYPE_UI[type].description} — {PROJECT_TYPE_UI[type].frameworks}
+                    <ProjectTypeSelector value={type} onChange={handleTypeChange} />
+                    <p className="text-[11px] text-[var(--color-text-quaternary)] mt-1.5">
+                      {PROJECT_TYPE_UI[type].frameworks}
                     </p>
                     <p className="text-[11px] text-[var(--color-text-quaternary)] mt-0.5">
                       Deploy target: <span className="text-[var(--color-text-tertiary)]">{PROJECT_TYPE_UI[type].deployTargetLabel}</span>
