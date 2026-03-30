@@ -138,14 +138,43 @@ projectsRoutes.post("/create-stream", async (c) => {
 
     await stream.writeSSE({ event: "init", data: JSON.stringify({ title: `Deploy ${name}`, jobs: initJobs }) });
 
+    // Cleanup helper — reverts created resources on failure
+    async function cleanupOnFailure() {
+      log.info({ project: name }, "cleaning up after failed creation");
+      try {
+        // Delete DNS records
+        const dnsRecords = await cf.listDnsRecords();
+        for (const r of dnsRecords.filter((r) => r.name.includes(name))) {
+          await cf.deleteDnsRecord(r.id).catch(() => {});
+        }
+        // Delete Workers if applicable
+        if (typeConfig.deployTarget === "cf-workers") {
+          await cf.deleteWorker(`${name}-des`).catch(() => {});
+        }
+        // Archive repo
+        await gh.archiveRepo(name).catch(() => {});
+        // Clean settings
+        c.get("store").deleteProjectSettings(name);
+        log.info({ project: name }, "cleanup complete");
+      } catch (err) {
+        log.warn({ project: name, error: err instanceof Error ? err.message : "unknown" }, "cleanup partially failed");
+      }
+    }
+
     // Phase 1: Setup repo + infra
     const { branchCreatedAt, failed } = await executeSetupPipeline(stream, jobs, globalStart, log);
-    if (failed) return;
+    if (failed) {
+      await cleanupOnFailure();
+      return;
+    }
 
     // Phase 2: Poll real GitHub Actions workflow
     try {
       const result = await pollWorkflowRun(stream, gh, name, branchCreatedAt, globalStart, log);
-      if (!result) return;
+      if (!result) {
+        await cleanupOnFailure();
+        return;
+      }
 
       // Post-deploy: attach custom domain for Workers (Worker must exist first)
       if (typeConfig.deployTarget === "cf-workers") {
@@ -179,6 +208,7 @@ projectsRoutes.post("/create-stream", async (c) => {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
+      await cleanupOnFailure();
       await stream.writeSSE({
         event: "error",
         data: JSON.stringify({ error: message, failedJob: "deploy-des", totalDuration: Date.now() - globalStart }),
@@ -352,11 +382,19 @@ projectsRoutes.post("/:name/rollback", async (c) => {
 
   if (!environment || !buildArtifact) return c.json({ error: "environment and buildArtifact required" }, 400);
 
-  c.get("logger").info({ project: name, environment, buildArtifact }, "triggering rollback");
-  await c.get("github").dispatchWorkflow(name, "rollback.yml", { environment, build_artifact: buildArtifact });
-  c.get("store").addAuditEntry("rollback", name, { environment, buildArtifact });
+  const store = c.get("store");
+  const settings = store.getProjectSettings(name);
+  const deployTarget = settings?.deployTarget ?? "cf-pages";
+  const rollbackWorkflow = deployTarget === "cf-workers" ? "rollback-worker.yml" : "rollback.yml";
+
+  c.get("logger").info(
+    { project: name, environment, deployTarget, buildArtifact, workflow: rollbackWorkflow },
+    "triggering rollback",
+  );
+  await c.get("github").dispatchWorkflow(name, rollbackWorkflow, { environment, build_artifact: buildArtifact });
+  store.addAuditEntry("rollback", name, { environment, deployTarget, buildArtifact });
   c.get("cachedData").invalidateProject(name);
-  return c.json({ success: true, action: "rollback", project: name, environment, buildArtifact });
+  return c.json({ success: true, action: "rollback", project: name, environment, deployTarget, buildArtifact });
 });
 
 // ─── Pull Requests ───────────────────────────────────────────────────
@@ -489,25 +527,40 @@ projectsRoutes.delete("/:name", async (c) => {
   const log = c.get("logger");
   const gh = c.get("github");
   const cf = c.get("cloudflare");
+  const store = c.get("store");
+  const settings = store.getProjectSettings(name);
+  const deployTarget = settings?.deployTarget ?? "cf-pages";
 
-  log.info({ project: name }, "deleting project");
+  log.info({ project: name, deployTarget }, "deleting project");
 
-  const deleted: { pages: string[]; dns: string[]; repoArchived: boolean } = {
+  const deleted: { pages: string[]; workers: string[]; dns: string[]; repoArchived: boolean } = {
     pages: [],
+    workers: [],
     dns: [],
     repoArchived: false,
   };
 
-  // Delete Pages projects per environment
-  for (const env of ["des", "pre", "pro"] as const) {
-    const pagesName = pagesProjectName(name, env);
-    try {
-      await cf.getPagesProject(pagesName);
-      // If it exists, we can't delete via API (Pages deletion isn't in the API)
-      // but we track it
-      deleted.pages.push(pagesName);
-    } catch {
-      // Project doesn't exist for this env
+  if (deployTarget === "cf-pages") {
+    // Delete Pages projects per environment
+    for (const env of ["des", "pre", "pro"] as const) {
+      const pagesName = pagesProjectName(name, env);
+      try {
+        await cf.getPagesProject(pagesName);
+        deleted.pages.push(pagesName);
+      } catch {
+        // Project doesn't exist for this env
+      }
+    }
+  } else if (deployTarget === "cf-workers") {
+    // Delete Workers per environment
+    for (const env of ["des", "pre", "pro"] as const) {
+      const workerName = env === "pro" ? name : `${name}-${env}`;
+      try {
+        await cf.deleteWorker(workerName);
+        deleted.workers.push(workerName);
+      } catch {
+        // Worker doesn't exist for this env
+      }
     }
   }
 
@@ -532,7 +585,6 @@ projectsRoutes.delete("/:name", async (c) => {
   }
 
   // Clean config
-  const store = c.get("store");
   store.deleteProjectSettings(name);
   store.addAuditEntry("project_delete", name);
   c.get("cachedData").invalidateProject(name);

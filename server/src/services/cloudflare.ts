@@ -132,6 +132,12 @@ export function createCloudflareService(config: CloudflareConfig, logger?: Logge
         logger,
       );
     },
+
+    // Workers — delete a worker service
+    deleteWorker: (workerName: string) => {
+      logger?.info({ workerName }, "deleting worker");
+      return cfFetch<void>(config, `${accounts}/workers/services/${workerName}`, { method: "DELETE" }, logger);
+    },
   };
 }
 
