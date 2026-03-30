@@ -2,9 +2,8 @@ import {
   CF_API_URL,
   domainForEnv,
   ENV_BRANCHES,
-  PAGES_BUILD_COMMAND,
-  PAGES_BUILD_OUTPUT,
   PER_PAGE_DNS,
+  PROJECT_TYPE_CONFIG,
   pagesProjectName,
 } from "../constants.js";
 import type { Logger } from "../lib/logger.js";
@@ -63,7 +62,10 @@ export function createCloudflareService(config: CloudflareConfig, logger?: Logge
           body: JSON.stringify({
             name: pagesProjectName(projectName, env),
             production_branch: ENV_BRANCHES[env],
-            build_config: { build_command: PAGES_BUILD_COMMAND, destination_dir: PAGES_BUILD_OUTPUT },
+            build_config: {
+              build_command: PROJECT_TYPE_CONFIG.static.defaultBuildCommand,
+              destination_dir: PROJECT_TYPE_CONFIG.static.defaultOutputDir,
+            },
             source: {
               type: "github",
               config: {
