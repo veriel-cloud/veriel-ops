@@ -9,7 +9,6 @@ interface PipelineContext {
   description?: string;
   customDomain?: string;
   org: string;
-  workersSubdomain?: string;
   webhookUrl?: string;
   webhookSecret?: string;
 }
@@ -97,7 +96,6 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
     desDomain,
     customDomain,
     org,
-    workersSubdomain: ctx.workersSubdomain,
     cf,
   });
 
@@ -142,7 +140,6 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
       desDomain: string;
       customDomain?: string;
       org: string;
-      workersSubdomain?: string;
       cf: CloudflareService;
     },
   ): PipelineJob {
@@ -209,7 +206,6 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
     name: string;
     desDomain: string;
     customDomain?: string;
-    workersSubdomain?: string;
     cf: CloudflareService;
   }): PipelineJob {
     return {
@@ -217,21 +213,20 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
       label: "Configure Infrastructure (CF Workers)",
       steps: [
         {
-          id: "dns-setup",
-          label: "Setup DNS for Workers",
+          id: "worker-domain",
+          label: "Attach custom domain to Worker",
           fn: async () => {
-            const sub = opts.workersSubdomain ?? "workers";
-            const workerTarget = `${opts.name}-des.${sub}.workers.dev`;
+            const workerName = `${opts.name}-des`;
             const domain = opts.desDomain;
-            await opts.cf.createDnsRecord(domain, workerTarget);
+            await opts.cf.setupWorkerDomain(workerName, domain);
             return {
-              detail: `${domain} → ${workerTarget}`,
+              detail: `${domain} → ${workerName}`,
               logs: [
                 "Skipping Pages project (Workers target).",
-                "Creating CNAME record for Workers subdomain...",
-                `  → ${domain} → ${workerTarget}`,
-                `Worker URL: https://${workerTarget}`,
-                "DNS configured for Workers.",
+                `Attaching custom domain to worker ${workerName}...`,
+                `  → ${domain}`,
+                "Cloudflare creates DNS + route automatically.",
+                `URL: https://${domain}`,
               ],
             };
           },

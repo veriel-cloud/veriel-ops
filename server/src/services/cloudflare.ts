@@ -103,7 +103,7 @@ export function createCloudflareService(config: CloudflareConfig, logger?: Logge
     deleteDnsRecord: (recordId: string) =>
       cfFetch<void>(config, `${zones}/dns_records/${recordId}`, { method: "DELETE" }, logger),
 
-    // Setup — combines DNS + custom domain in one call
+    // Setup — combines DNS + custom domain in one call (Pages)
     async setupEnvDns(projectName: string, env: Environment, pagesSubdomain: string, customDomain?: string) {
       const pagesTarget = pagesSubdomain.endsWith(".pages.dev") ? pagesSubdomain : `${pagesSubdomain}.pages.dev`;
       const domain = domainForEnv(projectName, env, customDomain);
@@ -112,6 +112,25 @@ export function createCloudflareService(config: CloudflareConfig, logger?: Logge
       await this.addCustomDomain(pagesProjectName(projectName, env), domain);
 
       return { dnsRecord, domain, pagesTarget };
+    },
+
+    // Workers — attach custom domain (CF creates DNS + route automatically)
+    async setupWorkerDomain(workerName: string, hostname: string) {
+      logger?.info({ workerName, hostname }, "attaching custom domain to worker");
+      return cfFetch<{ id: string; hostname: string; service: string }>(
+        config,
+        `${accounts}/workers/domains`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            hostname,
+            service: workerName,
+            zone_id: zoneId,
+            environment: "production",
+          }),
+        },
+        logger,
+      );
     },
   };
 }

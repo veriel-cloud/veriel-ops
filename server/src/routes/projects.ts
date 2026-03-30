@@ -107,7 +107,6 @@ projectsRoutes.post("/create-stream", async (c) => {
       description,
       customDomain,
       org,
-      workersSubdomain: e.WORKERS_SUBDOMAIN,
       webhookUrl: e.WEBHOOK_URL,
       webhookSecret: e.GITHUB_WEBHOOK_SECRET,
     },
