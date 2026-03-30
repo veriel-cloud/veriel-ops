@@ -238,6 +238,7 @@ projectsRoutes.get("/:name", async (c) => {
     project: { ...detail.project, workflowRuns: detail.workflowRuns },
     deploys: detail.deploys,
     builds: detail.builds,
+    settings: detail.settings,
   });
 });
 

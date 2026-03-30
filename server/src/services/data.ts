@@ -141,7 +141,16 @@ export async function getProjectDetail(name: string, s: Services) {
     coverage: 0,
   }));
 
-  return { project, deploys, builds: buildArtifacts, workflowRuns };
+  const fullSettings = {
+    coverageThreshold: settings?.coverageThreshold ?? DEFAULT_COVERAGE_THRESHOLD,
+    projectType: projectType,
+    deployTarget: typeConfig.deployTarget,
+    buildCommand: settings?.buildCommand ?? typeConfig.defaultBuildCommand,
+    outputDir: settings?.outputDir ?? typeConfig.defaultOutputDir,
+    runtime: settings?.runtime ?? typeConfig.defaultRuntime,
+  };
+
+  return { project, deploys, builds: buildArtifacts, workflowRuns, settings: fullSettings };
 }
 
 export async function getDeploys(s: Services): Promise<DeployEntry[]> {

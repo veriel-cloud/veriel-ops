@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton, SkeletonTable } from "@/components/ui/Skeleton";
 import { Tabs } from "@/components/ui/Tabs";
+import { getDeployTargetLabel, getTypeLabel } from "@veriel-ops/shared";
 import { useProjectBuilds, useProjectDetail } from "@/hooks/queries";
 import { useUpdateSettings } from "@/hooks/mutations";
 import { api } from "@/lib/api";
@@ -34,6 +35,8 @@ export function ProjectDetail() {
   const [selectedRun, setSelectedRun] = useState<any>(null);
   const [showDelete, setShowDelete] = useState(false);
   const [coverageThreshold, setCoverageThreshold] = useState(80);
+  const [buildCommand, setBuildCommand] = useState("");
+  const [outputDir, setOutputDir] = useState("");
   const updateSettings = useUpdateSettings(name!);
 
   const { data, isLoading: loading, error, refetch } = useProjectDetail(name!);
@@ -41,9 +44,14 @@ export function ProjectDetail() {
 
   const project = data?.project;
 
+  const settings = data?.settings;
+
   useEffect(() => {
-    if (project?.coverageThreshold) setCoverageThreshold(project.coverageThreshold);
-  }, [project?.coverageThreshold]);
+    if (!settings) return;
+    setCoverageThreshold(settings.coverageThreshold);
+    setBuildCommand(settings.buildCommand);
+    setOutputDir(settings.outputDir);
+  }, [settings]);
 
   const deploys = data?.deploys ?? [];
   const builds = buildsData?.builds ?? [];
@@ -154,6 +162,18 @@ export function ProjectDetail() {
                 </div>
               }
             />
+
+            {/* Type & target badges */}
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-[11px] text-[var(--color-text-quaternary)] bg-[var(--color-bg-tertiary)] px-2 py-0.5 rounded">
+                {getTypeLabel(project.type)}
+              </span>
+              {project.deployTarget && (
+                <span className="text-[11px] text-[var(--color-text-quaternary)] bg-[var(--color-bg-tertiary)] px-2 py-0.5 rounded">
+                  {getDeployTargetLabel(project.deployTarget)}
+                </span>
+              )}
+            </div>
 
             {/* Environments */}
             <div className="grid grid-cols-3 gap-3 mb-8">
@@ -493,6 +513,46 @@ export function ProjectDetail() {
                             onClick={() => updateSettings.mutate({ coverageThreshold })}
                           >
                             Save
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="border-t border-[var(--color-border)] pt-4 space-y-3">
+                        <div className="flex justify-between items-end">
+                          <div className="flex-1 mr-4">
+                            <p className="text-[13px] text-[var(--color-text-primary)]">Build command</p>
+                            <p className="text-[11px] text-[var(--color-text-quaternary)]">
+                              Command to build the project
+                            </p>
+                          </div>
+                          <input
+                            type="text"
+                            value={buildCommand}
+                            onChange={(e) => setBuildCommand(e.target.value)}
+                            className="w-48 h-8 px-2 rounded-md text-[13px] font-mono bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-text-quaternary)]"
+                          />
+                        </div>
+                        <div className="flex justify-between items-end">
+                          <div className="flex-1 mr-4">
+                            <p className="text-[13px] text-[var(--color-text-primary)]">Output directory</p>
+                            <p className="text-[11px] text-[var(--color-text-quaternary)]">
+                              Directory with build artifacts
+                            </p>
+                          </div>
+                          <input
+                            type="text"
+                            value={outputDir}
+                            onChange={(e) => setOutputDir(e.target.value)}
+                            className="w-48 h-8 px-2 rounded-md text-[13px] font-mono bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-text-quaternary)]"
+                          />
+                        </div>
+                        <div className="flex justify-end">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            loading={updateSettings.isPending}
+                            onClick={() => updateSettings.mutate({ buildCommand, outputDir })}
+                          >
+                            Save build config
                           </Button>
                         </div>
                       </div>

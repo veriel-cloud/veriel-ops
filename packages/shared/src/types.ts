@@ -174,6 +174,7 @@ export interface ProjectDetailResponse {
   deploys: DeployEntry[];
   builds: BuildArtifact[];
   workflowRuns: WorkflowRun[];
+  settings: ProjectSettings;
 }
 
 export interface DeploysResponse {

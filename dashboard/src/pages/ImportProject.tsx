@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import type { ProjectType } from "@veriel-ops/shared";
+import { ALL_PROJECT_TYPES, PROJECT_TYPE_UI } from "@veriel-ops/shared";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -12,6 +14,7 @@ import { cn } from "@/lib/utils";
 export function ImportProject() {
   const { data: projectsData, isLoading: lp } = useProjects();
   const [selected, setSelected] = useState<string | null>(null);
+  const [type, setType] = useState<ProjectType>("static");
   const importProject = useImportProject();
   const navigate = useNavigate();
 
@@ -20,7 +23,7 @@ export function ImportProject() {
   async function handleImport() {
     if (!selected) return;
     try {
-      await importProject.mutateAsync({ repoName: selected });
+      await importProject.mutateAsync({ repoName: selected, type });
       navigate(`/projects/${selected}`);
     } catch {
       // error handled by mutation state
@@ -88,6 +91,29 @@ export function ImportProject() {
             <EmptyState title="No repositories found" />
           )}
         </Card>
+
+        {selected && (
+          <Card className="mt-4">
+            <label htmlFor="import-type" className="block text-[13px] text-[var(--color-text-secondary)] mb-1.5">
+              Project type
+            </label>
+            <select
+              id="import-type"
+              value={type}
+              onChange={(e) => setType(e.target.value as ProjectType)}
+              className="w-full h-9 px-3 rounded-md text-[13px] bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-text-quaternary)] transition-colors appearance-none cursor-pointer"
+            >
+              {ALL_PROJECT_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {PROJECT_TYPE_UI[t].label}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-[var(--color-text-quaternary)] mt-1">
+              {PROJECT_TYPE_UI[type].description}
+            </p>
+          </Card>
+        )}
 
         <div className="flex items-center gap-2 mt-4">
           <Button size="sm" onClick={handleImport} loading={importProject.isPending} disabled={!selected}>

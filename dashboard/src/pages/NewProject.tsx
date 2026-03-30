@@ -1,5 +1,7 @@
 import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
+import type { ProjectType } from "@veriel-ops/shared";
+import { ALL_PROJECT_TYPES, PROJECT_TYPE_UI, getTypeDefaults } from "@veriel-ops/shared";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -9,9 +11,19 @@ import { type JobStatus, type StepStatus, WorkflowRun, type WorkflowRunData } fr
 export function NewProject() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState("astro-static");
+  const [type, setType] = useState<ProjectType>("static");
+  const [buildCommand, setBuildCommand] = useState(getTypeDefaults("static").buildCommand);
+  const [outputDir, setOutputDir] = useState(getTypeDefaults("static").outputDir);
+  const [showBuildConfig, setShowBuildConfig] = useState(false);
   const [domainType, setDomainType] = useState<"default" | "custom">("default");
   const [customDomain, setCustomDomain] = useState("");
+
+  function handleTypeChange(newType: ProjectType) {
+    setType(newType);
+    const defaults = getTypeDefaults(newType);
+    setBuildCommand(defaults.buildCommand);
+    setOutputDir(defaults.outputDir);
+  }
   const [creating, setCreating] = useState(false);
   const [workflow, setWorkflow] = useState<WorkflowRunData | null>(null);
   const [result, setResult] = useState<any>(null);
@@ -117,6 +129,8 @@ export function NewProject() {
             type,
             description: description || undefined,
             customDomain: domainType === "custom" ? customDomain : undefined,
+            buildCommand,
+            outputDir,
           }),
         });
 
@@ -207,19 +221,60 @@ export function NewProject() {
                   />
                   <div>
                     <label htmlFor="type" className="block text-[13px] text-[var(--color-text-secondary)] mb-1.5">
-                      Framework
+                      Project type
                     </label>
                     <select
                       id="type"
                       value={type}
-                      onChange={(e) => setType(e.target.value)}
+                      onChange={(e) => handleTypeChange(e.target.value as ProjectType)}
                       className="w-full h-9 px-3 rounded-md text-[13px] bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-text-quaternary)] transition-colors appearance-none cursor-pointer"
                     >
-                      <option value="astro-static">Astro</option>
-                      <option value="react-spa">React</option>
+                      {ALL_PROJECT_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {PROJECT_TYPE_UI[t].label}
+                        </option>
+                      ))}
                     </select>
+                    <p className="text-[11px] text-[var(--color-text-quaternary)] mt-1">
+                      {PROJECT_TYPE_UI[type].description} — {PROJECT_TYPE_UI[type].frameworks}
+                    </p>
+                    <p className="text-[11px] text-[var(--color-text-quaternary)] mt-0.5">
+                      Deploy target: <span className="text-[var(--color-text-tertiary)]">{PROJECT_TYPE_UI[type].deployTargetLabel}</span>
+                    </p>
                   </div>
                 </div>
+              </Card>
+
+              {/* Build config */}
+              <Card>
+                <button
+                  type="button"
+                  onClick={() => setShowBuildConfig(!showBuildConfig)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <p className="text-[13px] text-[var(--color-text-secondary)]">Build configuration</p>
+                  <span className="text-[11px] text-[var(--color-text-quaternary)]">
+                    {showBuildConfig ? "Hide" : "Customize"}
+                  </span>
+                </button>
+                {showBuildConfig && (
+                  <div className="space-y-3 mt-3 pt-3 border-t border-[var(--color-border)]">
+                    <Input
+                      id="buildCommand"
+                      label="Build command"
+                      value={buildCommand}
+                      onChange={(e) => setBuildCommand(e.target.value)}
+                      placeholder="pnpm build"
+                    />
+                    <Input
+                      id="outputDir"
+                      label="Output directory"
+                      value={outputDir}
+                      onChange={(e) => setOutputDir(e.target.value)}
+                      placeholder="dist"
+                    />
+                  </div>
+                )}
               </Card>
 
               {/* Domain */}

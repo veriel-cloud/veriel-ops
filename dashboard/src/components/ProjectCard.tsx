@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { getTypeLabel } from "@veriel-ops/shared";
 import { timeAgo } from "@/lib/utils";
 import { EnvironmentBadge } from "./EnvironmentBadge";
 
@@ -13,13 +14,6 @@ interface ProjectCardProps {
     environments: Record<string, { status: string; version: string | null; lastDeployAt: string | null }>;
   };
 }
-
-const typeLabels: Record<string, string> = {
-  "astro-static": "Astro",
-  "astro-ssr": "Astro SSR",
-  "react-spa": "React",
-  "backend-worker": "Worker",
-};
 
 export function ProjectCard({ project }: ProjectCardProps) {
   const mostRecent = Object.values(project.environments)
@@ -46,7 +40,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           </div>
         </div>
         <span className="text-[11px] text-[var(--color-text-quaternary)] bg-[var(--color-bg-tertiary)] px-1.5 py-0.5 rounded">
-          {typeLabels[project.type] ?? project.type}
+          {getTypeLabel(project.type)}
         </span>
       </div>
 

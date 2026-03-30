@@ -45,3 +45,13 @@ export {
   domainForEnv,
   urlForEnv,
 } from "./constants.js";
+
+export type { ProjectTypeUIConfig } from "./project-types.js";
+
+export {
+  PROJECT_TYPE_UI,
+  ALL_PROJECT_TYPES,
+  getTypeLabel,
+  getDeployTargetLabel,
+  getTypeDefaults,
+} from "./project-types.js";
