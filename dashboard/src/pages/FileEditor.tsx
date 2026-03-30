@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import { CodeEditor } from "@/components/CodeEditor";
 import { CommitForm } from "@/components/CommitForm";
 import { FileTree } from "@/components/FileTree";
 import { Header } from "@/components/Header";
@@ -143,12 +144,13 @@ export function FileEditor() {
                     </span>
                   )}
                 </div>
-                <textarea
-                  value={fileContent}
-                  onChange={(e) => handleContentChange(e.target.value)}
-                  className="w-full h-96 p-3 rounded-md text-[12px] font-mono leading-relaxed bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-text-quaternary)] resize-y"
-                  spellCheck={false}
-                />
+                <div className="rounded-md overflow-hidden border border-[var(--color-border)]">
+                  <CodeEditor
+                    value={fileContent}
+                    onChange={handleContentChange}
+                    filePath={selectedPath}
+                  />
+                </div>
               </div>
             )}
           </Card>
