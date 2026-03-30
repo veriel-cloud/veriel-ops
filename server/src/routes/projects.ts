@@ -99,8 +99,22 @@ projectsRoutes.post("/create-stream", async (c) => {
 
   const projectType = type && type in PROJECT_TYPE_CONFIG ? type : "astro-static";
   const typeConfig = PROJECT_TYPE_CONFIG[projectType as keyof typeof PROJECT_TYPE_CONFIG];
+  const store = c.get("store");
 
-  log.info({ project: name, type: projectType, customDomain }, "creating project via SSE stream");
+  // Save settings so delete/rollback know the deploy target
+  store.setProjectSettings(name, {
+    projectType,
+    deployTarget: typeConfig.deployTarget,
+    buildCommand: typeConfig.defaultBuildCommand,
+    outputDir: typeConfig.defaultOutputDir,
+    runtime: typeConfig.defaultRuntime,
+    coverageThreshold: 80,
+  });
+
+  log.info(
+    { project: name, type: projectType, deployTarget: typeConfig.deployTarget, customDomain },
+    "creating project via SSE stream",
+  );
   const desDomain = domainForEnv(name, "des", customDomain);
 
   const { jobs } = buildSetupPipeline(
