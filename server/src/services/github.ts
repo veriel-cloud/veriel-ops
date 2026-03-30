@@ -117,6 +117,11 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     await octokit.rest.repos.update({ owner: org, repo: name, archived: true });
   }
 
+  async function deleteRepo(name: string) {
+    logger?.info({ repo: name }, "deleting repository");
+    await octokit.rest.repos.delete({ owner: org, repo: name });
+  }
+
   async function getTree(repo: string, branch = "main") {
     const { data: ref } = await octokit.rest.git.getRef({ owner: org, repo, ref: `heads/${branch}` });
     const { data: tree } = await octokit.rest.git.getTree({
@@ -207,6 +212,7 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     getFileContent,
     createMultiFileCommit,
     archiveRepo,
+    deleteRepo,
     createWebhook,
   };
 }

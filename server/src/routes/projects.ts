@@ -165,8 +165,8 @@ projectsRoutes.post("/create-stream", async (c) => {
         if (typeConfig.deployTarget === "cf-workers") {
           await cf.deleteWorker(`${name}-des`).catch(() => {});
         }
-        // Archive repo
-        await gh.archiveRepo(name).catch(() => {});
+        // Delete repo (failed creation, no reason to keep it)
+        await gh.deleteRepo(name).catch(() => {});
         // Clean settings
         c.get("store").deleteProjectSettings(name);
         log.info({ project: name }, "cleanup complete");
