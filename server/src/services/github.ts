@@ -100,8 +100,8 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     });
   }
 
-  async function addWorkflowCallers(repo: string, projectName: string) {
-    for (const caller of buildWorkflowCallerFiles(org, projectName)) {
+  async function addWorkflowCallers(repo: string, projectName: string, deployTarget?: string) {
+    for (const caller of buildWorkflowCallerFiles(org, projectName, deployTarget ?? "cf-pages")) {
       await addFileToRepo(repo, caller.path, caller.content, `ci: add ${caller.path}`);
     }
   }
@@ -213,111 +213,123 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
 
 // ─── Workflow caller YAML templates ───────────────────────────────────
 
-function buildWorkflowCallerFiles(org: string, projectName: string) {
+function buildWorkflowCallerFiles(org: string, projectName: string, deployTarget: string) {
   const uses = (workflow: string) => `${org}/.github/.github/workflows/${workflow}@main`;
 
-  return [
-    {
-      path: ".github/workflows/ci.yml",
-      content: `${[
-        "name: CI",
-        "on:",
-        "  pull_request:",
-        '    branches: [develop, main, "release/**"]',
-        "jobs:",
-        "  ci:",
-        `    uses: ${uses("ci.yml")}`,
-        "    with:",
-        `      coverage_threshold: ${DEFAULT_COVERAGE_THRESHOLD}`,
-      ].join("\n")}\n`,
-    },
-    {
-      path: ".github/workflows/deploy-des.yml",
-      content: `${[
-        "name: Deploy DES",
-        "on:",
-        "  workflow_dispatch:",
-        "  push:",
-        "    branches: [develop]",
-        "jobs:",
-        "  deploy:",
-        `    uses: ${uses("deploy-des.yml")}`,
-        "    with:",
-        `      project_name: "${projectName}"`,
-        "    secrets: inherit",
-      ].join("\n")}\n`,
-    },
-    {
-      path: ".github/workflows/deploy-pre.yml",
-      content: `${[
-        "name: Deploy PRE",
-        "on:",
-        "  workflow_dispatch:",
-        "  push:",
-        '    branches: ["release/**"]',
-        "permissions:",
-        "  contents: write",
-        "  pull-requests: write",
-        "jobs:",
-        "  deploy:",
-        `    uses: ${uses("deploy-pre.yml")}`,
-        "    with:",
-        `      project_name: "${projectName}"`,
-        `      coverage_threshold: ${DEFAULT_COVERAGE_THRESHOLD}`,
-        "    secrets: inherit",
-      ].join("\n")}\n`,
-    },
-    {
-      path: ".github/workflows/deploy-pro.yml",
-      content: `${[
-        "name: Deploy PRO",
-        "on:",
-        "  workflow_dispatch:",
-        "  push:",
-        "    branches: [main]",
-        "    paths-ignore:",
-        '      - ".github/**"',
-        '      - "*.md"',
-        '      - "package.json"',
-        "permissions:",
-        "  contents: write",
-        "  pull-requests: write",
-        "jobs:",
-        "  deploy:",
-        `    uses: ${uses("deploy-pro.yml")}`,
-        "    with:",
-        `      project_name: "${projectName}"`,
-        `      coverage_threshold: ${DEFAULT_COVERAGE_THRESHOLD}`,
-        "    secrets: inherit",
-      ].join("\n")}\n`,
-    },
-    {
-      path: ".github/workflows/rollback.yml",
-      content: `${[
-        "name: Rollback",
-        "on:",
-        "  workflow_dispatch:",
-        "    inputs:",
-        "      environment:",
-        '        description: "Target environment"',
-        "        required: true",
-        "        type: choice",
-        "        options: [des, pre, pro]",
-        "      build_artifact:",
-        '        description: "Build artifact name (e.g., v1.2.0_abc1234)"',
-        "        required: true",
-        "        type: string",
-        "jobs:",
-        "  rollback:",
-        `    uses: ${uses("rollback.yml")}`,
-        "    with:",
-        `      project_name: "${projectName}"`,
-        "      environment: ${{ inputs.environment }}",
-        "      build_artifact: ${{ inputs.build_artifact }}",
-        "    secrets: inherit",
-      ].join("\n")}\n`,
-    },
-  ];
+  // Workflow prefix per deploy target: deploy-des, deploy-worker-des, deploy-container-des
+  const prefix: Record<string, string> = {
+    "cf-pages": "deploy",
+    "cf-workers": "deploy-worker",
+    container: "deploy-container",
+  };
+  const dp = prefix[deployTarget] ?? "deploy";
+
+  const ciCaller = {
+    path: ".github/workflows/ci.yml",
+    content: `${[
+      "name: CI",
+      "on:",
+      "  pull_request:",
+      '    branches: [develop, main, "release/**"]',
+      "jobs:",
+      "  ci:",
+      `    uses: ${uses("ci.yml")}`,
+      "    with:",
+      `      coverage_threshold: ${DEFAULT_COVERAGE_THRESHOLD}`,
+    ].join("\n")}\n`,
+  };
+
+  const desCaller = {
+    path: ".github/workflows/deploy-des.yml",
+    content: `${[
+      "name: Deploy DES",
+      "on:",
+      "  workflow_dispatch:",
+      "  push:",
+      "    branches: [develop]",
+      "jobs:",
+      "  deploy:",
+      `    uses: ${uses(`${dp}-des.yml`)}`,
+      "    with:",
+      `      project_name: "${projectName}"`,
+      "    secrets: inherit",
+    ].join("\n")}\n`,
+  };
+
+  const preCaller = {
+    path: ".github/workflows/deploy-pre.yml",
+    content: `${[
+      "name: Deploy PRE",
+      "on:",
+      "  workflow_dispatch:",
+      "  push:",
+      '    branches: ["release/**"]',
+      "permissions:",
+      "  contents: write",
+      "  pull-requests: write",
+      "jobs:",
+      "  deploy:",
+      `    uses: ${uses(`${dp}-pre.yml`)}`,
+      "    with:",
+      `      project_name: "${projectName}"`,
+      `      coverage_threshold: ${DEFAULT_COVERAGE_THRESHOLD}`,
+      "    secrets: inherit",
+    ].join("\n")}\n`,
+  };
+
+  const proCaller = {
+    path: ".github/workflows/deploy-pro.yml",
+    content: `${[
+      "name: Deploy PRO",
+      "on:",
+      "  workflow_dispatch:",
+      "  push:",
+      "    branches: [main]",
+      "    paths-ignore:",
+      '      - ".github/**"',
+      '      - "*.md"',
+      '      - "package.json"',
+      "permissions:",
+      "  contents: write",
+      "  pull-requests: write",
+      "jobs:",
+      "  deploy:",
+      `    uses: ${uses(`${dp}-pro.yml`)}`,
+      "    with:",
+      `      project_name: "${projectName}"`,
+      `      coverage_threshold: ${DEFAULT_COVERAGE_THRESHOLD}`,
+      "    secrets: inherit",
+    ].join("\n")}\n`,
+  };
+
+  const rollbackCaller = {
+    path: ".github/workflows/rollback.yml",
+    content: `${[
+      "name: Rollback",
+      "on:",
+      "  workflow_dispatch:",
+      "    inputs:",
+      "      environment:",
+      '        description: "Target environment"',
+      "        required: true",
+      "        type: choice",
+      "        options: [des, pre, pro]",
+      "      build_artifact:",
+      '        description: "Build artifact name (e.g., v1.2.0_abc1234)"',
+      "        required: true",
+      "        type: string",
+      "jobs:",
+      "  rollback:",
+      `    uses: ${uses("rollback.yml")}`,
+      "    with:",
+      `      project_name: "${projectName}"`,
+      "      environment: ${{ inputs.environment }}",
+      "      build_artifact: ${{ inputs.build_artifact }}",
+      "    secrets: inherit",
+    ].join("\n")}\n`,
+  };
+
+  return [ciCaller, desCaller, preCaller, proCaller, rollbackCaller];
 }
 
 export type GitHubService = ReturnType<typeof createGitHubService>;
