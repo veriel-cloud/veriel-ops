@@ -9,6 +9,7 @@ interface PipelineContext {
   description?: string;
   customDomain?: string;
   org: string;
+  workersSubdomain?: string;
   webhookUrl?: string;
   webhookSecret?: string;
 }
@@ -91,7 +92,14 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
 
   // ─── Job: Infrastructure (varies by deploy target) ──────────────
 
-  const infraJob = buildInfraJob(deployTarget, { name, desDomain, customDomain, org, cf });
+  const infraJob = buildInfraJob(deployTarget, {
+    name,
+    desDomain,
+    customDomain,
+    org,
+    workersSubdomain: ctx.workersSubdomain,
+    cf,
+  });
 
   const jobs: PipelineJob[] = [repoJob, infraJob];
 
@@ -129,7 +137,14 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
 
   function buildInfraJob(
     target: DeployTarget,
-    opts: { name: string; desDomain: string; customDomain?: string; org: string; cf: CloudflareService },
+    opts: {
+      name: string;
+      desDomain: string;
+      customDomain?: string;
+      org: string;
+      workersSubdomain?: string;
+      cf: CloudflareService;
+    },
   ): PipelineJob {
     switch (target) {
       case "cf-pages":
@@ -194,6 +209,7 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
     name: string;
     desDomain: string;
     customDomain?: string;
+    workersSubdomain?: string;
     cf: CloudflareService;
   }): PipelineJob {
     return {
@@ -204,15 +220,17 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
           id: "dns-setup",
           label: "Setup DNS for Workers",
           fn: async () => {
-            const workerDomain = `${opts.name}-des.workers.dev`;
+            const sub = opts.workersSubdomain ?? "workers";
+            const workerTarget = `${opts.name}-des.${sub}.workers.dev`;
             const domain = opts.desDomain;
-            await opts.cf.createDnsRecord(domain, workerDomain);
+            await opts.cf.createDnsRecord(domain, workerTarget);
             return {
-              detail: `${domain} → ${workerDomain}`,
+              detail: `${domain} → ${workerTarget}`,
               logs: [
                 "Skipping Pages project (Workers target).",
                 "Creating CNAME record for Workers subdomain...",
-                `  → ${domain} → ${workerDomain}`,
+                `  → ${domain} → ${workerTarget}`,
+                `Worker URL: https://${workerTarget}`,
                 "DNS configured for Workers.",
               ],
             };

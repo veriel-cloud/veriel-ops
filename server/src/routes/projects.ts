@@ -101,7 +101,16 @@ projectsRoutes.post("/create-stream", async (c) => {
   const desDomain = domainForEnv(name, "des", customDomain);
 
   const { jobs } = buildSetupPipeline(
-    { name, type, description, customDomain, org, webhookUrl: e.WEBHOOK_URL, webhookSecret: e.GITHUB_WEBHOOK_SECRET },
+    {
+      name,
+      type,
+      description,
+      customDomain,
+      org,
+      workersSubdomain: e.WORKERS_SUBDOMAIN,
+      webhookUrl: e.WEBHOOK_URL,
+      webhookSecret: e.GITHUB_WEBHOOK_SECRET,
+    },
     gh,
     cf,
   );

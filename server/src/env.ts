@@ -15,6 +15,7 @@ export interface Bindings {
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
   R2_BUCKET_NAME: string;
+  WORKERS_SUBDOMAIN: string;
   WEBHOOK_URL: string;
   PORT: string;
   [key: string]: string;
