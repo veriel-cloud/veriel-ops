@@ -1,17 +1,10 @@
-import {
-  DEFAULT_COVERAGE_THRESHOLD,
-  DEFAULT_PROJECT_TYPE,
-  PROJECT_TYPE_CONFIG,
-  pagesProjectName,
-  urlForEnv,
-} from "../constants.js";
+import { DEFAULT_COVERAGE_THRESHOLD, DEFAULT_PROJECT_TYPE, PROJECT_TYPE_CONFIG, urlForEnv } from "../constants.js";
 import type {
   BuildArtifact,
   DeployEntry,
   DeployStatus,
   Environment,
   HealthStatus,
-  PagesDeployment,
   Project,
   SystemStats,
 } from "../types.js";
@@ -74,38 +67,25 @@ export async function getProjects(s: Services): Promise<Project[]> {
 }
 
 export async function getProjectDetail(name: string, s: Services) {
-  const [repo, pages, deploysPerEnv, workflowRuns, builds] = await Promise.all([
+  const [repo, pages, workflowRuns, builds] = await Promise.all([
     s.github.getRepo(name),
     s.cloudflare.getPagesProject(name).catch(() => null),
-    Promise.all(
-      (["des", "pre", "pro"] as const).map((env) =>
-        s.cloudflare
-          .getDeployments(pagesProjectName(name, env), 15)
-          .then((d) => [env, d] as const)
-          .catch(() => [env, []] as const),
-      ),
-    ),
     s.github.getWorkflowRuns(name),
     s.r2.listBuilds(name).catch(() => []),
   ]);
 
   const domain = pages?.domains?.[0] ?? `${name}.veriel.dev`;
 
-  const byEnv: Record<Environment, PagesDeployment[]> = { des: [], pre: [], pro: [] };
-  const allDeployments: PagesDeployment[] = [];
-  for (const [env, deploys] of deploysPerEnv) {
-    byEnv[env] = deploys;
-    allDeployments.push(...deploys);
-  }
+  const deploys = workflowRunsToDeploys(workflowRuns, name);
 
   const latestOf = (env: Environment) => {
-    const d = byEnv[env][0];
+    const d = deploys.find((d) => d.environment === env);
     if (!d) return envState("idle", urlForEnv(name, env));
     return envState(
-      d.latest_stage?.status === "success" ? "healthy" : "degraded",
+      d.status === "success" ? "healthy" : d.status === "in_progress" ? "degraded" : "idle",
       urlForEnv(name, env),
-      commitShort(d.deployment_trigger?.metadata?.commit_hash),
-      d.created_on,
+      d.commitSha || null,
+      d.timestamp,
     );
   };
 
@@ -126,8 +106,6 @@ export async function getProjectDetail(name: string, s: Services) {
     environments: { des: latestOf("des"), pre: latestOf("pre"), pro: latestOf("pro") },
     createdAt: repo.created_at ?? "",
   };
-
-  const deploys = deduplicateByCommit(allDeployments).map(toDeployEntry(name));
 
   const buildArtifacts: BuildArtifact[] = builds.map((b) => ({
     name: b.name,
@@ -154,25 +132,21 @@ export async function getProjectDetail(name: string, s: Services) {
 }
 
 export async function getDeploys(s: Services): Promise<DeployEntry[]> {
-  const [repos, pagesProjects] = await Promise.all([
-    s.github.listOrgRepos(),
-    s.cloudflare.listPagesProjects().catch(() => []),
-  ]);
+  const repos = await s.github.listOrgRepos();
+  const repoNames = repos.filter((r) => r.name !== ".github" && !r.archived).map((r) => r.name);
 
-  const repoNames = new Set(repos.filter((r) => r.name !== ".github" && !r.archived).map((r) => r.name));
-  const pagesNames = new Set(pagesProjects.map((p) => p.name));
+  const runsPerRepo = await Promise.all(
+    repoNames.map((name) =>
+      s.github
+        .getWorkflowRuns(name, 20)
+        .then((runs) => ({ name, runs }))
+        .catch(() => ({ name, runs: [] })),
+    ),
+  );
+
   const all: DeployEntry[] = [];
-
-  for (const repoName of repoNames) {
-    const envFetches = (["des", "pre", "pro"] as const)
-      .map((env) => ({ env, pagesName: pagesProjectName(repoName, env) }))
-      .filter(({ pagesName }) => pagesNames.has(pagesName))
-      .map(({ pagesName }) => s.cloudflare.getDeployments(pagesName, 10).catch(() => []));
-
-    const results = await Promise.all(envFetches);
-    for (const deployments of results) {
-      all.push(...deduplicateByCommit(deployments).map(toDeployEntry(repoName)));
-    }
+  for (const { name, runs } of runsPerRepo) {
+    all.push(...workflowRunsToDeploys(runs, name));
   }
 
   return all.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -196,62 +170,57 @@ export async function getSystemStats(s: Services): Promise<SystemStats> {
 
 // ─── Mappers ──────────────────────────────────────────────────────────
 
-function toDeployEntry(projectName: string) {
-  return (d: PagesDeployment): DeployEntry => ({
-    id: d.id,
-    project: projectName,
-    environment: resolveEnv(d),
-    version: commitShort(d.deployment_trigger?.metadata?.commit_hash) ?? d.short_id,
-    commitSha: commitShort(d.deployment_trigger?.metadata?.commit_hash) ?? "",
-    branch: d.deployment_trigger?.metadata?.branch ?? "",
-    timestamp: d.created_on,
-    coverage: 0,
-    duration: durationSecs(d),
-    action: "deploy",
-    triggeredBy: d.deployment_trigger?.type ?? "unknown",
-    status: deployStatus(d),
-  });
+// biome-ignore lint/suspicious/noExplicitAny: GitHub Octokit workflow run type
+type GHWorkflowRun = any;
+
+const DEPLOY_WORKFLOW_PREFIX = "Deploy";
+
+function envFromWorkflowName(name: string): Environment | null {
+  const upper = name.toUpperCase();
+  if (upper.includes("DES")) return "des";
+  if (upper.includes("PRE")) return "pre";
+  if (upper.includes("PRO")) return "pro";
+  return null;
+}
+
+function runStatus(run: GHWorkflowRun): DeployStatus {
+  if (run.status === "completed") {
+    return run.conclusion === "success" ? "success" : "failed";
+  }
+  return "in_progress";
+}
+
+function runDurationSecs(run: GHWorkflowRun): number {
+  if (run.status !== "completed" || !run.updated_at || !run.created_at) return 0;
+  const diff = (new Date(run.updated_at).getTime() - new Date(run.created_at).getTime()) / 1000;
+  return Math.max(0, Math.round(diff));
+}
+
+export function workflowRunsToDeploys(runs: GHWorkflowRun[], projectName: string): DeployEntry[] {
+  return runs
+    .filter((r: GHWorkflowRun) => r.name?.startsWith(DEPLOY_WORKFLOW_PREFIX))
+    .map((r: GHWorkflowRun) => {
+      const env = envFromWorkflowName(r.name) ?? "des";
+      return {
+        id: String(r.id),
+        project: projectName,
+        environment: env,
+        version: r.head_sha?.slice(0, 7) ?? "",
+        commitSha: r.head_sha?.slice(0, 7) ?? "",
+        branch: r.head_branch ?? "",
+        timestamp: r.created_at,
+        coverage: 0,
+        duration: runDurationSecs(r),
+        action: "deploy",
+        triggeredBy: r.event ?? "unknown",
+        status: runStatus(r),
+        htmlUrl: r.html_url ?? "",
+      };
+    });
 }
 
 function envState(status: HealthStatus, url: string, commitSha?: string | null, lastDeployAt?: string | null) {
   return { version: commitSha ?? null, commitSha: commitSha ?? null, url, status, lastDeployAt: lastDeployAt ?? null };
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────
-
-export function resolveEnv(d: PagesDeployment): Environment {
-  const branch = d.deployment_trigger?.metadata?.branch ?? "";
-  if (branch === "develop") return "des";
-  if (branch.startsWith("release")) return "pre";
-  if (branch === "main") return "pro";
-  return d.environment === "production" ? "pro" : "des";
-}
-
-export function deployStatus(d: PagesDeployment): DeployStatus {
-  const s = d.latest_stage?.status;
-  if (s === "success") return "success";
-  if (s === "active") return "in_progress";
-  return "failed";
-}
-
-export function deduplicateByCommit(deployments: PagesDeployment[]): PagesDeployment[] {
-  const seen = new Map<string, PagesDeployment>();
-
-  for (const d of deployments) {
-    const key = `${d.deployment_trigger?.metadata?.commit_hash ?? d.short_id}-${resolveEnv(d)}`;
-    const existing = seen.get(key);
-    if (!existing || durationSecs(d) > durationSecs(existing)) {
-      seen.set(key, d);
-    }
-  }
-
-  return Array.from(seen.values());
-}
-
-export function durationSecs(d: PagesDeployment): number {
-  if (!d.latest_stage?.ended_on || !d.latest_stage?.started_on) return 0;
-  const diff = (new Date(d.latest_stage.ended_on).getTime() - new Date(d.latest_stage.started_on).getTime()) / 1000;
-  return Math.max(0, Math.round(diff));
 }
 
 export function commitShort(hash?: string | null): string | null {

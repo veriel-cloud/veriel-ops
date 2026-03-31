@@ -4,21 +4,30 @@ import { Header } from "@/components/Header";
 import { StatsCard } from "@/components/StatsCard";
 import { Card } from "@/components/ui/Card";
 import { SkeletonStats, SkeletonTable } from "@/components/ui/Skeleton";
-import { useDeploys } from "@/hooks/queries";
+import { useDeploysStream } from "@/hooks/useDeploysStream";
 
 export function Deploys() {
-  const { data, isLoading: loading, error } = useDeploys();
+  const { deploys: allDeploys, isLoading: loading, error } = useDeploysStream();
   const [filter, setFilter] = useState<string>("all");
-
-  const allDeploys = data?.deploys ?? [];
   const deploys =
-    filter === "all" ? allDeploys : allDeploys.filter((d: any) => d.environment === filter || d.status === filter);
+    filter === "all"
+      ? allDeploys
+      : allDeploys.filter(
+          (d: any) => d.environment === filter || d.status === filter,
+        );
 
-  const totalSuccess = allDeploys.filter((d: any) => d.status === "success").length;
-  const totalFailed = allDeploys.filter((d: any) => d.status === "failed").length;
+  const totalSuccess = allDeploys.filter(
+    (d: any) => d.status === "success",
+  ).length;
+  const totalFailed = allDeploys.filter(
+    (d: any) => d.status === "failed",
+  ).length;
   const avgDuration =
     allDeploys.length > 0
-      ? Math.round(allDeploys.reduce((sum: number, d: any) => sum + d.duration, 0) / allDeploys.length)
+      ? Math.round(
+          allDeploys.reduce((sum: number, d: any) => sum + d.duration, 0) /
+            allDeploys.length,
+        )
       : 0;
 
   const filters = [
@@ -31,11 +40,14 @@ export function Deploys() {
 
   return (
     <>
-      <Header title="Deployments" description="Deployment history across all projects" />
+      <Header
+        title="Deployments"
+        description="Deployment history across all projects"
+      />
 
       {error && (
-        <Card className="mb-6 border-[var(--color-error)]/10 bg-[var(--color-error-light)]">
-          <p className="text-[13px] text-[var(--color-error-text)]">{error.message}</p>
+        <Card className="mb-6 border-error/10 bg-error-light">
+          <p className="text-[13px] text-error-text">{error.message}</p>
         </Card>
       )}
 
@@ -60,8 +72,8 @@ export function Deploys() {
             onClick={() => setFilter(f.id)}
             className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
               filter === f.id
-                ? "bg-[var(--color-text-primary)] text-[var(--color-bg)]"
-                : "text-[var(--color-text-quaternary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]"
+                ? "bg-text-primary text-bg"
+                : "text-text-quaternary hover:text-text-secondary hover:bg-bg-hover"
             }`}
           >
             {f.label}
@@ -69,7 +81,13 @@ export function Deploys() {
         ))}
       </div>
 
-      <Card padding={false}>{loading ? <SkeletonTable rows={8} /> : <DeployTable deploys={deploys} />}</Card>
+      <Card padding={false}>
+        {loading ? (
+          <SkeletonTable rows={8} />
+        ) : (
+          <DeployTable deploys={deploys} />
+        )}
+      </Card>
     </>
   );
 }

@@ -43,10 +43,25 @@ webhooksRoutes.post("/github", async (c) => {
   store.addEvent({ source: "github", type: event, project, data: payload });
   c.get("cachedData").invalidateProject(project);
 
-  if (event === "workflow_run" && payload.action === "completed") {
-    const conclusion = payload.workflow_run?.conclusion;
-    if (conclusion === "failure") {
-      store.addNotification("workflow_failed", project, `Workflow "${payload.workflow_run?.name}" failed`);
+  if (event === "workflow_run") {
+    const tracker = c.get("deployTracker");
+    const workflowName = payload.workflow_run?.name ?? "";
+
+    if (workflowName.startsWith("Deploy")) {
+      if (payload.action === "requested" || payload.action === "in_progress") {
+        tracker.markActive(project);
+        c.get("logger").info({ project, action: payload.action }, "deploy tracker: marked active");
+      } else if (payload.action === "completed") {
+        tracker.markDone(project);
+        c.get("logger").info({ project, action: payload.action }, "deploy tracker: marked done");
+      }
+    }
+
+    if (payload.action === "completed") {
+      const conclusion = payload.workflow_run?.conclusion;
+      if (conclusion === "failure") {
+        store.addNotification("workflow_failed", project, `Workflow "${payload.workflow_run?.name}" failed`);
+      }
     }
   }
 

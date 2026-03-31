@@ -17,11 +17,13 @@ import { webhooksRoutes } from "./routes/webhooks.js";
 import { createCachedData } from "./services/cached-data.js";
 import { createCloudflareService } from "./services/cloudflare.js";
 import { createDbStore } from "./services/db-store.js";
+import { createDeployTracker } from "./services/deploy-tracker.js";
 import { createGitHubService } from "./services/github.js";
 import { createR2Service } from "./services/r2.js";
 
 const db = createDatabase(`${import.meta.dir}/../data/veriel-ops.db`);
 const store = createDbStore(db);
+const deployTracker = createDeployTracker();
 
 const apiCache = createCache<unknown>({ ttlMs: 2 * 60_000, maxEntries: 100 });
 const cachedData = createCachedData(apiCache);
@@ -44,6 +46,7 @@ app.use("/*", async (c, next) => {
 
   c.set("store", store);
   c.set("cachedData", cachedData);
+  c.set("deployTracker", deployTracker);
 
   c.set(
     "github",

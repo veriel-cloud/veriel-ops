@@ -2,6 +2,7 @@ import type { Logger } from "./lib/logger.js";
 import type { CachedData } from "./services/cached-data.js";
 import type { CloudflareService } from "./services/cloudflare.js";
 import type { DbStore } from "./services/db-store.js";
+import type { DeployTracker } from "./services/deploy-tracker.js";
 import type { GitHubService } from "./services/github.js";
 import type { R2Service } from "./services/r2.js";
 
@@ -28,6 +29,7 @@ export interface Variables {
   github: GitHubService;
   cloudflare: CloudflareService;
   r2: R2Service;
+  deployTracker: DeployTracker;
 }
 
 export type Env = { Bindings: Bindings; Variables: Variables };

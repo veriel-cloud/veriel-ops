@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { cn, formatDuration, timeAgo } from "@/lib/utils";
 import { EnvironmentBadge } from "./EnvironmentBadge";
@@ -13,6 +14,7 @@ interface Deploy {
   duration: number;
   action: string;
   status: "success" | "failed" | "in_progress";
+  htmlUrl?: string;
 }
 
 interface DeployTableProps {
@@ -22,6 +24,13 @@ interface DeployTableProps {
 }
 
 export function DeployTable({ deploys, showProject = true, limit }: DeployTableProps) {
+  // Force re-render every 30s to update relative timestamps
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const items = limit ? deploys.slice(0, limit) : deploys;
 
   if (items.length === 0) {
@@ -72,7 +81,13 @@ export function DeployTable({ deploys, showProject = true, limit }: DeployTableP
                 <EnvironmentBadge environment={deploy.environment} status="healthy" />
               </td>
               <td className="py-2.5 px-3">
-                <code className="text-[12px] text-[var(--color-text-tertiary)] font-mono">{deploy.commitSha}</code>
+                {deploy.htmlUrl ? (
+                  <a href={deploy.htmlUrl} target="_blank" rel="noopener" className="hover:underline">
+                    <code className="text-[12px] text-[var(--color-text-tertiary)] font-mono">{deploy.commitSha}</code>
+                  </a>
+                ) : (
+                  <code className="text-[12px] text-[var(--color-text-tertiary)] font-mono">{deploy.commitSha}</code>
+                )}
               </td>
               <td className="py-2.5 px-3">
                 <span className="text-[var(--color-text-quaternary)] tabular-nums">
@@ -120,7 +135,13 @@ export function DeployTable({ deploys, showProject = true, limit }: DeployTableP
                       <path d="M6 6l12 12" />
                     </svg>
                   )}
-                  {deploy.status === "success" ? "Ready" : deploy.status === "failed" ? "Error" : "Building"}
+                  {deploy.status === "in_progress" && (
+                    <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  )}
+                  {deploy.status === "success" ? "Ready" : deploy.status === "failed" ? "Error" : "Deploying"}
                 </span>
               </td>
             </tr>

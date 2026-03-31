@@ -1,44 +1,22 @@
 import { describe, expect, it } from "vitest";
-import type { PagesDeployment } from "../../types.js";
-import {
-  commitShort,
-  deduplicateByCommit,
-  deployStatus,
-  durationSecs,
-  formatBytes,
-  formatDuration,
-  resolveEnv,
-  timeAgo,
-} from "../data.js";
+import { commitShort, formatBytes, formatDuration, timeAgo, workflowRunsToDeploys } from "../data.js";
 
-// ─── Helpers to build mock deployments ───────────────────────────────
+// ─── Helpers to build mock workflow runs ─────────────────────────────
 
-function mockDeployment(overrides: Partial<PagesDeployment> = {}): PagesDeployment {
+function mockWorkflowRun(overrides: Record<string, unknown> = {}) {
   return {
-    id: "deploy-1",
-    short_id: "abc1234",
-    project_name: "test-project",
-    environment: "production",
-    url: "https://test.pages.dev",
-    created_on: "2026-03-29T10:00:00Z",
-    modified_on: "2026-03-29T10:05:00Z",
-    latest_stage: {
-      name: "deploy",
-      status: "success",
-      started_on: "2026-03-29T10:00:00Z",
-      ended_on: "2026-03-29T10:02:30Z",
-    },
-    deployment_trigger: {
-      type: "push",
-      metadata: {
-        branch: "main",
-        commit_hash: "abc1234567890def",
-        commit_message: "fix: something",
-      },
-    },
-    source: { type: "github", config: { owner: "veriel-cloud", repo_name: "test" } },
+    id: 12345,
+    name: "Deploy DES",
+    status: "completed",
+    conclusion: "success",
+    head_branch: "develop",
+    head_sha: "abc1234567890def",
+    created_at: "2026-03-29T10:00:00Z",
+    updated_at: "2026-03-29T10:02:30Z",
+    html_url: "https://github.com/veriel-cloud/test/actions/runs/12345",
+    event: "push",
     ...overrides,
-  } as PagesDeployment;
+  };
 }
 
 // ─── commitShort ─────────────────────────────────────────────────────
@@ -136,160 +114,97 @@ describe("timeAgo", () => {
   });
 });
 
-// ─── resolveEnv ──────────────────────────────────────────────────────
+// ─── workflowRunsToDeploys ──────────────────────────────────────────
 
-describe("resolveEnv", () => {
-  it("maps develop branch to des", () => {
-    expect(
-      resolveEnv(
-        mockDeployment({
-          deployment_trigger: { type: "push", metadata: { branch: "develop", commit_hash: "abc", commit_message: "" } },
-        }),
-      ),
-    ).toBe("des");
-  });
+describe("workflowRunsToDeploys", () => {
+  it("maps a successful DES workflow run to DeployEntry", () => {
+    const runs = [mockWorkflowRun()];
+    const result = workflowRunsToDeploys(runs, "my-project");
 
-  it("maps release branch to pre", () => {
-    expect(
-      resolveEnv(
-        mockDeployment({
-          deployment_trigger: {
-            type: "push",
-            metadata: { branch: "release/1.0", commit_hash: "abc", commit_message: "" },
-          },
-        }),
-      ),
-    ).toBe("pre");
-  });
-
-  it("maps main branch to pro", () => {
-    expect(
-      resolveEnv(
-        mockDeployment({
-          deployment_trigger: { type: "push", metadata: { branch: "main", commit_hash: "abc", commit_message: "" } },
-        }),
-      ),
-    ).toBe("pro");
-  });
-
-  it("falls back to production environment", () => {
-    const d = mockDeployment({
-      environment: "production",
-      deployment_trigger: { type: "push", metadata: { branch: "hotfix", commit_hash: "abc", commit_message: "" } },
-    });
-    expect(resolveEnv(d)).toBe("pro");
-  });
-
-  it("falls back to des for unknown branch and non-production", () => {
-    const d = mockDeployment({
-      environment: "preview",
-      deployment_trigger: { type: "push", metadata: { branch: "feature/x", commit_hash: "abc", commit_message: "" } },
-    });
-    expect(resolveEnv(d)).toBe("des");
-  });
-});
-
-// ─── deployStatus ────────────────────────────────────────────────────
-
-describe("deployStatus", () => {
-  it("returns success for successful deploys", () => {
-    expect(deployStatus(mockDeployment())).toBe("success");
-  });
-
-  it("returns in_progress for active deploys", () => {
-    const d = mockDeployment({ latest_stage: { name: "deploy", status: "active", started_on: "", ended_on: "" } });
-    expect(deployStatus(d)).toBe("in_progress");
-  });
-
-  it("returns failed for other statuses", () => {
-    const d = mockDeployment({ latest_stage: { name: "deploy", status: "failure", started_on: "", ended_on: "" } });
-    expect(deployStatus(d)).toBe("failed");
-  });
-});
-
-// ─── durationSecs ────────────────────────────────────────────────────
-
-describe("durationSecs", () => {
-  it("calculates duration from stage times", () => {
-    const d = mockDeployment({
-      latest_stage: {
-        name: "deploy",
-        status: "success",
-        started_on: "2026-03-29T10:00:00Z",
-        ended_on: "2026-03-29T10:02:30Z",
-      },
-    });
-    expect(durationSecs(d)).toBe(150);
-  });
-
-  it("returns 0 if ended_on is missing", () => {
-    const d = mockDeployment({
-      latest_stage: { name: "deploy", status: "active", started_on: "2026-03-29T10:00:00Z", ended_on: "" },
-    });
-    expect(durationSecs(d)).toBe(0);
-  });
-
-  it("returns 0 for negative durations", () => {
-    const d = mockDeployment({
-      latest_stage: {
-        name: "deploy",
-        status: "success",
-        started_on: "2026-03-29T10:05:00Z",
-        ended_on: "2026-03-29T10:00:00Z",
-      },
-    });
-    expect(durationSecs(d)).toBe(0);
-  });
-});
-
-// ─── deduplicateByCommit ─────────────────────────────────────────────
-
-describe("deduplicateByCommit", () => {
-  it("removes duplicate deployments by commit+env", () => {
-    const d1 = mockDeployment({ id: "1" });
-    const d2 = mockDeployment({ id: "2" });
-    const result = deduplicateByCommit([d1, d2]);
     expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      id: "12345",
+      project: "my-project",
+      environment: "des",
+      version: "abc1234",
+      commitSha: "abc1234",
+      branch: "develop",
+      timestamp: "2026-03-29T10:00:00Z",
+      coverage: 0,
+      duration: 150,
+      action: "deploy",
+      triggeredBy: "push",
+      status: "success",
+      htmlUrl: "https://github.com/veriel-cloud/test/actions/runs/12345",
+    });
   });
 
-  it("keeps deployments with different commits", () => {
-    const d1 = mockDeployment({
-      id: "1",
-      deployment_trigger: { type: "push", metadata: { branch: "main", commit_hash: "aaa", commit_message: "" } },
-    });
-    const d2 = mockDeployment({
-      id: "2",
-      deployment_trigger: { type: "push", metadata: { branch: "main", commit_hash: "bbb", commit_message: "" } },
-    });
-    const result = deduplicateByCommit([d1, d2]);
-    expect(result).toHaveLength(2);
+  it("maps PRE workflow run", () => {
+    const runs = [mockWorkflowRun({ name: "Deploy PRE", head_branch: "release/1.0.0" })];
+    const result = workflowRunsToDeploys(runs, "my-project");
+    expect(result[0].environment).toBe("pre");
   });
 
-  it("keeps the deployment with longer duration on duplicate", () => {
-    const d1 = mockDeployment({
-      id: "short",
-      latest_stage: {
-        name: "deploy",
-        status: "success",
-        started_on: "2026-03-29T10:00:00Z",
-        ended_on: "2026-03-29T10:00:30Z",
-      },
-    });
-    const d2 = mockDeployment({
-      id: "long",
-      latest_stage: {
-        name: "deploy",
-        status: "success",
-        started_on: "2026-03-29T10:00:00Z",
-        ended_on: "2026-03-29T10:05:00Z",
-      },
-    });
-    const result = deduplicateByCommit([d1, d2]);
+  it("maps PRO workflow run", () => {
+    const runs = [mockWorkflowRun({ name: "Deploy PRO", head_branch: "main" })];
+    const result = workflowRunsToDeploys(runs, "my-project");
+    expect(result[0].environment).toBe("pro");
+  });
+
+  it("filters out non-deploy workflows (CI, rollback)", () => {
+    const runs = [
+      mockWorkflowRun({ name: "CI" }),
+      mockWorkflowRun({ name: "Rollback" }),
+      mockWorkflowRun({ name: "Deploy DES" }),
+    ];
+    const result = workflowRunsToDeploys(runs, "my-project");
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("long");
+    expect(result[0].environment).toBe("des");
   });
 
-  it("handles empty array", () => {
-    expect(deduplicateByCommit([])).toEqual([]);
+  it("maps in_progress status", () => {
+    const runs = [mockWorkflowRun({ status: "in_progress", conclusion: null, updated_at: null })];
+    const result = workflowRunsToDeploys(runs, "my-project");
+    expect(result[0].status).toBe("in_progress");
+    expect(result[0].duration).toBe(0);
+  });
+
+  it("maps failed status", () => {
+    const runs = [mockWorkflowRun({ status: "completed", conclusion: "failure" })];
+    const result = workflowRunsToDeploys(runs, "my-project");
+    expect(result[0].status).toBe("failed");
+  });
+
+  it("maps queued status as in_progress", () => {
+    const runs = [mockWorkflowRun({ status: "queued", conclusion: null })];
+    const result = workflowRunsToDeploys(runs, "my-project");
+    expect(result[0].status).toBe("in_progress");
+  });
+
+  it("calculates duration for completed runs", () => {
+    const runs = [
+      mockWorkflowRun({
+        created_at: "2026-03-29T10:00:00Z",
+        updated_at: "2026-03-29T10:05:00Z",
+      }),
+    ];
+    const result = workflowRunsToDeploys(runs, "my-project");
+    expect(result[0].duration).toBe(300);
+  });
+
+  it("returns 0 duration for in-progress runs", () => {
+    const runs = [mockWorkflowRun({ status: "in_progress", conclusion: null })];
+    const result = workflowRunsToDeploys(runs, "my-project");
+    expect(result[0].duration).toBe(0);
+  });
+
+  it("maps workflow_dispatch trigger", () => {
+    const runs = [mockWorkflowRun({ event: "workflow_dispatch" })];
+    const result = workflowRunsToDeploys(runs, "my-project");
+    expect(result[0].triggeredBy).toBe("workflow_dispatch");
+  });
+
+  it("handles empty runs array", () => {
+    expect(workflowRunsToDeploys([], "my-project")).toEqual([]);
   });
 });

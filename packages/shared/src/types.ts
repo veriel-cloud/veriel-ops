@@ -60,6 +60,7 @@ export interface DeployEntry {
   action: string;
   triggeredBy: string;
   status: DeployStatus;
+  htmlUrl: string;
 }
 
 // ─── Build ───────────────────────────────────────────────────────────
