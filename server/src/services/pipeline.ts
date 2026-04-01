@@ -53,25 +53,6 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
         },
       },
       {
-        id: "add-workflows",
-        label: "Add CI/CD workflows",
-        fn: async () => {
-          await gh.addWorkflowCallers(name, name, deployTarget);
-          return {
-            detail: `5 workflow callers (${deployTarget})`,
-            logs: [
-              `Adding workflow callers for target: ${deployTarget}...`,
-              "  → .github/workflows/ci.yml",
-              "  → .github/workflows/deploy-des.yml",
-              "  → .github/workflows/deploy-pre.yml",
-              "  → .github/workflows/deploy-pro.yml",
-              "  → .github/workflows/rollback.yml",
-              "All workflow callers committed.",
-            ],
-          };
-        },
-      },
-      {
         id: "create-branches",
         label: "Create develop branch",
         fn: async () => {
@@ -82,6 +63,40 @@ export function buildSetupPipeline(ctx: PipelineContext, gh: GitHubService, cf: 
               "Fetching main branch SHA...",
               "Creating branch develop from main...",
               "Branch develop created successfully.",
+            ],
+          };
+        },
+      },
+      {
+        id: "add-workflows",
+        label: "Add CI/CD workflows",
+        fn: async () => {
+          await gh.addWorkflowCallers(name, name, deployTarget, "develop");
+          return {
+            detail: `5 workflow callers on develop (${deployTarget})`,
+            logs: [
+              `Adding workflow callers to develop for target: ${deployTarget}...`,
+              "  → .github/workflows/ci.yml",
+              "  → .github/workflows/deploy-des.yml",
+              "  → .github/workflows/deploy-pre.yml",
+              "  → .github/workflows/deploy-pro.yml",
+              "  → .github/workflows/rollback.yml",
+              "All workflow callers committed to develop.",
+            ],
+          };
+        },
+      },
+      {
+        id: "reset-main",
+        label: "Reset main branch",
+        fn: async () => {
+          await gh.resetBranchToReadme(name, name, "main");
+          return {
+            detail: "main → README only",
+            logs: [
+              "Resetting main to initial state...",
+              "Main now contains only README.md.",
+              "All project content lives in develop.",
             ],
           };
         },

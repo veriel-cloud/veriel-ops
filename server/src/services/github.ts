@@ -100,9 +100,9 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     });
   }
 
-  async function addWorkflowCallers(repo: string, projectName: string, deployTarget?: string) {
+  async function addWorkflowCallers(repo: string, projectName: string, deployTarget?: string, branch = "main") {
     for (const caller of buildWorkflowCallerFiles(org, projectName, deployTarget ?? "cf-pages")) {
-      await addFileToRepo(repo, caller.path, caller.content, `ci: add ${caller.path}`);
+      await addFileToRepo(repo, caller.path, caller.content, `ci: add ${caller.path}`, branch);
     }
   }
 
@@ -188,6 +188,36 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     return { sha: commit.sha, message: commit.message };
   }
 
+  async function resetBranchToReadme(repo: string, projectName: string, branch = "main") {
+    logger?.info({ repo, branch }, "resetting branch to README only");
+
+    // Create a blob with just a README
+    const content = `# ${projectName}\n\nManaged by [veriel-ops](https://github.com/veriel-cloud/veriel-ops).\n`;
+    const { data: blob } = await octokit.rest.git.createBlob({ owner: org, repo, content, encoding: "utf-8" });
+
+    // Create a tree with only that file
+    const { data: tree } = await octokit.rest.git.createTree({
+      owner: org,
+      repo,
+      tree: [{ path: "README.md", mode: "100644", type: "blob", sha: blob.sha }],
+    });
+
+    // Get current branch SHA as parent
+    const { data: ref } = await octokit.rest.git.getRef({ owner: org, repo, ref: `heads/${branch}` });
+
+    // Create commit
+    const { data: commit } = await octokit.rest.git.createCommit({
+      owner: org,
+      repo,
+      message: "chore: reset main to initial state",
+      tree: tree.sha,
+      parents: [ref.object.sha],
+    });
+
+    // Update branch ref
+    await octokit.rest.git.updateRef({ owner: org, repo, ref: `heads/${branch}`, sha: commit.sha });
+  }
+
   async function createWebhook(repo: string, webhookUrl: string, secret: string) {
     logger?.info({ repo }, "creating webhook");
     await octokit.rest.repos.createWebhook({
@@ -218,6 +248,7 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     getTree,
     getFileContent,
     createMultiFileCommit,
+    resetBranchToReadme,
     archiveRepo,
     deleteRepo,
     createWebhook,
@@ -244,6 +275,9 @@ function buildWorkflowCallerFiles(org: string, projectName: string, deployTarget
       "on:",
       "  pull_request:",
       '    branches: [develop, main, "release/**"]',
+      "permissions:",
+      "  contents: read",
+      "  pull-requests: write",
       "jobs:",
       "  ci:",
       `    uses: ${uses("ci.yml")}`,
