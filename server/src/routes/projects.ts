@@ -380,10 +380,15 @@ projectsRoutes.post("/:name/promote", async (c) => {
   if (from === "pre") {
     const gh = c.get("github");
 
-    // Find the active release branch
-    const branches = await gh.getRepoBranches(name);
-    const releaseBranch = branches.find((b) => b.name.startsWith("release/"));
-    if (!releaseBranch) return c.json({ error: "No release branch found" }, 400);
+    // Find the release branch from the latest successful PRE deploy
+    const runs = await gh.getWorkflowRuns(name);
+    const preDeploy = runs
+      .filter((r) => r.name?.startsWith("Deploy PRE") && r.conclusion === "success")
+      .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())[0];
+
+    const releaseBranch = preDeploy?.head_branch;
+    if (!releaseBranch?.startsWith("release/"))
+      return c.json({ error: "No successful PRE deploy with a release branch found" }, 400);
 
     // Ensure CF Pages project + DNS exist for PRO
     let proPages: PagesProject;
@@ -402,26 +407,33 @@ projectsRoutes.post("/:name/promote", async (c) => {
     }
 
     // Create or find existing PR: release/* → main
-    const releaseVersion = releaseBranch.name.replace("release/", "");
+    const releaseVersion = releaseBranch.replace("release/", "");
     let pr: { number: number; html_url: string };
     try {
       pr = await gh.createPullRequest(
         name,
-        releaseBranch.name,
+        releaseBranch,
         "main",
         `Release ${releaseVersion} → Production`,
         `Promote ${releaseVersion} from PRE to PRO.\n\nMerging this PR will trigger the production deploy.`,
       );
-    } catch {
+    } catch (err) {
+      const errStr = JSON.stringify(err);
+
+      // No diff between branches — nothing to promote
+      if (errStr.includes("No commits between")) {
+        return c.json({ error: `Nothing to promote: ${releaseBranch} has no new commits vs main` }, 400);
+      }
+
       // PR already exists — find open or merged
       const openPrs = await gh.listPullRequests(name, "open");
-      const existing = openPrs.find((p) => p.head.ref === releaseBranch.name && p.base.ref === "main");
+      const existing = openPrs.find((p) => p.head.ref === releaseBranch && p.base.ref === "main");
       if (existing) {
         pr = existing;
         log.info({ project: name, pr: pr.number }, "using existing open PR");
       } else {
         const closedPrs = await gh.listPullRequests(name, "closed");
-        const merged = closedPrs.find((p) => p.head.ref === releaseBranch.name && p.base.ref === "main" && p.merged_at);
+        const merged = closedPrs.find((p) => p.head.ref === releaseBranch && p.base.ref === "main" && p.merged_at);
         if (merged) {
           pr = merged;
           log.info({ project: name, pr: pr.number }, "PR already merged");
