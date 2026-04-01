@@ -6,6 +6,7 @@ import { DEFAULT_ORG, domainForEnv, PROJECT_TYPE_CONFIG, pagesProjectName, urlFo
 import type { Env } from "../env.js";
 import { buildSetupPipeline } from "../services/pipeline.js";
 import { executeSetupPipeline, pollWorkflowRun } from "../services/sse.js";
+import type { PagesProject } from "../types.js";
 
 export const projectsRoutes = new Hono<Env>();
 
@@ -348,15 +349,20 @@ projectsRoutes.post("/:name/promote", async (c) => {
   if (from === "des") {
     if (!version) return c.json({ error: "Version required" }, 400);
 
-    // Ensure CF Pages project exists for PRE
+    // Ensure CF Pages project + DNS exist for PRE
+    let pagesProject: PagesProject;
     try {
-      const pages = await cf.createPagesProjectForEnv(name, "pre", org, name);
-      await cf.setupEnvDns(name, "pre", pages.subdomain);
+      pagesProject = await cf.createPagesProjectForEnv(name, "pre", org, name);
       log.info({ project: name, env: "pre" }, "created CF Pages project for PRE");
     } catch (err) {
-      // Project may already exist from a previous promote — ignore 409
       if (err instanceof Error && !err.message.includes("already exists")) throw err;
+      pagesProject = await cf.getPagesProject(pagesProjectName(name, "pre"));
       log.info({ project: name }, "CF Pages project for PRE already exists");
+    }
+    try {
+      await cf.setupEnvDns(name, "pre", pagesProject.subdomain);
+    } catch {
+      log.info({ project: name }, "DNS for PRE already configured");
     }
 
     await c.get("github").createBranch(name, `release/${version}`, "develop");
@@ -372,25 +378,69 @@ projectsRoutes.post("/:name/promote", async (c) => {
     });
   }
   if (from === "pre") {
-    // Ensure CF Pages project exists for PRO
+    const gh = c.get("github");
+
+    // Find the active release branch
+    const branches = await gh.getRepoBranches(name);
+    const releaseBranch = branches.find((b) => b.name.startsWith("release/"));
+    if (!releaseBranch) return c.json({ error: "No release branch found" }, 400);
+
+    // Ensure CF Pages project + DNS exist for PRO
+    let proPages: PagesProject;
     try {
-      const pages = await cf.createPagesProjectForEnv(name, "pro", org, name);
-      await cf.setupEnvDns(name, "pro", pages.subdomain);
+      proPages = await cf.createPagesProjectForEnv(name, "pro", org, name);
       log.info({ project: name, env: "pro" }, "created CF Pages project for PRO");
     } catch (err) {
       if (err instanceof Error && !err.message.includes("already exists")) throw err;
+      proPages = await cf.getPagesProject(pagesProjectName(name, "pro"));
       log.info({ project: name }, "CF Pages project for PRO already exists");
     }
+    try {
+      await cf.setupEnvDns(name, "pro", proPages.subdomain);
+    } catch {
+      log.info({ project: name }, "DNS for PRO already configured");
+    }
 
-    c.get("store").addAuditEntry("promote", name, { from: "pre", to: "pro" });
+    // Create or find existing PR: release/* → main
+    const releaseVersion = releaseBranch.name.replace("release/", "");
+    let pr: { number: number; html_url: string };
+    try {
+      pr = await gh.createPullRequest(
+        name,
+        releaseBranch.name,
+        "main",
+        `Release ${releaseVersion} → Production`,
+        `Promote ${releaseVersion} from PRE to PRO.\n\nMerging this PR will trigger the production deploy.`,
+      );
+    } catch {
+      // PR already exists — find open or merged
+      const openPrs = await gh.listPullRequests(name, "open");
+      const existing = openPrs.find((p) => p.head.ref === releaseBranch.name && p.base.ref === "main");
+      if (existing) {
+        pr = existing;
+        log.info({ project: name, pr: pr.number }, "using existing open PR");
+      } else {
+        const closedPrs = await gh.listPullRequests(name, "closed");
+        const merged = closedPrs.find((p) => p.head.ref === releaseBranch.name && p.base.ref === "main" && p.merged_at);
+        if (merged) {
+          pr = merged;
+          log.info({ project: name, pr: pr.number }, "PR already merged");
+        } else {
+          return c.json({ error: "Failed to create PR for release branch" }, 500);
+        }
+      }
+    }
+
+    c.get("store").addAuditEntry("promote", name, { from: "pre", to: "pro", pr: pr.number });
     c.get("cachedData").invalidateProject(name);
     return c.json({
       success: true,
       from: "pre",
       to: "pro",
-      message: "Merge release to main via PR",
+      message: `PR #${pr.number} — merge to deploy to PRO`,
       url: urlForEnv(name, "pro"),
       repo: `${org}/${name}`,
+      prUrl: pr.html_url,
     });
   }
   return c.json({ error: `Cannot promote from ${from}` }, 400);

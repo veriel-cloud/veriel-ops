@@ -18,6 +18,7 @@ interface PromoteResult {
   message?: string;
   url?: string;
   repo?: string;
+  prUrl?: string;
 }
 
 interface PromoteModalProps {
@@ -66,6 +67,7 @@ export function PromoteModal({ open, onClose, projectName, environments, onSucce
           message: res.message,
           url: res.url,
           repo: res.repo,
+          prUrl: res.prUrl,
         });
         setVersion("");
         onSuccess();
@@ -130,7 +132,21 @@ export function PromoteModal({ open, onClose, projectName, environments, onSucce
                   </p>
                 )}
 
-                {result.message && (
+                {result.prUrl && (
+                  <p>
+                    <span className="text-[var(--color-text-quaternary)]">Pull Request </span>
+                    <a
+                      href={result.prUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[var(--color-accent-text)] hover:underline"
+                    >
+                      {result.message ?? "View PR →"}
+                    </a>
+                  </p>
+                )}
+
+                {result.message && !result.prUrl && (
                   <p className="text-[12px] text-[var(--color-text-tertiary)] mt-2">{result.message}</p>
                 )}
               </div>

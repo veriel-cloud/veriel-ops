@@ -112,6 +112,12 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
   const listPullRequests = (repo: string, state: "open" | "closed" | "all" = "open") =>
     octokit.rest.pulls.list({ owner: org, repo, state, per_page: PER_PAGE_RUNS }).then((r) => r.data);
 
+  async function createPullRequest(repo: string, head: string, base: string, title: string, body?: string) {
+    logger?.info({ repo, head, base, title }, "creating pull request");
+    const { data } = await octokit.rest.pulls.create({ owner: org, repo, head, base, title, body });
+    return data;
+  }
+
   async function archiveRepo(name: string) {
     logger?.info({ repo: name }, "archiving repository");
     await octokit.rest.repos.update({ owner: org, repo: name, archived: true });
@@ -208,6 +214,7 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     addWorkflowCallers,
     dispatchWorkflow,
     listPullRequests,
+    createPullRequest,
     getTree,
     getFileContent,
     createMultiFileCommit,
