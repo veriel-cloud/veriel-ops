@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { usePromoteProject } from "@/hooks/mutations";
+import { useDeploysStream } from "@/hooks/useDeploysStream";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import type { Environment } from "@veriel-ops/shared";
 
 interface EnvironmentState {
   version: string | null;
@@ -29,8 +31,23 @@ interface PromoteModalProps {
 export function PromoteModal({ open, onClose, projectName, environments, onSuccess }: PromoteModalProps) {
   const [version, setVersion] = useState("");
   const [result, setResult] = useState<PromoteResult | null>(null);
+  const promoteTimestamp = useRef<string | null>(null);
 
   const promote = usePromoteProject(projectName);
+
+  // Only connect to SSE after a successful promote
+  const { deploys } = useDeploysStream(!!result);
+
+  // Find a deploy that started AFTER the promote for the target env
+  const targetDeploy = result
+    ? deploys.find(
+        (d) =>
+          d.project === projectName &&
+          d.environment === (result.to as Environment) &&
+          promoteTimestamp.current &&
+          d.timestamp > promoteTimestamp.current,
+      )
+    : null;
 
   const desActive = environments.des?.status !== "idle";
   const preActive = environments.pre?.status !== "idle";
@@ -41,6 +58,7 @@ export function PromoteModal({ open, onClose, projectName, environments, onSucce
       const res = await promote.mutateAsync(body);
 
       if (res?.success) {
+        promoteTimestamp.current = new Date().toISOString();
         setResult({
           from: res.from,
           to: res.to,
@@ -59,6 +77,7 @@ export function PromoteModal({ open, onClose, projectName, environments, onSucce
 
   function handleClose() {
     setResult(null);
+    promoteTimestamp.current = null;
     setVersion("");
     onClose();
   }
@@ -69,58 +88,63 @@ export function PromoteModal({ open, onClose, projectName, environments, onSucce
     <Modal open={open} onClose={handleClose} title={result ? "Promote Complete" : "Promote"}>
       <div className="space-y-5">
         {result ? (
-          <div className="rounded-md bg-[var(--color-success-light)] border border-[var(--color-success)]/10 p-4 space-y-3">
-            <p className="text-[13px] font-medium text-[var(--color-success-text)]">
-              {envLabel[result.from as keyof typeof envLabel]} → {envLabel[result.to as keyof typeof envLabel]}
-            </p>
+          <>
+            <div className="rounded-md bg-[var(--color-success-light)] border border-[var(--color-success)]/10 p-4 space-y-3">
+              <p className="text-[13px] font-medium text-[var(--color-success-text)]">
+                {envLabel[result.from as keyof typeof envLabel]} → {envLabel[result.to as keyof typeof envLabel]}
+              </p>
 
-            <div className="space-y-1.5 text-[13px]">
-              {result.branch && (
-                <p>
-                  <span className="text-[var(--color-text-quaternary)]">Branch </span>
-                  <code className="text-[12px] text-[var(--color-text-secondary)]">{result.branch}</code>
-                </p>
-              )}
+              <div className="space-y-1.5 text-[13px]">
+                {result.branch && (
+                  <p>
+                    <span className="text-[var(--color-text-quaternary)]">Branch </span>
+                    <code className="text-[12px] text-[var(--color-text-secondary)]">{result.branch}</code>
+                  </p>
+                )}
 
-              {result.url && (
-                <p>
-                  <span className="text-[var(--color-text-quaternary)]">URL </span>
-                  <a
-                    href={result.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[var(--color-accent-text)] hover:underline"
-                  >
-                    {result.url}
-                  </a>
-                </p>
-              )}
+                {result.url && (
+                  <p>
+                    <span className="text-[var(--color-text-quaternary)]">URL </span>
+                    <a
+                      href={result.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[var(--color-accent-text)] hover:underline"
+                    >
+                      {result.url}
+                    </a>
+                  </p>
+                )}
 
-              {result.repo && (
-                <p>
-                  <span className="text-[var(--color-text-quaternary)]">Repository </span>
-                  <a
-                    href={`https://github.com/${result.repo}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[var(--color-accent-text)] hover:underline"
-                  >
-                    {result.repo}
-                  </a>
-                </p>
-              )}
+                {result.repo && (
+                  <p>
+                    <span className="text-[var(--color-text-quaternary)]">Repository </span>
+                    <a
+                      href={`https://github.com/${result.repo}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[var(--color-accent-text)] hover:underline"
+                    >
+                      {result.repo}
+                    </a>
+                  </p>
+                )}
 
-              {result.message && (
-                <p className="text-[12px] text-[var(--color-text-tertiary)] mt-2">{result.message}</p>
-              )}
+                {result.message && (
+                  <p className="text-[12px] text-[var(--color-text-tertiary)] mt-2">{result.message}</p>
+                )}
+              </div>
             </div>
 
-            <div className="pt-2">
+            {/* Deploy tracking */}
+            <DeployStatus deploy={targetDeploy} />
+
+            <div className="flex justify-end">
               <Button size="sm" onClick={handleClose}>
                 Close
               </Button>
             </div>
-          </div>
+          </>
         ) : (
           <>
             {promote.error && (
@@ -196,5 +220,104 @@ export function PromoteModal({ open, onClose, projectName, environments, onSucce
         )}
       </div>
     </Modal>
+  );
+}
+
+function DeployStatus({ deploy }: { deploy: { status: string; duration: number; htmlUrl: string } | null | undefined }) {
+  if (!deploy) {
+    return (
+      <div className="flex items-center gap-2 rounded-md bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] p-3">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-text-quaternary)] opacity-50" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-text-quaternary)]" />
+        </span>
+        <span className="text-[12px] text-[var(--color-text-tertiary)]">Waiting for deploy to start...</span>
+      </div>
+    );
+  }
+
+  if (deploy.status === "in_progress") {
+    return (
+      <div className="flex items-center gap-2 rounded-md bg-[var(--color-warning-light)] border border-[var(--color-warning)]/10 p-3">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-warning)] opacity-50" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-warning)]" />
+        </span>
+        <span className="text-[12px] text-[var(--color-warning-text)]">Deploying...</span>
+        {deploy.htmlUrl && (
+          <a
+            href={deploy.htmlUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto text-[11px] text-[var(--color-accent-text)] hover:underline"
+          >
+            View workflow →
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  if (deploy.status === "success") {
+    const seconds = deploy.duration > 0 ? Math.round(deploy.duration / 1000) : null;
+    return (
+      <div className="flex items-center gap-2 rounded-md bg-[var(--color-success-light)] border border-[var(--color-success)]/10 p-3">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-3.5 h-3.5 text-[var(--color-success)]"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M5 12l5 5l10 -10" />
+        </svg>
+        <span className="text-[12px] text-[var(--color-success-text)]">
+          Deploy complete{seconds ? ` in ${seconds}s` : ""}
+        </span>
+        {deploy.htmlUrl && (
+          <a
+            href={deploy.htmlUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto text-[11px] text-[var(--color-accent-text)] hover:underline"
+          >
+            View workflow →
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  // failed
+  return (
+    <div className="flex items-center gap-2 rounded-md bg-[var(--color-error-light)] border border-[var(--color-error)]/10 p-3">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-3.5 h-3.5 text-[var(--color-error)]"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M18 6l-12 12" />
+        <path d="M6 6l12 12" />
+      </svg>
+      <span className="text-[12px] text-[var(--color-error-text)]">Deploy failed</span>
+      {deploy.htmlUrl && (
+        <a
+          href={deploy.htmlUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ml-auto text-[11px] text-[var(--color-accent-text)] hover:underline"
+        >
+          View workflow →
+        </a>
+      )}
+    </div>
   );
 }

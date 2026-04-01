@@ -31,13 +31,15 @@ function parseSSELines(
  *
  * Stream stays open until unmount.
  */
-export function useDeploysStream() {
+export function useDeploysStream(enabled = true) {
   const [deploys, setDeploys] = useState<DeployEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
+
     let mounted = true;
     const controller = new AbortController();
     abortRef.current = controller;
@@ -72,9 +74,7 @@ export function useDeploysStream() {
               try {
                 setDeploys(JSON.parse(jsonStr));
                 setIsLoading(false);
-              } catch {
-                /* ignore */
-              }
+              } catch {}
             }
           });
         }
@@ -93,7 +93,7 @@ export function useDeploysStream() {
       mounted = false;
       controller.abort();
     };
-  }, []);
+  }, [enabled]);
 
   const hasActive = deploys.some((d) => d.status === "in_progress");
 
