@@ -2,7 +2,7 @@ import type { ProjectType } from "@veriel-ops/shared";
 import { Hono } from "hono";
 import { env } from "hono/adapter";
 import { streamSSE } from "hono/streaming";
-import { DEFAULT_ORG, domainForEnv, PROJECT_TYPE_CONFIG, pagesProjectName } from "../constants.js";
+import { DEFAULT_ORG, domainForEnv, PROJECT_TYPE_CONFIG, pagesProjectName, urlForEnv } from "../constants.js";
 import type { Env } from "../env.js";
 import { buildSetupPipeline } from "../services/pipeline.js";
 import { executeSetupPipeline, pollWorkflowRun } from "../services/sse.js";
@@ -326,19 +326,59 @@ projectsRoutes.get("/:name/builds", async (c) => {
 projectsRoutes.post("/:name/promote", async (c) => {
   const name = c.req.param("name");
   const { from, version } = await c.req.json();
-  c.get("logger").info({ project: name, from, version }, "promoting project");
+  const log = c.get("logger");
+  const cf = c.get("cloudflare");
+  const e = env(c);
+  const org = e.GITHUB_ORG || DEFAULT_ORG;
+  log.info({ project: name, from, version }, "promoting project");
 
   if (from === "des") {
     if (!version) return c.json({ error: "Version required" }, 400);
+
+    // Ensure CF Pages project exists for PRE
+    try {
+      const pages = await cf.createPagesProjectForEnv(name, "pre", org, name);
+      await cf.setupEnvDns(name, "pre", pages.subdomain);
+      log.info({ project: name, env: "pre" }, "created CF Pages project for PRE");
+    } catch (err) {
+      // Project may already exist from a previous promote — ignore 409
+      if (err instanceof Error && !err.message.includes("already exists")) throw err;
+      log.info({ project: name }, "CF Pages project for PRE already exists");
+    }
+
     await c.get("github").createBranch(name, `release/${version}`, "develop");
     c.get("store").addAuditEntry("promote", name, { from: "des", to: "pre", version });
     c.get("cachedData").invalidateProject(name);
-    return c.json({ success: true, from: "des", to: "pre", branch: `release/${version}` });
+    return c.json({
+      success: true,
+      from: "des",
+      to: "pre",
+      branch: `release/${version}`,
+      url: urlForEnv(name, "pre"),
+      repo: `${org}/${name}`,
+    });
   }
   if (from === "pre") {
+    // Ensure CF Pages project exists for PRO
+    try {
+      const pages = await cf.createPagesProjectForEnv(name, "pro", org, name);
+      await cf.setupEnvDns(name, "pro", pages.subdomain);
+      log.info({ project: name, env: "pro" }, "created CF Pages project for PRO");
+    } catch (err) {
+      if (err instanceof Error && !err.message.includes("already exists")) throw err;
+      log.info({ project: name }, "CF Pages project for PRO already exists");
+    }
+
     c.get("store").addAuditEntry("promote", name, { from: "pre", to: "pro" });
     c.get("cachedData").invalidateProject(name);
-    return c.json({ success: true, from: "pre", to: "pro", message: "Merge release to main via PR" });
+    return c.json({
+      success: true,
+      from: "pre",
+      to: "pro",
+      message: "Merge release to main via PR",
+      url: urlForEnv(name, "pro"),
+      repo: `${org}/${name}`,
+    });
   }
   return c.json({ error: `Cannot promote from ${from}` }, 400);
 });

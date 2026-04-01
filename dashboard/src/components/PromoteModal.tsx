@@ -9,6 +9,15 @@ interface EnvironmentState {
   status: string;
 }
 
+interface PromoteResult {
+  from: string;
+  to: string;
+  branch?: string;
+  message?: string;
+  url?: string;
+  repo?: string;
+}
+
 interface PromoteModalProps {
   open: boolean;
   onClose: () => void;
@@ -19,7 +28,7 @@ interface PromoteModalProps {
 
 export function PromoteModal({ open, onClose, projectName, environments, onSuccess }: PromoteModalProps) {
   const [version, setVersion] = useState("");
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [result, setResult] = useState<PromoteResult | null>(null);
 
   const promote = usePromoteProject(projectName);
 
@@ -29,14 +38,17 @@ export function PromoteModal({ open, onClose, projectName, environments, onSucce
   async function handlePromote(from: "des" | "pre") {
     const body = from === "des" ? { from, version } : { from };
     try {
-      const result = await promote.mutateAsync(body);
+      const res = await promote.mutateAsync(body);
 
-      if (result?.success) {
-        setSuccessMessage(
-          from === "des"
-            ? `Branch release/${version} created. Deploy to PRE will start automatically.`
-            : result.message ?? "Merge release to main via PR to deploy to PRO.",
-        );
+      if (res?.success) {
+        setResult({
+          from: res.from,
+          to: res.to,
+          branch: res.branch,
+          message: res.message,
+          url: res.url,
+          repo: res.repo,
+        });
         setVersion("");
         onSuccess();
       }
@@ -46,89 +58,142 @@ export function PromoteModal({ open, onClose, projectName, environments, onSucce
   }
 
   function handleClose() {
-    setSuccessMessage(null);
+    setResult(null);
     setVersion("");
     onClose();
   }
 
+  const envLabel = { des: "DES", pre: "PRE", pro: "PRO" } as const;
+
   return (
-    <Modal open={open} onClose={handleClose} title="Promote">
+    <Modal open={open} onClose={handleClose} title={result ? "Promote Complete" : "Promote"}>
       <div className="space-y-5">
-        {successMessage && (
-          <div className="rounded-md bg-[var(--color-success-light)] border border-[var(--color-success)]/10 p-3">
-            <p className="text-[13px] text-[var(--color-success-text)]">{successMessage}</p>
-          </div>
-        )}
+        {result ? (
+          <div className="rounded-md bg-[var(--color-success-light)] border border-[var(--color-success)]/10 p-4 space-y-3">
+            <p className="text-[13px] font-medium text-[var(--color-success-text)]">
+              {envLabel[result.from as keyof typeof envLabel]} → {envLabel[result.to as keyof typeof envLabel]}
+            </p>
 
-        {promote.error && (
-          <div className="rounded-md bg-[var(--color-error-light)] border border-[var(--color-error)]/10 p-3">
-            <p className="text-[13px] text-[var(--color-error-text)]">{promote.error.message}</p>
-          </div>
-        )}
+            <div className="space-y-1.5 text-[13px]">
+              {result.branch && (
+                <p>
+                  <span className="text-[var(--color-text-quaternary)]">Branch </span>
+                  <code className="text-[12px] text-[var(--color-text-secondary)]">{result.branch}</code>
+                </p>
+              )}
 
-        {/* DES → PRE */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[12px] font-medium text-[var(--color-env-des)]">DES</span>
-            <span className="text-[var(--color-text-quaternary)]">→</span>
-            <span className="text-[12px] font-medium text-[var(--color-env-pre)]">PRE</span>
-          </div>
+              {result.url && (
+                <p>
+                  <span className="text-[var(--color-text-quaternary)]">URL </span>
+                  <a
+                    href={result.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--color-accent-text)] hover:underline"
+                  >
+                    {result.url}
+                  </a>
+                </p>
+              )}
 
-          {desActive ? (
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <Input
-                  id="version"
-                  label="Version"
-                  value={version}
-                  onChange={(e) => setVersion(e.target.value)}
-                  placeholder="v1.0.0"
-                  hint="Creates release/{version} branch from develop"
-                />
+              {result.repo && (
+                <p>
+                  <span className="text-[var(--color-text-quaternary)]">Repository </span>
+                  <a
+                    href={`https://github.com/${result.repo}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--color-accent-text)] hover:underline"
+                  >
+                    {result.repo}
+                  </a>
+                </p>
+              )}
+
+              {result.message && (
+                <p className="text-[12px] text-[var(--color-text-tertiary)] mt-2">{result.message}</p>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <Button size="sm" onClick={handleClose}>
+                Close
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {promote.error && (
+              <div className="rounded-md bg-[var(--color-error-light)] border border-[var(--color-error)]/10 p-3">
+                <p className="text-[13px] text-[var(--color-error-text)]">{promote.error.message}</p>
               </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => handlePromote("des")}
-                loading={promote.isPending}
-                disabled={!version}
-              >
-                Promote
-              </Button>
+            )}
+
+            {/* DES → PRE */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[12px] font-medium text-[var(--color-env-des)]">DES</span>
+                <span className="text-[var(--color-text-quaternary)]">→</span>
+                <span className="text-[12px] font-medium text-[var(--color-env-pre)]">PRE</span>
+              </div>
+
+              {desActive ? (
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <Input
+                      id="version"
+                      label="Version"
+                      value={version}
+                      onChange={(e) => setVersion(e.target.value)}
+                      placeholder="v1.0.0"
+                      hint="Creates release/{version} branch from develop"
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handlePromote("des")}
+                    loading={promote.isPending}
+                    disabled={!version}
+                  >
+                    Promote
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-[12px] text-[var(--color-text-quaternary)]">No active deploy in DES</p>
+              )}
             </div>
-          ) : (
-            <p className="text-[12px] text-[var(--color-text-quaternary)]">No active deploy in DES</p>
-          )}
-        </div>
 
-        <div className="border-t border-[var(--color-border)]" />
+            <div className="border-t border-[var(--color-border)]" />
 
-        {/* PRE → PRO */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[12px] font-medium text-[var(--color-env-pre)]">PRE</span>
-            <span className="text-[var(--color-text-quaternary)]">→</span>
-            <span className="text-[12px] font-medium text-[var(--color-env-pro)]">PRO</span>
-          </div>
+            {/* PRE → PRO */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[12px] font-medium text-[var(--color-env-pre)]">PRE</span>
+                <span className="text-[var(--color-text-quaternary)]">→</span>
+                <span className="text-[12px] font-medium text-[var(--color-env-pro)]">PRO</span>
+              </div>
 
-          {preActive ? (
-            <div className="flex items-center justify-between">
-              <p className="text-[12px] text-[var(--color-text-tertiary)]">
-                Merge the release branch to main via Pull Request
-              </p>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => handlePromote("pre")}
-                loading={promote.isPending}
-              >
-                Promote
-              </Button>
+              {preActive ? (
+                <div className="flex items-center justify-between">
+                  <p className="text-[12px] text-[var(--color-text-tertiary)]">
+                    Merge the release branch to main via Pull Request
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handlePromote("pre")}
+                    loading={promote.isPending}
+                  >
+                    Promote
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-[12px] text-[var(--color-text-quaternary)]">No active deploy in PRE</p>
+              )}
             </div>
-          ) : (
-            <p className="text-[12px] text-[var(--color-text-quaternary)]">No active deploy in PRE</p>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </Modal>
   );

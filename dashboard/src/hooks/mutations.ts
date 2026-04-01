@@ -34,7 +34,7 @@ export function usePromoteProject(projectName: string) {
   const invalidate = useInvalidateProject();
   return useMutation({
     mutationFn: (body: { from: string; version?: string }) =>
-      api.post<{ success: boolean; from: string; to: string; branch?: string; message?: string }>(
+      api.post<{ success: boolean; from: string; to: string; branch?: string; message?: string; url?: string; repo?: string }>(
         `/projects/${projectName}/promote`,
         body,
       ),
