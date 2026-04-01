@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { BranchList } from "@/components/BranchList";
@@ -22,6 +22,7 @@ import { Skeleton, SkeletonTable } from "@/components/ui/Skeleton";
 import { Tabs } from "@/components/ui/Tabs";
 import { getDeployTargetLabel, getTypeLabel } from "@veriel-ops/shared";
 import { useProjectBuilds, useProjectDetail } from "@/hooks/queries";
+import { useDeploysStream } from "@/hooks/useDeploysStream";
 import { useUpdateSettings } from "@/hooks/mutations";
 import { api } from "@/lib/api";
 import { cn, timeAgo } from "@/lib/utils";
@@ -41,6 +42,7 @@ export function ProjectDetail() {
 
   const { data, isLoading: loading, error, refetch } = useProjectDetail(name!);
   const { data: buildsData, isLoading: lb, refetch: refetchBuilds } = useProjectBuilds(name!);
+  const { deploys: allStreamDeploys, isLoading: deploysLoading } = useDeploysStream();
 
   const project = data?.project;
 
@@ -57,6 +59,11 @@ export function ProjectDetail() {
   const builds = buildsData?.builds ?? [];
   const workflowRuns = data?.workflowRuns ?? [];
 
+  const liveDeploys = useMemo(
+    () => allStreamDeploys.filter((d) => d.project === name),
+    [allStreamDeploys, name],
+  );
+
   const activityItems = deploys.map((d: any) => ({
     type: "deploy" as const,
     environment: d.environment,
@@ -68,7 +75,7 @@ export function ProjectDetail() {
   }));
 
   const tabs = [
-    { id: "deploys", label: "Deployments", count: deploys.length },
+    { id: "deploys", label: "Deployments", count: liveDeploys.length },
     { id: "activity", label: "Activity", count: activityItems.length },
     { id: "actions", label: "Actions", count: workflowRuns.length },
     { id: "builds", label: "Builds", count: builds.length },
@@ -278,8 +285,10 @@ export function ProjectDetail() {
               {/* Deployments tab */}
               {activeTab === "deploys" && (
                 <Card padding={false}>
-                  {deploys.length > 0 ? (
-                    <DeployTable deploys={deploys} showProject={false} />
+                  {deploysLoading ? (
+                    <SkeletonTable rows={5} />
+                  ) : liveDeploys.length > 0 ? (
+                    <DeployTable deploys={liveDeploys} showProject={false} />
                   ) : (
                     <EmptyState title="No deployments yet" />
                   )}
@@ -438,6 +447,7 @@ export function ProjectDetail() {
                           <th className="text-left py-2.5 px-3 text-[11px] font-medium text-[var(--color-text-quaternary)] uppercase tracking-wider">
                             Date
                           </th>
+                          <th className="py-2.5 px-3" />
                         </tr>
                       </thead>
                       <tbody>
@@ -466,6 +476,42 @@ export function ProjectDetail() {
                               <span className="text-[12px] text-[var(--color-text-quaternary)]">
                                 {timeAgo(b.lastModified)}
                               </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const token = localStorage.getItem("veriel-ops-token");
+                                  const res = await fetch(`/api/projects/${name}/builds/${b.environment}/${b.name}`, {
+                                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                                  });
+                                  if (!res.ok) return;
+                                  const blob = await res.blob();
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement("a");
+                                  a.href = url;
+                                  a.download = b.name;
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] text-[var(--color-text-quaternary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] transition-colors"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="w-3.5 h-3.5"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
+                                  <path d="M7 11l5 5l5 -5" />
+                                  <path d="M12 4l0 12" />
+                                </svg>
+                                Download
+                              </button>
                             </td>
                           </tr>
                         ))}

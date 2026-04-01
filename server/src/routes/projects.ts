@@ -321,6 +321,19 @@ projectsRoutes.get("/:name/builds", async (c) => {
   return c.json({ builds });
 });
 
+projectsRoutes.get("/:name/builds/:env/:artifact", async (c) => {
+  const { name, env: buildEnv, artifact } = c.req.param();
+  const buffer = await c.get("r2").downloadBuild(name, buildEnv, artifact);
+
+  return new Response(buffer, {
+    headers: {
+      "Content-Type": "application/gzip",
+      "Content-Disposition": `attachment; filename="${artifact}"`,
+      "Content-Length": String(buffer.byteLength),
+    },
+  });
+});
+
 // ─── Actions ──────────────────────────────────────────────────────────
 
 projectsRoutes.post("/:name/promote", async (c) => {
