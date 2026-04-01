@@ -674,7 +674,7 @@ projectsRoutes.delete("/:name", async (c) => {
     for (const env of ["des", "pre", "pro"] as const) {
       const pagesName = pagesProjectName(name, env);
       try {
-        await cf.getPagesProject(pagesName);
+        await cf.deletePagesProject(pagesName);
         deleted.pages.push(pagesName);
       } catch {
         // Project doesn't exist for this env

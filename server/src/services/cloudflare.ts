@@ -44,6 +44,11 @@ export function createCloudflareService(config: CloudflareConfig, logger?: Logge
 
     getPagesProject: (name: string) => cfFetch<PagesProject>(config, `${accounts}/pages/projects/${name}`, {}, logger),
 
+    deletePagesProject: (name: string) => {
+      logger?.info({ project: name }, "deleting Pages project");
+      return cfFetch<void>(config, `${accounts}/pages/projects/${name}`, { method: "DELETE" }, logger);
+    },
+
     getDeployments: (project: string, perPage = 20) =>
       cfFetch<PagesDeployment[]>(
         config,
