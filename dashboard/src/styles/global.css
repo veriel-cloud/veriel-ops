@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* Vercel-inspired palette */
+  /* Default: Vercel Dark */
   --color-bg: #0a0a0a;
   --color-bg-secondary: #111111;
   --color-bg-tertiary: #171717;
@@ -53,6 +53,194 @@
   --color-env-pro: #4ade80;
   --color-env-pro-bg: rgba(74, 222, 128, 0.08);
   --color-env-pro-border: rgba(74, 222, 128, 0.15);
+}
+
+/* ─── Light ───────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --color-bg: #ffffff;
+  --color-bg-secondary: #fafafa;
+  --color-bg-tertiary: #f5f5f5;
+  --color-bg-hover: #f0f0f0;
+  --color-bg-active: #e5e5e5;
+
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-hover: rgba(0, 0, 0, 0.12);
+  --color-border-active: rgba(0, 0, 0, 0.18);
+
+  --color-text-primary: #171717;
+  --color-text-secondary: #525252;
+  --color-text-tertiary: #a3a3a3;
+  --color-text-quaternary: #d4d4d4;
+
+  --color-accent: #0070f3;
+  --color-accent-hover: #005cc5;
+  --color-accent-light: rgba(0, 112, 243, 0.08);
+  --color-accent-text: #0060df;
+
+  --color-success: #00a63e;
+  --color-success-light: rgba(0, 166, 62, 0.08);
+  --color-success-text: #15803d;
+
+  --color-warning: #ca8a04;
+  --color-warning-light: rgba(202, 138, 4, 0.08);
+  --color-warning-text: #a16207;
+
+  --color-error: #dc2626;
+  --color-error-light: rgba(220, 38, 38, 0.06);
+  --color-error-text: #b91c1c;
+
+  --color-env-des: #0284c7;
+  --color-env-des-bg: rgba(2, 132, 199, 0.06);
+  --color-env-des-border: rgba(2, 132, 199, 0.15);
+
+  --color-env-pre: #ca8a04;
+  --color-env-pre-bg: rgba(202, 138, 4, 0.06);
+  --color-env-pre-border: rgba(202, 138, 4, 0.15);
+
+  --color-env-pro: #15803d;
+  --color-env-pro-bg: rgba(21, 128, 61, 0.06);
+  --color-env-pro-border: rgba(21, 128, 61, 0.15);
+}
+
+/* ─── Monokai ─────────────────────────────────────────────────── */
+[data-theme="monokai"] {
+  --color-bg: #272822;
+  --color-bg-secondary: #2d2e27;
+  --color-bg-tertiary: #3e3d32;
+  --color-bg-hover: #3e3d32;
+  --color-bg-active: #49483e;
+
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-hover: rgba(255, 255, 255, 0.1);
+  --color-border-active: rgba(255, 255, 255, 0.15);
+
+  --color-text-primary: #f8f8f2;
+  --color-text-secondary: #cfcfc2;
+  --color-text-tertiary: #75715e;
+  --color-text-quaternary: #49483e;
+
+  --color-accent: #66d9ef;
+  --color-accent-hover: #52c7dd;
+  --color-accent-light: rgba(102, 217, 239, 0.1);
+  --color-accent-text: #66d9ef;
+
+  --color-success: #a6e22e;
+  --color-success-light: rgba(166, 226, 46, 0.1);
+  --color-success-text: #a6e22e;
+
+  --color-warning: #e6db74;
+  --color-warning-light: rgba(230, 219, 116, 0.1);
+  --color-warning-text: #e6db74;
+
+  --color-error: #f92672;
+  --color-error-light: rgba(249, 38, 114, 0.08);
+  --color-error-text: #f92672;
+
+  --color-env-des: #66d9ef;
+  --color-env-des-bg: rgba(102, 217, 239, 0.08);
+  --color-env-des-border: rgba(102, 217, 239, 0.15);
+
+  --color-env-pre: #e6db74;
+  --color-env-pre-bg: rgba(230, 219, 116, 0.08);
+  --color-env-pre-border: rgba(230, 219, 116, 0.15);
+
+  --color-env-pro: #a6e22e;
+  --color-env-pro-bg: rgba(166, 226, 46, 0.08);
+  --color-env-pro-border: rgba(166, 226, 46, 0.15);
+}
+
+/* ─── GitHub Dark ─────────────────────────────────────────────── */
+[data-theme="github-dark"] {
+  --color-bg: #0d1117;
+  --color-bg-secondary: #161b22;
+  --color-bg-tertiary: #21262d;
+  --color-bg-hover: #1c2128;
+  --color-bg-active: #282e36;
+
+  --color-border: #30363d;
+  --color-border-hover: #3d444d;
+  --color-border-active: #484f58;
+
+  --color-text-primary: #e6edf3;
+  --color-text-secondary: #8b949e;
+  --color-text-tertiary: #6e7681;
+  --color-text-quaternary: #484f58;
+
+  --color-accent: #58a6ff;
+  --color-accent-hover: #4493e6;
+  --color-accent-light: rgba(88, 166, 255, 0.1);
+  --color-accent-text: #58a6ff;
+
+  --color-success: #3fb950;
+  --color-success-light: rgba(63, 185, 80, 0.1);
+  --color-success-text: #3fb950;
+
+  --color-warning: #d29922;
+  --color-warning-light: rgba(210, 153, 34, 0.1);
+  --color-warning-text: #d29922;
+
+  --color-error: #f85149;
+  --color-error-light: rgba(248, 81, 73, 0.08);
+  --color-error-text: #f85149;
+
+  --color-env-des: #58a6ff;
+  --color-env-des-bg: rgba(88, 166, 255, 0.08);
+  --color-env-des-border: rgba(88, 166, 255, 0.15);
+
+  --color-env-pre: #d29922;
+  --color-env-pre-bg: rgba(210, 153, 34, 0.08);
+  --color-env-pre-border: rgba(210, 153, 34, 0.15);
+
+  --color-env-pro: #3fb950;
+  --color-env-pro-bg: rgba(63, 185, 80, 0.08);
+  --color-env-pro-border: rgba(63, 185, 80, 0.15);
+}
+
+/* ─── Solarized Dark ──────────────────────────────────────────── */
+[data-theme="solarized-dark"] {
+  --color-bg: #002b36;
+  --color-bg-secondary: #073642;
+  --color-bg-tertiary: #073642;
+  --color-bg-hover: #0a3f4c;
+  --color-bg-active: #0d4a58;
+
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-hover: rgba(255, 255, 255, 0.1);
+  --color-border-active: rgba(255, 255, 255, 0.15);
+
+  --color-text-primary: #fdf6e3;
+  --color-text-secondary: #93a1a1;
+  --color-text-tertiary: #657b83;
+  --color-text-quaternary: #586e75;
+
+  --color-accent: #268bd2;
+  --color-accent-hover: #1e7bbe;
+  --color-accent-light: rgba(38, 139, 210, 0.1);
+  --color-accent-text: #268bd2;
+
+  --color-success: #859900;
+  --color-success-light: rgba(133, 153, 0, 0.1);
+  --color-success-text: #859900;
+
+  --color-warning: #b58900;
+  --color-warning-light: rgba(181, 137, 0, 0.1);
+  --color-warning-text: #b58900;
+
+  --color-error: #dc322f;
+  --color-error-light: rgba(220, 50, 47, 0.08);
+  --color-error-text: #dc322f;
+
+  --color-env-des: #268bd2;
+  --color-env-des-bg: rgba(38, 139, 210, 0.08);
+  --color-env-des-border: rgba(38, 139, 210, 0.15);
+
+  --color-env-pre: #b58900;
+  --color-env-pre-bg: rgba(181, 137, 0, 0.08);
+  --color-env-pre-border: rgba(181, 137, 0, 0.15);
+
+  --color-env-pro: #859900;
+  --color-env-pro-bg: rgba(133, 153, 0, 0.08);
+  --color-env-pro-border: rgba(133, 153, 0, 0.15);
 }
 
 @layer base {
