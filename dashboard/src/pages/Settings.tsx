@@ -2,10 +2,11 @@ import { Header } from "@/components/Header";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useSystemStatus } from "@/hooks/queries";
+import { useSystemSettings, useSystemStatus } from "@/hooks/queries";
 
 export function Settings() {
-  const { data: status, isLoading: loading } = useSystemStatus();
+  const { data: status, isLoading: statusLoading } = useSystemStatus();
+  const { data: settings, isLoading: settingsLoading } = useSystemSettings();
 
   return (
     <>
@@ -16,24 +17,40 @@ export function Settings() {
           {/* General */}
           <Card>
             <h2 className="text-[13px] font-medium text-[var(--color-text-primary)] mb-4">General</h2>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b border-[var(--color-border)]">
-                <span className="text-[13px] text-[var(--color-text-secondary)]">Organization</span>
-                <span className="text-[13px] text-[var(--color-text-primary)] font-mono">veriel-cloud</span>
+            {settingsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center justify-between py-2">
+                    <Skeleton className="h-3.5 w-28" />
+                    <Skeleton className="h-3.5 w-20" />
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-[var(--color-border)]">
-                <span className="text-[13px] text-[var(--color-text-secondary)]">Base domain</span>
-                <span className="text-[13px] text-[var(--color-text-primary)] font-mono">veriel.dev</span>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-[var(--color-border)]">
+                  <span className="text-[13px] text-[var(--color-text-secondary)]">Organization</span>
+                  <span className="text-[13px] text-[var(--color-text-primary)] font-mono">{settings?.org}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[var(--color-border)]">
+                  <span className="text-[13px] text-[var(--color-text-secondary)]">Base domain</span>
+                  <span className="text-[13px] text-[var(--color-text-primary)] font-mono">{settings?.baseDomain}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[var(--color-border)]">
+                  <span className="text-[13px] text-[var(--color-text-secondary)]">Coverage threshold</span>
+                  <span className="text-[13px] text-[var(--color-text-primary)] font-mono">
+                    {settings?.coverageThreshold}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-[13px] text-[var(--color-text-secondary)]">Build retention</span>
+                  <span className="text-[13px] text-[var(--color-text-quaternary)]">
+                    DES: {settings?.buildRetention.des} · PRE: {settings?.buildRetention.pre} · PRO:{" "}
+                    {settings?.buildRetention.pro ?? "all"}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-[var(--color-border)]">
-                <span className="text-[13px] text-[var(--color-text-secondary)]">Coverage threshold</span>
-                <span className="text-[13px] text-[var(--color-text-primary)] font-mono">80%</span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-[13px] text-[var(--color-text-secondary)]">Build retention</span>
-                <span className="text-[13px] text-[var(--color-text-quaternary)]">DES: 10 · PRE: 20 · PRO: all</span>
-              </div>
-            </div>
+            )}
           </Card>
 
           {/* Workflows */}
@@ -80,7 +97,7 @@ export function Settings() {
           {/* System status */}
           <Card>
             <h3 className="text-[13px] font-medium text-[var(--color-text-primary)] mb-4">System Status</h3>
-            {loading ? (
+            {statusLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="flex items-center justify-between">
@@ -113,16 +130,25 @@ export function Settings() {
           {/* Templates */}
           <Card>
             <h3 className="text-[13px] font-medium text-[var(--color-text-primary)] mb-4">Project Templates</h3>
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] text-[var(--color-text-secondary)]">Astro</span>
-                <Badge variant="default">template-astro</Badge>
+            {settingsLoading ? (
+              <div className="space-y-2.5">
+                {[1, 2].map((i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <Skeleton className="h-3.5 w-20" />
+                    <Skeleton className="h-5 w-24 rounded-full" />
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] text-[var(--color-text-secondary)]">React</span>
-                <Badge variant="default">template-react</Badge>
+            ) : (
+              <div className="space-y-2.5">
+                {settings?.templates.map((t) => (
+                  <div key={t.type} className="flex items-center justify-between">
+                    <span className="text-[13px] text-[var(--color-text-secondary)]">{t.label}</span>
+                    <Badge variant="default">{t.template}</Badge>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </Card>
         </div>
       </div>

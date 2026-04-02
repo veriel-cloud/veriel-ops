@@ -58,6 +58,22 @@ export function useSystemStatus() {
   });
 }
 
+interface SystemSettings {
+  org: string;
+  baseDomain: string;
+  coverageThreshold: number;
+  buildRetention: { des: number; pre: number; pro: number | null };
+  templates: { type: string; label: string; template: string; deployTarget: string }[];
+}
+
+export function useSystemSettings() {
+  return useQuery({
+    queryKey: ["system-settings"],
+    queryFn: () => api.get<SystemSettings>("/system/settings"),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useBranches(projectName: string) {
   return useQuery({
     queryKey: ["branches", projectName],

@@ -1,7 +1,25 @@
+import { BASE_DOMAIN, DEFAULT_COVERAGE_THRESHOLD, DEFAULT_ORG, PROJECT_TYPE_CONFIG } from "@veriel-ops/shared";
 import { Hono } from "hono";
 import type { Env } from "../env.js";
 
 export const systemRoutes = new Hono<Env>();
+
+systemRoutes.get("/settings", (c) => {
+  const templates = Object.entries(PROJECT_TYPE_CONFIG).map(([type, config]) => ({
+    type,
+    label: config.label,
+    template: config.template,
+    deployTarget: config.deployTarget,
+  }));
+
+  return c.json({
+    org: DEFAULT_ORG,
+    baseDomain: BASE_DOMAIN,
+    coverageThreshold: DEFAULT_COVERAGE_THRESHOLD,
+    buildRetention: { des: 10, pre: 20, pro: null },
+    templates,
+  });
+});
 
 async function checkService(name: string, fn: () => Promise<unknown>) {
   const start = Date.now();
