@@ -110,7 +110,7 @@ export function ProjectDetail() {
             <Skeleton className="h-6 w-40" />
             <Skeleton className="h-8 w-28" />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
@@ -184,7 +184,7 @@ export function ProjectDetail() {
             </div>
 
             {/* Environments */}
-            <div className="grid grid-cols-3 gap-3 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
               {(["des", "pre", "pro"] as const).map((env) => {
                 const envData = project.environments?.[env];
                 const config = {

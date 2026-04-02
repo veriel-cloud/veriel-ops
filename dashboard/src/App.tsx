@@ -1,15 +1,16 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { getStoredToken } from "./lib/api";
+import { AuditLog } from "./pages/AuditLog";
 import { Dashboard } from "./pages/Dashboard";
 import { Deploys } from "./pages/Deploys";
 import { FileEditor } from "./pages/FileEditor";
 import { ImportProject } from "./pages/ImportProject";
 import { Login } from "./pages/Login";
 import { NewProject } from "./pages/NewProject";
+import { NotFound } from "./pages/NotFound";
 import { ProjectDetail } from "./pages/ProjectDetail";
 import { Projects } from "./pages/Projects";
-import { AuditLog } from "./pages/AuditLog";
 import { Settings } from "./pages/Settings";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -40,6 +41,7 @@ export function App() {
         <Route path="/audit" element={<AuditLog />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

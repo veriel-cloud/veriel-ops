@@ -56,7 +56,7 @@ export function Deploys() {
           <SkeletonStats count={4} />
         </div>
       ) : (
-        <div className="grid grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <StatsCard label="Total" value={allDeploys.length} />
           <StatsCard label="Successful" value={totalSuccess} />
           <StatsCard label="Failed" value={totalFailed} />

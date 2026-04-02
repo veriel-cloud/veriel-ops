@@ -109,6 +109,7 @@ export function Sidebar() {
 
   return (
     <aside
+      aria-label="Main navigation"
       className={cn(
         "fixed top-0 left-0 z-40 h-screen bg-[var(--color-bg)] border-r border-[var(--color-border)] flex flex-col transition-[width] duration-200",
         width,
@@ -133,6 +134,7 @@ export function Sidebar() {
             key={item.href}
             to={item.href}
             end={item.href === "/"}
+            aria-label={collapsed ? item.label : undefined}
             title={collapsed ? item.label : undefined}
             className={({ isActive }) =>
               cn(
@@ -163,6 +165,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={toggle}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="text-[var(--color-text-quaternary)] hover:text-[var(--color-text-secondary)] transition-colors shrink-0"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
