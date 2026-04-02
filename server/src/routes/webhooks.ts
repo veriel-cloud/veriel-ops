@@ -69,6 +69,9 @@ webhooksRoutes.post("/github", async (c) => {
       log.info({ project, workflowName, conclusion, runId, deployEnv }, "deploy workflow completed");
 
       if (conclusion === "success") {
+        const envLabel = deployEnv.toUpperCase();
+        store.addNotification("deploy_success", project, `Deploy to ${envLabel} succeeded`);
+
         const gh = c.get("github");
         extractCoverageFromWorkflow(gh, project, runId, log)
           .then((coverage) => {
@@ -88,6 +91,19 @@ webhooksRoutes.post("/github", async (c) => {
               triggeredBy: run?.event ?? "webhook",
             });
             log.info({ project, environment: deployEnv, coverage }, "deploy record stored");
+
+            // Check coverage threshold for PRE/PRO
+            if (coverage > 0 && (deployEnv === "pre" || deployEnv === "pro")) {
+              const settings = store.getProjectSettings(project);
+              const threshold = settings?.coverageThreshold ?? 80;
+              if (coverage < threshold) {
+                store.addNotification(
+                  "coverage_low",
+                  project,
+                  `Coverage ${coverage}% is below threshold ${threshold}% on ${envLabel}`,
+                );
+              }
+            }
           })
           .catch((err) => {
             log.error(
@@ -96,7 +112,7 @@ webhooksRoutes.post("/github", async (c) => {
             );
           });
       } else if (conclusion === "failure") {
-        store.addNotification("workflow_failed", project, `Workflow "${workflowName}" failed`);
+        store.addNotification("deploy_failed", project, `Deploy to ${deployEnv.toUpperCase()} failed`);
       }
     } else if (payload.action === "completed") {
       const conclusion = payload.workflow_run?.conclusion;
