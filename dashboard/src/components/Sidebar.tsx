@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useSidebar } from "@/lib/sidebar-context";
 
 const navItems = [
   {
@@ -103,17 +104,26 @@ const navItems = [
 ];
 
 export function Sidebar() {
+  const { collapsed, toggle } = useSidebar();
+  const width = collapsed ? "w-[56px]" : "w-[200px]";
+
   return (
-    <aside className="fixed top-0 left-0 z-40 h-screen w-[200px] bg-[var(--color-bg)] border-r border-[var(--color-border)] flex flex-col">
+    <aside
+      className={cn(
+        "fixed top-0 left-0 z-40 h-screen bg-[var(--color-bg)] border-r border-[var(--color-border)] flex flex-col transition-[width] duration-200",
+        width,
+      )}
+    >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 h-16 border-b border-[var(--color-border)]">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" className="w-12 h-12 shrink-0">
-          <path d="M100 10L20 44v60c0 48 34 80 80 92 46-12 80-44 80-92V44L100 10z" fill="none" stroke="#fff" strokeWidth="5"/>
-          <g transform="translate(29, 26) scale(1.4)">
-            <path fill="#fff" strokeWidth="2" stroke="#fff" d="M76.277 22.056a7.02 7.02 0 0 0-10.692 9.022l-8.337 8.337a9.07 9.07 0 0 0-5.196-1.628c-2.09 0-4.018.707-5.558 1.893l-5.856-5.856a5.417 5.417 0 1 0-1.888 1.895l5.885 5.884a9.07 9.07 0 0 0-1.64 4.217h-9.072A7.02 7.02 0 0 0 20 47.101a7.02 7.02 0 0 0 13.902 1.397h9.165a9.15 9.15 0 0 0 7.69 7.444v9.524a7.02 7.02 0 1 0 2.676.034V55.93c4.378-.667 7.743-4.458 7.743-9.02 0-2.138-.739-4.106-1.975-5.662l8.319-8.32a7.02 7.02 0 0 0 8.758-.942 7.02 7.02 0 0 0-.001-9.929M52.052 53.271a6.37 6.37 0 0 1-6.361-6.36c0-3.509 2.853-6.362 6.36-6.362s6.362 2.853 6.362 6.361a6.37 6.37 0 0 1-6.361 6.361"/>
-          </g>
-        </svg>
-        <span className="text-[13px] font-semibold text-[var(--color-text-primary)] tracking-tight">veriel-ops</span>
+      <div className={cn("flex items-center h-12 border-b border-[var(--color-border)]", collapsed ? "justify-center px-2" : "gap-2.5 px-4")}>
+        <div className="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4" fill="black">
+            <path d="M12 2l10 18h-20z" />
+          </svg>
+        </div>
+        {!collapsed && (
+          <span className="text-[13px] font-semibold text-[var(--color-text-primary)] tracking-tight">veriel-ops</span>
+        )}
       </div>
 
       {/* Navigation */}
@@ -123,9 +133,11 @@ export function Sidebar() {
             key={item.href}
             to={item.href}
             end={item.href === "/"}
+            title={collapsed ? item.label : undefined}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-2.5 px-2.5 py-[7px] rounded-md text-[13px] transition-colors duration-100",
+                "flex items-center rounded-md transition-colors duration-100",
+                collapsed ? "justify-center py-2 px-0" : "gap-2.5 px-2.5 py-[7px]",
                 isActive
                   ? "text-[var(--color-text-primary)] bg-[var(--color-bg-hover)]"
                   : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]",
@@ -133,21 +145,41 @@ export function Sidebar() {
             }
           >
             {item.icon}
-            <span>{item.label}</span>
+            {!collapsed && <span className="text-[13px]">{item.label}</span>}
           </NavLink>
         ))}
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-3 border-t border-[var(--color-border)]">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center">
-            <span className="text-[10px] font-bold text-[var(--color-text-tertiary)]">V</span>
-          </div>
-          <div className="flex-1 min-w-0">
+      <div className={cn("flex items-center border-t border-[var(--color-border)]", collapsed ? "justify-center px-2 py-3" : "justify-between px-3 py-3")}>
+        {!collapsed && (
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-6 h-6 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center shrink-0">
+              <span className="text-[10px] font-bold text-[var(--color-text-tertiary)]">V</span>
+            </div>
             <p className="text-[12px] text-[var(--color-text-secondary)] truncate">veriel-dev</p>
           </div>
-        </div>
+        )}
+        <button
+          type="button"
+          onClick={toggle}
+          className="text-[var(--color-text-quaternary)] hover:text-[var(--color-text-secondary)] transition-colors shrink-0"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className={cn("w-4 h-4 transition-transform duration-200", collapsed && "rotate-180")}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M11 7l-5 5l5 5" />
+            <path d="M17 7l-5 5l5 5" />
+          </svg>
+        </button>
       </div>
     </aside>
   );
