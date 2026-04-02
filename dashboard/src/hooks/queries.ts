@@ -82,6 +82,15 @@ export function useDnsRecords(projectName: string) {
   });
 }
 
+export function useAuditLog(resource?: string) {
+  return useQuery({
+    queryKey: ["audit", resource],
+    queryFn: () => api.get<{ entries: { id: number; action: string; resource: string; detail: Record<string, unknown>; timestamp: string; actor: string }[] }>(
+      resource ? `/audit?resource=${resource}` : "/audit",
+    ),
+  });
+}
+
 export function useProjectFiles(projectName: string, branch: string, path: string) {
   return useQuery({
     queryKey: ["files", projectName, branch, path],

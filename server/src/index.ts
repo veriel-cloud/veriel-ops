@@ -8,6 +8,7 @@ import { createDatabase } from "./lib/db.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { loggerMiddleware } from "./middleware/logger.js";
 import { actionsRoutes } from "./routes/actions.js";
+import { auditRoutes } from "./routes/audit.js";
 import { deploysRoutes } from "./routes/deploys.js";
 import { eventsRoutes } from "./routes/events.js";
 import { notificationsRoutes } from "./routes/notifications.js";
@@ -89,6 +90,7 @@ app.use("/*", async (c, next) => {
 
 app.use("/*", authMiddleware);
 
+app.route("/api/audit", auditRoutes);
 app.route("/api/projects", projectsRoutes);
 app.route("/api/deploys", deploysRoutes);
 app.route("/api/actions", actionsRoutes);

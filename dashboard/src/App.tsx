@@ -9,6 +9,7 @@ import { Login } from "./pages/Login";
 import { NewProject } from "./pages/NewProject";
 import { ProjectDetail } from "./pages/ProjectDetail";
 import { Projects } from "./pages/Projects";
+import { AuditLog } from "./pages/AuditLog";
 import { Settings } from "./pages/Settings";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -36,6 +37,7 @@ export function App() {
         <Route path="/projects/:name" element={<ProjectDetail />} />
         <Route path="/projects/:name/editor" element={<FileEditor />} />
         <Route path="/deploys" element={<Deploys />} />
+        <Route path="/audit" element={<AuditLog />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>
