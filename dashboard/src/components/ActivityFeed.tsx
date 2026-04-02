@@ -1,3 +1,5 @@
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useRef } from "react";
 import { cn, timeAgo } from "@/lib/utils";
 
 interface ActivityItem {
@@ -22,6 +24,10 @@ const typeConfig: Record<string, { icon: string; label: string; color: string }>
   push: { icon: "M12 5l0 14 M18 13l-6 6 M6 13l6 6", label: "Push", color: "text-[var(--color-text-tertiary)]" },
   workflow: { icon: "M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0 M12 7a5 5 0 1 0 5 5", label: "Workflow", color: "text-[var(--color-text-tertiary)]" },
 };
+
+const VIRTUALIZE_THRESHOLD = 50;
+const ESTIMATED_ITEM_HEIGHT = 52;
+const MAX_VISIBLE_HEIGHT = 600;
 
 function ActivityIcon({ type }: { type: string }) {
   const config = typeConfig[type] ?? typeConfig.workflow;
@@ -52,70 +58,113 @@ export function ActivityFeed({ deploys }: ActivityFeedProps) {
     );
   }
 
+  if (deploys.length > VIRTUALIZE_THRESHOLD) {
+    return <VirtualizedActivityFeed deploys={deploys} />;
+  }
+
   return (
     <div className="space-y-0">
-      {deploys.map((item, i) => {
-        const config = typeConfig[item.type] ?? typeConfig.workflow;
-        const isLast = i === deploys.length - 1;
+      {deploys.map((item, i) => (
+        <ActivityRow key={i} item={item} isLast={i === deploys.length - 1} />
+      ))}
+    </div>
+  );
+}
 
-        return (
-          <div key={i} className="flex gap-3">
-            <div className="flex flex-col items-center">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-[var(--color-bg-hover)] border border-[var(--color-border)]">
-                <ActivityIcon type={item.type} />
-              </div>
-              {!isLast && <div className="w-px flex-1 min-h-4 bg-[var(--color-border)]" />}
-            </div>
-            <div className={cn("pb-4 pt-0.5 flex-1 min-w-0", isLast && "pb-0")}>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-[13px] text-[var(--color-text-primary)] font-medium">{config.label}</span>
-                  {item.environment && (
-                    <span
-                      className={cn(
-                        "text-[11px] font-medium uppercase",
-                        item.environment === "des" && "text-[var(--color-env-des)]",
-                        item.environment === "pre" && "text-[var(--color-env-pre)]",
-                        item.environment === "pro" && "text-[var(--color-env-pro)]",
-                      )}
-                    >
-                      {item.environment}
-                    </span>
-                  )}
-                  {item.status && (
-                    <span
-                      className={cn(
-                        "text-[11px]",
-                        item.status === "success" && "text-[var(--color-success-text)]",
-                        item.status === "failed" && "text-[var(--color-error-text)]",
-                        item.status === "in_progress" && "text-[var(--color-warning-text)]",
-                      )}
-                    >
-                      {item.status}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[11px] text-[var(--color-text-quaternary)] whitespace-nowrap flex-shrink-0">
-                  {timeAgo(item.timestamp)}
-                </span>
-              </div>
-              {(item.version || item.commitSha || item.branch) && (
-                <div className="flex items-center gap-2 mt-0.5">
-                  {item.version && (
-                    <code className="text-[11px] text-[var(--color-text-tertiary)]">{item.version}</code>
-                  )}
-                  {item.commitSha && (
-                    <code className="text-[11px] text-[var(--color-text-quaternary)]">{item.commitSha}</code>
-                  )}
-                  {item.branch && (
-                    <span className="text-[11px] text-[var(--color-text-quaternary)]">{item.branch}</span>
-                  )}
-                </div>
-              )}
-            </div>
+function VirtualizedActivityFeed({ deploys }: { deploys: ActivityItem[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: deploys.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ESTIMATED_ITEM_HEIGHT,
+    overscan: 10,
+  });
+
+  return (
+    <div
+      ref={scrollRef}
+      className="overflow-y-auto"
+      style={{ maxHeight: MAX_VISIBLE_HEIGHT }}
+    >
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+        {virtualizer.getVirtualItems().map((vRow) => (
+          <div
+            key={vRow.index}
+            ref={virtualizer.measureElement}
+            data-index={vRow.index}
+            className="absolute left-0 w-full"
+            style={{ transform: `translateY(${vRow.start}px)` }}
+          >
+            <ActivityRow
+              item={deploys[vRow.index]}
+              isLast={vRow.index === deploys.length - 1}
+            />
           </div>
-        );
-      })}
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ActivityRow({ item, isLast }: { item: ActivityItem; isLast: boolean }) {
+  const config = typeConfig[item.type] ?? typeConfig.workflow;
+
+  return (
+    <div className="flex gap-3">
+      <div className="flex flex-col items-center">
+        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-[var(--color-bg-hover)] border border-[var(--color-border)]">
+          <ActivityIcon type={item.type} />
+        </div>
+        {!isLast && <div className="w-px flex-1 min-h-4 bg-[var(--color-border)]" />}
+      </div>
+      <div className={cn("pb-4 pt-0.5 flex-1 min-w-0", isLast && "pb-0")}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[13px] text-[var(--color-text-primary)] font-medium">{config.label}</span>
+            {item.environment && (
+              <span
+                className={cn(
+                  "text-[11px] font-medium uppercase",
+                  item.environment === "des" && "text-[var(--color-env-des)]",
+                  item.environment === "pre" && "text-[var(--color-env-pre)]",
+                  item.environment === "pro" && "text-[var(--color-env-pro)]",
+                )}
+              >
+                {item.environment}
+              </span>
+            )}
+            {item.status && (
+              <span
+                className={cn(
+                  "text-[11px]",
+                  item.status === "success" && "text-[var(--color-success-text)]",
+                  item.status === "failed" && "text-[var(--color-error-text)]",
+                  item.status === "in_progress" && "text-[var(--color-warning-text)]",
+                )}
+              >
+                {item.status}
+              </span>
+            )}
+          </div>
+          <span className="text-[11px] text-[var(--color-text-quaternary)] whitespace-nowrap flex-shrink-0">
+            {timeAgo(item.timestamp)}
+          </span>
+        </div>
+        {(item.version || item.commitSha || item.branch) && (
+          <div className="flex items-center gap-2 mt-0.5">
+            {item.version && (
+              <code className="text-[11px] text-[var(--color-text-tertiary)]">{item.version}</code>
+            )}
+            {item.commitSha && (
+              <code className="text-[11px] text-[var(--color-text-quaternary)]">{item.commitSha}</code>
+            )}
+            {item.branch && (
+              <span className="text-[11px] text-[var(--color-text-quaternary)]">{item.branch}</span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
