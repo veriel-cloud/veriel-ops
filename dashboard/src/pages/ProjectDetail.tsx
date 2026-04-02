@@ -58,6 +58,7 @@ export function ProjectDetail() {
   const deploys = data?.deploys ?? [];
   const builds = buildsData?.builds ?? [];
   const workflowRuns = data?.workflowRuns ?? [];
+  const coverageHistory = data?.coverageHistory ?? [];
 
   const liveDeploys = useMemo(
     () => allStreamDeploys.filter((d) => d.project === name),
@@ -413,14 +414,14 @@ export function ProjectDetail() {
               {/* Builds tab */}
               {activeTab === "builds" && (
                 <div className="space-y-4">
-                {builds.length > 0 && (
+                {coverageHistory.length > 0 && (
                   <Card>
                     <p className="text-[13px] text-[var(--color-text-primary)] mb-3">Coverage Trend</p>
                     <CoverageChart
-                      data={builds
-                        .filter((b: any) => b.coverage > 0)
-                        .reverse()
-                        .map((b: any) => ({ label: b.version, coverage: b.coverage }))}
+                      data={coverageHistory.reverse().map((c) => ({
+                        label: `${c.environment.toUpperCase()} ${c.commitSha}`,
+                        coverage: c.coverage,
+                      }))}
                       threshold={project?.coverageThreshold ?? 80}
                     />
                   </Card>

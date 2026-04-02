@@ -51,6 +51,28 @@ export interface DbStore {
   addAuditEntry(action: string, resource: string, detail?: Record<string, unknown>, actor?: string): void;
   getAuditLog(resource?: string, limit?: number): AuditEntry[];
 
+  // Deploy history
+  addDeployRecord(entry: {
+    id: string;
+    project: string;
+    environment: string;
+    version: string;
+    commitSha: string;
+    branch: string;
+    timestamp: string;
+    coverage: number;
+    duration: number;
+    status: string;
+    action: string;
+    triggeredBy: string;
+  }): void;
+  updateDeployCoverage(id: string, coverage: number): void;
+  getLatestCoverage(project: string): number;
+  getCoverageHistory(
+    project: string,
+    limit?: number,
+  ): { date: string; coverage: number; commitSha: string; environment: string }[];
+
   // Auth tokens
   saveToken(name: string, tokenHash: string, expiresAt?: string): void;
   getTokenHashes(): { name: string; hash: string; expiresAt: string | null }[];
@@ -96,6 +118,17 @@ export function createDbStore(db: Database): DbStore {
     selectAudit: db.prepare("SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT $limit"),
     selectAuditByResource: db.prepare(
       "SELECT * FROM audit_log WHERE resource = $resource ORDER BY timestamp DESC LIMIT $limit",
+    ),
+
+    insertDeploy: db.prepare(
+      "INSERT OR REPLACE INTO deploy_history (id, project, environment, version, commit_sha, branch, timestamp, coverage, duration, status, action, triggered_by) VALUES ($id, $project, $environment, $version, $commitSha, $branch, $timestamp, $coverage, $duration, $status, $action, $triggeredBy)",
+    ),
+    updateDeployCoverage: db.prepare("UPDATE deploy_history SET coverage = $coverage WHERE id = $id"),
+    selectLatestCoverage: db.prepare(
+      "SELECT coverage FROM deploy_history WHERE project = $project AND coverage > 0 ORDER BY timestamp DESC LIMIT 1",
+    ),
+    selectCoverageHistory: db.prepare(
+      "SELECT timestamp as date, coverage, commit_sha, environment FROM deploy_history WHERE project = $project AND coverage > 0 ORDER BY timestamp DESC LIMIT $limit",
     ),
 
     insertToken: db.prepare(
@@ -216,6 +249,66 @@ export function createDbStore(db: Database): DbStore {
     return rows.map(rowToAudit);
   }
 
+  // ─── Deploy history ──────────────────────────────────────────────
+
+  function addDeployRecord(entry: {
+    id: string;
+    project: string;
+    environment: string;
+    version: string;
+    commitSha: string;
+    branch: string;
+    timestamp: string;
+    coverage: number;
+    duration: number;
+    status: string;
+    action: string;
+    triggeredBy: string;
+  }): void {
+    stmts.insertDeploy.run({
+      $id: entry.id,
+      $project: entry.project,
+      $environment: entry.environment,
+      $version: entry.version,
+      $commitSha: entry.commitSha,
+      $branch: entry.branch,
+      $timestamp: entry.timestamp,
+      $coverage: entry.coverage,
+      $duration: entry.duration,
+      $status: entry.status,
+      $action: entry.action,
+      $triggeredBy: entry.triggeredBy,
+    });
+  }
+
+  function updateDeployCoverage(id: string, coverage: number): void {
+    stmts.updateDeployCoverage.run({ $id: id, $coverage: coverage });
+  }
+
+  function getLatestCoverage(project: string): number {
+    const row = stmts.selectLatestCoverage.get({ $project: project }) as { coverage: number } | null;
+    return row?.coverage ?? 0;
+  }
+
+  function getCoverageHistory(
+    project: string,
+    limit = 20,
+  ): { date: string; coverage: number; commitSha: string; environment: string }[] {
+    const rows = stmts.selectCoverageHistory.all({ $project: project, $limit: limit }) as {
+      date: string;
+      coverage: number;
+      commit_sha: string;
+      environment: string;
+    }[];
+
+    return rows.map((r) => ({
+      date: r.date,
+      coverage: r.coverage,
+      commitSha: r.commit_sha,
+      environment: r.environment,
+    }));
+  }
+
   // ─── Row mappers ─────────────────────────────────────────────────
 
   function safeJsonParse(value: string): Record<string, unknown> {
@@ -296,6 +389,10 @@ export function createDbStore(db: Database): DbStore {
     deleteProjectSettings,
     addAuditEntry,
     getAuditLog,
+    addDeployRecord,
+    updateDeployCoverage,
+    getLatestCoverage,
+    getCoverageHistory,
     saveToken,
     getTokenHashes,
     updateLastUsed,

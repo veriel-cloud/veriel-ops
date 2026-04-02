@@ -118,6 +118,21 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     return data;
   }
 
+  async function listWorkflowRunArtifacts(repo: string, runId: number) {
+    const { data } = await octokit.rest.actions.listWorkflowRunArtifacts({ owner: org, repo, run_id: runId });
+    return data.artifacts;
+  }
+
+  async function downloadWorkflowArtifact(repo: string, artifactId: number) {
+    const { data } = await octokit.rest.actions.downloadArtifact({
+      owner: org,
+      repo,
+      artifact_id: artifactId,
+      archive_format: "zip",
+    });
+    return data as ArrayBuffer;
+  }
+
   async function archiveRepo(name: string) {
     logger?.info({ repo: name }, "archiving repository");
     await octokit.rest.repos.update({ owner: org, repo: name, archived: true });
@@ -245,6 +260,8 @@ export function createGitHubService(config: GitHubConfig, logger?: Logger) {
     dispatchWorkflow,
     listPullRequests,
     createPullRequest,
+    listWorkflowRunArtifacts,
+    downloadWorkflowArtifact,
     getTree,
     getFileContent,
     createMultiFileCommit,

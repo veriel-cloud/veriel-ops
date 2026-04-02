@@ -47,7 +47,7 @@ export async function getProjects(s: Services): Promise<Project[]> {
         repo: repo.full_name,
         domain,
         customDomain: (pages?.domains?.length ?? 0) > 0,
-        coverage: 0,
+        coverage: s.store.getLatestCoverage(repo.name),
         coverageThreshold: settings?.coverageThreshold ?? DEFAULT_COVERAGE_THRESHOLD,
         deployTarget: typeConfig.deployTarget,
         runtime: typeConfig.defaultRuntime,
@@ -99,13 +99,15 @@ export async function getProjectDetail(name: string, s: Services) {
     repo: repo.full_name,
     domain,
     customDomain: (pages?.domains?.length ?? 0) > 0,
-    coverage: 0,
+    coverage: s.store.getLatestCoverage(name),
     coverageThreshold: settings?.coverageThreshold ?? DEFAULT_COVERAGE_THRESHOLD,
     deployTarget: typeConfig.deployTarget,
     runtime: typeConfig.defaultRuntime,
     environments: { des: latestOf("des"), pre: latestOf("pre"), pro: latestOf("pro") },
     createdAt: repo.created_at ?? "",
   };
+
+  const coverageHistory = s.store.getCoverageHistory(name);
 
   const buildArtifacts: BuildArtifact[] = builds.map((b) => ({
     name: b.name,
@@ -128,7 +130,7 @@ export async function getProjectDetail(name: string, s: Services) {
     runtime: settings?.runtime ?? typeConfig.defaultRuntime,
   };
 
-  return { project, deploys, builds: buildArtifacts, workflowRuns, settings: fullSettings };
+  return { project, deploys, builds: buildArtifacts, workflowRuns, settings: fullSettings, coverageHistory };
 }
 
 export async function getDeploys(s: Services): Promise<DeployEntry[]> {

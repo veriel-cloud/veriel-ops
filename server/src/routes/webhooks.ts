@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { env } from "hono/adapter";
 import type { Env } from "../env.js";
+import { extractCoverageFromWorkflow } from "../services/coverage.js";
 
 export const webhooksRoutes = new Hono<Env>();
 
@@ -57,7 +58,47 @@ webhooksRoutes.post("/github", async (c) => {
       }
     }
 
-    if (payload.action === "completed") {
+    if (payload.action === "completed" && workflowName.startsWith("Deploy")) {
+      const run = payload.workflow_run;
+      const conclusion = run?.conclusion;
+      const runId = run?.id as number;
+      const envMatch = workflowName.match(/Deploy (DES|PRE|PRO)/i);
+      const deployEnv = envMatch?.[1]?.toLowerCase() ?? "des";
+      const log = c.get("logger");
+
+      log.info({ project, workflowName, conclusion, runId, deployEnv }, "deploy workflow completed");
+
+      if (conclusion === "success") {
+        const gh = c.get("github");
+        extractCoverageFromWorkflow(gh, project, runId, log)
+          .then((coverage) => {
+            log.info({ project, runId, coverage }, "coverage extraction result");
+            store.addDeployRecord({
+              id: String(runId),
+              project,
+              environment: deployEnv,
+              version: run?.head_sha?.slice(0, 7) ?? "",
+              commitSha: run?.head_sha?.slice(0, 7) ?? "",
+              branch: run?.head_branch ?? "",
+              timestamp: new Date().toISOString(),
+              coverage,
+              duration: 0,
+              status: "success",
+              action: "deploy",
+              triggeredBy: run?.event ?? "webhook",
+            });
+            log.info({ project, environment: deployEnv, coverage }, "deploy record stored");
+          })
+          .catch((err) => {
+            log.error(
+              { project, runId, error: err instanceof Error ? err.message : String(err) },
+              "coverage extraction failed",
+            );
+          });
+      } else if (conclusion === "failure") {
+        store.addNotification("workflow_failed", project, `Workflow "${workflowName}" failed`);
+      }
+    } else if (payload.action === "completed") {
       const conclusion = payload.workflow_run?.conclusion;
       if (conclusion === "failure") {
         store.addNotification("workflow_failed", project, `Workflow "${payload.workflow_run?.name}" failed`);

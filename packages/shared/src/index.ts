@@ -10,6 +10,7 @@ export type {
   Project,
   ProjectSettings,
   DeployEntry,
+  CoverageDataPoint,
   BuildArtifact,
   BuildInfo,
   SystemStats,

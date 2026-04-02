@@ -63,6 +63,15 @@ export interface DeployEntry {
   htmlUrl: string;
 }
 
+// ─── Coverage ────────────────────────────────────────────────────────
+
+export interface CoverageDataPoint {
+  date: string;
+  coverage: number;
+  commitSha: string;
+  environment: string;
+}
+
 // ─── Build ───────────────────────────────────────────────────────────
 
 export interface BuildArtifact {
@@ -176,6 +185,7 @@ export interface ProjectDetailResponse {
   builds: BuildArtifact[];
   workflowRuns: WorkflowRun[];
   settings: ProjectSettings;
+  coverageHistory: CoverageDataPoint[];
 }
 
 export interface DeploysResponse {

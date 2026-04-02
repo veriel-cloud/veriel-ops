@@ -309,6 +309,7 @@ projectsRoutes.get("/:name", async (c) => {
     deploys: detail.deploys,
     builds: detail.builds,
     settings: detail.settings,
+    coverageHistory: detail.coverageHistory,
   });
 });
 
