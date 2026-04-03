@@ -7,14 +7,23 @@ import { ProjectTypeSelector } from "@/components/ProjectTypeSelector";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { type JobStatus, type StepStatus, WorkflowRun, type WorkflowRunData } from "@/components/ui/WorkflowRun";
+import {
+  type JobStatus,
+  type StepStatus,
+  WorkflowRun,
+  type WorkflowRunData,
+} from "@/components/ui/WorkflowRun";
 
 export function NewProject() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<ProjectType>("astro-static");
-  const [buildCommand, setBuildCommand] = useState(getTypeDefaults("astro-static").buildCommand);
-  const [outputDir, setOutputDir] = useState(getTypeDefaults("astro-static").outputDir);
+  const [buildCommand, setBuildCommand] = useState(
+    getTypeDefaults("astro-static").buildCommand,
+  );
+  const [outputDir, setOutputDir] = useState(
+    getTypeDefaults("astro-static").outputDir,
+  );
   const [showBuildConfig, setShowBuildConfig] = useState(false);
   const [domainType, setDomainType] = useState<"default" | "custom">("default");
   const [customDomain, setCustomDomain] = useState("");
@@ -47,7 +56,11 @@ export function NewProject() {
           ...prev,
           jobs: prev.jobs.map((job) =>
             job.id === data.jobId
-              ? { ...job, status: data.status as JobStatus, duration: data.duration ?? job.duration }
+              ? {
+                  ...job,
+                  status: data.status as JobStatus,
+                  duration: data.duration ?? job.duration,
+                }
               : job,
           ),
         };
@@ -99,12 +112,24 @@ export function NewProject() {
     } else if (event === "complete") {
       setResult(data);
       setWorkflow((prev) =>
-        prev ? { ...prev, status: "success" as JobStatus, totalDuration: data.totalDuration } : prev,
+        prev
+          ? {
+              ...prev,
+              status: "success" as JobStatus,
+              totalDuration: data.totalDuration,
+            }
+          : prev,
       );
     } else if (event === "error") {
       setError(data.error);
       setWorkflow((prev) =>
-        prev ? { ...prev, status: "error" as JobStatus, totalDuration: data.totalDuration } : prev,
+        prev
+          ? {
+              ...prev,
+              status: "error" as JobStatus,
+              totalDuration: data.totalDuration,
+            }
+          : prev,
       );
     }
   }, []);
@@ -187,14 +212,20 @@ export function NewProject() {
     <>
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-[13px] text-[var(--color-text-quaternary)] mb-6">
-        <Link to="/projects" className="hover:text-[var(--color-text-secondary)] transition-colors">
+        <Link
+          to="/projects"
+          className="hover:text-[var(--color-text-secondary)] transition-colors"
+        >
           Projects
         </Link>
         <span>/</span>
         <span className="text-[var(--color-text-secondary)]">New</span>
       </nav>
 
-      <Header title="New Project" description="Create and deploy a new project" />
+      <Header
+        title="New Project"
+        description="Create and deploy a new project"
+      />
 
       <div className="max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -224,12 +255,18 @@ export function NewProject() {
                     <label className="block text-[13px] text-[var(--color-text-secondary)] mb-1.5">
                       Project type
                     </label>
-                    <ProjectTypeSelector value={type} onChange={handleTypeChange} />
+                    <ProjectTypeSelector
+                      value={type}
+                      onChange={handleTypeChange}
+                    />
                     <p className="text-[11px] text-[var(--color-text-quaternary)] mt-1.5">
-                      {PROJECT_TYPE_UI[type].frameworks}
+                      {PROJECT_TYPE_UI[type].description}
                     </p>
                     <p className="text-[11px] text-[var(--color-text-quaternary)] mt-0.5">
-                      Deploy target: <span className="text-[var(--color-text-tertiary)]">{PROJECT_TYPE_UI[type].deployTargetLabel}</span>
+                      Deploy target:{" "}
+                      <span className="text-[var(--color-text-tertiary)]">
+                        {PROJECT_TYPE_UI[type].deployTargetLabel}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -242,7 +279,9 @@ export function NewProject() {
                   onClick={() => setShowBuildConfig(!showBuildConfig)}
                   className="flex items-center justify-between w-full text-left"
                 >
-                  <p className="text-[13px] text-[var(--color-text-secondary)]">Build configuration</p>
+                  <p className="text-[13px] text-[var(--color-text-secondary)]">
+                    Build configuration
+                  </p>
                   <span className="text-[11px] text-[var(--color-text-quaternary)]">
                     {showBuildConfig ? "Hide" : "Customize"}
                   </span>
@@ -269,7 +308,9 @@ export function NewProject() {
 
               {/* Domain */}
               <Card>
-                <p className="text-[13px] text-[var(--color-text-secondary)] mb-3">Domain</p>
+                <p className="text-[13px] text-[var(--color-text-secondary)] mb-3">
+                  Domain
+                </p>
                 <div className="flex items-center gap-6 mb-3">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -278,7 +319,9 @@ export function NewProject() {
                       onChange={() => setDomainType("default")}
                       className="accent-white"
                     />
-                    <span className="text-[13px] text-[var(--color-text-secondary)]">veriel.dev subdomain</span>
+                    <span className="text-[13px] text-[var(--color-text-secondary)]">
+                      veriel.dev subdomain
+                    </span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -287,15 +330,23 @@ export function NewProject() {
                       onChange={() => setDomainType("custom")}
                       className="accent-white"
                     />
-                    <span className="text-[13px] text-[var(--color-text-secondary)]">Custom domain</span>
+                    <span className="text-[13px] text-[var(--color-text-secondary)]">
+                      Custom domain
+                    </span>
                   </label>
                 </div>
 
                 {domainType === "default" && name && (
                   <div className="bg-[var(--color-bg-secondary)] rounded-md p-3 space-y-1 border border-[var(--color-border)]">
-                    <p className="text-[12px] text-[var(--color-env-des)]">DES → {name}-des.veriel.dev</p>
-                    <p className="text-[12px] text-[var(--color-env-pre)]">PRE → {name}-pre.veriel.dev</p>
-                    <p className="text-[12px] text-[var(--color-env-pro)]">PRO → {name}.veriel.dev</p>
+                    <p className="text-[12px] text-[var(--color-env-des)]">
+                      DES → {name}-des.veriel.dev
+                    </p>
+                    <p className="text-[12px] text-[var(--color-env-pre)]">
+                      PRE → {name}-pre.veriel.dev
+                    </p>
+                    <p className="text-[12px] text-[var(--color-env-pro)]">
+                      PRO → {name}.veriel.dev
+                    </p>
                   </div>
                 )}
 
@@ -321,10 +372,14 @@ export function NewProject() {
           {/* Result */}
           {result && (
             <Card className="border-[var(--color-success)]/10 bg-[var(--color-success-light)]">
-              <p className="text-[13px] font-medium text-[var(--color-success-text)] mb-3">Deploy DES Complete</p>
+              <p className="text-[13px] font-medium text-[var(--color-success-text)] mb-3">
+                Deploy DES Complete
+              </p>
               <div className="space-y-1.5 text-[13px]">
                 <p>
-                  <span className="text-[var(--color-text-quaternary)]">Repository </span>
+                  <span className="text-[var(--color-text-quaternary)]">
+                    Repository{" "}
+                  </span>
                   <a
                     href={result.project?.github}
                     target="_blank"
@@ -336,17 +391,27 @@ export function NewProject() {
                 </p>
                 {result.project?.commit && (
                   <p>
-                    <span className="text-[var(--color-text-quaternary)]">Commit </span>
-                    <code className="text-[12px] text-[var(--color-text-secondary)]">{result.project.commit}</code>
+                    <span className="text-[var(--color-text-quaternary)]">
+                      Commit{" "}
+                    </span>
+                    <code className="text-[12px] text-[var(--color-text-secondary)]">
+                      {result.project.commit}
+                    </code>
                   </p>
                 )}
                 <p>
-                  <span className="text-[var(--color-text-quaternary)]">DES </span>
-                  <span className="text-[var(--color-env-des)]">{result.project?.urls?.des}</span>
+                  <span className="text-[var(--color-text-quaternary)]">
+                    DES{" "}
+                  </span>
+                  <span className="text-[var(--color-env-des)]">
+                    {result.project?.urls?.des}
+                  </span>
                 </p>
                 {result.ghRunUrl && (
                   <p>
-                    <span className="text-[var(--color-text-quaternary)]">Workflow </span>
+                    <span className="text-[var(--color-text-quaternary)]">
+                      Workflow{" "}
+                    </span>
                     <a
                       href={result.ghRunUrl}
                       target="_blank"
@@ -368,7 +433,9 @@ export function NewProject() {
 
           {error && !creating && (
             <Card className="border-[var(--color-error)]/10 bg-[var(--color-error-light)]">
-              <p className="text-[13px] text-[var(--color-error-text)]">{error}</p>
+              <p className="text-[13px] text-[var(--color-error-text)]">
+                {error}
+              </p>
             </Card>
           )}
 
@@ -377,7 +444,12 @@ export function NewProject() {
             <div className="flex items-center gap-2">
               {!workflow ? (
                 <>
-                  <Button type="submit" loading={creating} disabled={!name} size="sm">
+                  <Button
+                    type="submit"
+                    loading={creating}
+                    disabled={!name}
+                    size="sm"
+                  >
                     Create Project
                   </Button>
                   <Link to="/projects">

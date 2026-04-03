@@ -34,7 +34,7 @@ const app = new Hono<Env>();
 app.use(
   "/*",
   cors({
-    origin: ["http://localhost:5173", "https://veriel-ops.veriel.dev"],
+    origin: ["http://localhost:5173", "https://veriel-ops.veriel.dev", "tauri://localhost", "https://tauri.localhost"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
   }),

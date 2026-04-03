@@ -1,4 +1,4 @@
-const BASE = "/api";
+const BASE = import.meta.env.DEV ? "/api" : "http://localhost:3001/api";
 const TOKEN_KEY = "veriel-ops-token";
 
 export function getStoredToken(): string | null {

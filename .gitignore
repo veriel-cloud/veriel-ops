@@ -21,3 +21,8 @@ image.png
 server/logs/
 server/data/
 test-screenshots/
+
+# Tauri
+dashboard/src-tauri/target/
+dashboard/src-tauri/gen/
+dashboard/app-icon.png

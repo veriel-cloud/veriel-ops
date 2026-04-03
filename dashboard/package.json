@@ -9,12 +9,16 @@
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "tauri": "tauri",
+    "tauri:dev": "GDK_BACKEND=x11 WEBKIT_DISABLE_COMPOSITING_MODE=1 tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@tabler/icons-react": "^3.41.1",
     "@tanstack/react-query": "^5.95.2",
+    "@tauri-apps/api": "^2.10.1",
     "@veriel-ops/shared": "workspace:^",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -23,6 +27,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-virtual": "^3.13.23",
+    "@tauri-apps/cli": "^2.10.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

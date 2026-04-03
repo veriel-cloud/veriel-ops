@@ -85,3 +85,39 @@ Tras modificar cualquier `.service`, recargar:
 systemctl --user daemon-reload
 systemctl --user restart veriel-ops-{tunnel,server,dashboard}
 ```
+
+## App de escritorio (Tauri)
+
+El dashboard se puede ejecutar como app nativa con Tauri 2. Usa el webview del sistema (WebKitGTK) en vez del navegador.
+
+### Requisitos
+
+- Rust (`rustup`)
+- `webkit2gtk-4.1` (`sudo pacman -S --needed webkit2gtk-4.1`)
+
+### Desarrollo
+
+El server debe estar corriendo (via systemd o manualmente) antes de abrir Tauri.
+
+```bash
+# Arranca Vite + ventana nativa con HMR
+pnpm tauri:dev
+```
+
+Tauri ejecuta Vite en `:5173` y abre una ventana nativa apuntando a esa URL. Los cambios en React se reflejan al instante.
+
+### Build (generar AppImage)
+
+```bash
+pnpm tauri:build
+```
+
+El binario se genera en:
+
+```
+dashboard/src-tauri/target/release/bundle/appimage/veriel-ops.AppImage
+```
+
+### Nota: Hyprland (Wayland)
+
+WebKitGTK crashea en Hyprland con error de protocolo Wayland. El fix ya está aplicado en `dashboard/src-tauri/src/main.rs`: fuerza `GDK_BACKEND=x11` (XWayland) antes de inicializar GTK.

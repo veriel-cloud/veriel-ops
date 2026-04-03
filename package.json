@@ -12,7 +12,9 @@
     "lint": "biome check --write .",
     "lint:check": "biome check .",
     "test": "turbo run test",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "tauri:dev": "pnpm --filter dashboard tauri dev",
+    "tauri:build": "pnpm --filter dashboard tauri build"
   },
   "keywords": [
     "devops",
