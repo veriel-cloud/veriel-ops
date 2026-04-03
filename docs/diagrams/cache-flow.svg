@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1000" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#7a7a9a"/>
+    </marker>
+    <marker id="arr-g" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#34d399"/>
+    </marker>
+    <marker id="arr-r" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#f87171"/>
+    </marker>
+    <marker id="arr-o" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#f6821f"/>
+    </marker>
+    <marker id="arr-y" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#fbbf24"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="1000" rx="12" fill="#0f0f1a"/>
+
+  <!-- Title -->
+  <text x="550" y="38" text-anchor="middle" fill="#f6821f" font-size="20" font-weight="700">Cache de APIs Externas — veriel-ops</text>
+  <text x="550" y="58" text-anchor="middle" fill="#7a7a9a" font-size="11">Map en memoria con TTL · Invalidación en escrituras · Sin librería externa</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 1: Qué es y por qué -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <text x="40" y="95" fill="#60a5fa" font-size="13" font-weight="600">¿QUÉ ES Y POR QUÉ?</text>
+
+  <!-- Before -->
+  <rect x="40" y="110" width="490" height="75" rx="8" fill="rgba(248,113,113,0.05)" stroke="#f87171" stroke-dasharray="4"/>
+  <text x="50" y="130" fill="#f87171" font-size="11" font-weight="600">ANTES (sin cache)</text>
+  <text x="50" y="148" fill="#7a7a9a" font-size="10">Cada petición a /api/projects hacía 3 llamadas en paralelo:</text>
+  <text x="50" y="165" fill="#7a7a9a" font-size="9" font-family="monospace">  GitHub API (listOrgRepos) + Cloudflare API (listPagesProjects) + R2 (listBuilds)</text>
+  <text x="50" y="178" fill="#f87171" font-size="9">  → ~2-5 seg por request · Rate limit GitHub: 5000 req/h · Dashboard lento</text>
+
+  <!-- After -->
+  <rect x="560" y="110" width="500" height="75" rx="8" fill="rgba(52,211,153,0.05)" stroke="#34d399" stroke-dasharray="4"/>
+  <text x="570" y="130" fill="#34d399" font-size="11" font-weight="600">AHORA (con cache)</text>
+  <text x="570" y="148" fill="#7a7a9a" font-size="10">Primera petición: llama a las 3 APIs y guarda en cache (2 min TTL)</text>
+  <text x="570" y="165" fill="#7a7a9a" font-size="10">Siguientes peticiones: lee de memoria, 0 llamadas a APIs externas</text>
+  <text x="570" y="178" fill="#34d399" font-size="9">  → ~0ms · Sin rate limit · Dashboard instantáneo</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 2: Flujo de lectura (cache hit / miss) -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <text x="40" y="225" fill="#60a5fa" font-size="13" font-weight="600">1. FLUJO DE LECTURA</text>
+
+  <!-- Dashboard -->
+  <rect x="40" y="245" width="130" height="55" rx="8" fill="#16162a" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="105" y="268" text-anchor="middle" fill="#60a5fa" font-size="11" font-weight="600">Dashboard</text>
+  <text x="105" y="284" text-anchor="middle" fill="#7a7a9a" font-size="9">GET /api/projects</text>
+
+  <!-- Arrow to route -->
+  <line x1="170" y1="272" x2="230" y2="272" stroke="#7a7a9a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Route handler -->
+  <rect x="235" y="245" width="150" height="55" rx="8" fill="#16162a" stroke="#f6821f" stroke-width="1.5"/>
+  <text x="310" y="268" text-anchor="middle" fill="#f6821f" font-size="11" font-weight="600">projects.ts</text>
+  <text x="310" y="284" text-anchor="middle" fill="#7a7a9a" font-size="9">cachedData.getProjects()</text>
+
+  <!-- Arrow to cache -->
+  <line x1="385" y1="272" x2="445" y2="272" stroke="#f6821f" stroke-width="1.5" marker-end="url(#arr-o)"/>
+  <text x="415" y="262" text-anchor="middle" fill="#f6821f" font-size="8" font-weight="600">consulta</text>
+
+  <!-- Cache diamond -->
+  <polygon points="520,245 590,272 520,300 450,272" fill="#16162a" stroke="#fbbf24" stroke-width="1.5"/>
+  <text x="520" y="275" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="600">Cache</text>
+
+  <!-- HIT path -->
+  <line x1="520" y1="245" x2="520" y2="210" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-g)"/>
+  <rect x="445" y="180" width="150" height="30" rx="6" fill="rgba(52,211,153,0.08)" stroke="#34d399"/>
+  <text x="520" y="199" text-anchor="middle" fill="#34d399" font-size="10" font-weight="700">HIT → responde</text>
+  <text x="640" y="200" fill="#34d399" font-size="9">~0ms, sin API calls</text>
+
+  <!-- MISS path -->
+  <line x1="590" y1="272" x2="660" y2="272" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr-r)"/>
+  <text x="625" y="262" fill="#f87171" font-size="9" font-weight="600">MISS</text>
+
+  <!-- API calls box -->
+  <rect x="665" y="240" width="390" height="65" rx="8" fill="#16162a" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="860" y="260" text-anchor="middle" fill="#a78bfa" font-size="10" font-weight="600">Promise.all() — Llamadas a APIs externas</text>
+
+  <!-- Three API icons -->
+  <rect x="680" y="270" width="105" height="25" rx="4" fill="rgba(255,255,255,0.03)" stroke="#252548"/>
+  <text x="732" y="287" text-anchor="middle" fill="#7a7a9a" font-size="8">GitHub (repos)</text>
+
+  <rect x="795" y="270" width="120" height="25" rx="4" fill="rgba(255,255,255,0.03)" stroke="#252548"/>
+  <text x="855" y="287" text-anchor="middle" fill="#7a7a9a" font-size="8">Cloudflare (pages)</text>
+
+  <rect x="925" y="270" width="115" height="25" rx="4" fill="rgba(255,255,255,0.03)" stroke="#252548"/>
+  <text x="982" y="287" text-anchor="middle" fill="#7a7a9a" font-size="8">R2 (builds)</text>
+
+  <!-- Arrow back to cache (store) -->
+  <line x1="860" y1="305" x2="860" y2="340" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arr-y)"/>
+  <text x="880" y="328" fill="#fbbf24" font-size="9" font-weight="600">guarda en cache</text>
+
+  <rect x="780" y="345" width="160" height="28" rx="6" fill="rgba(251,191,36,0.08)" stroke="#fbbf24"/>
+  <text x="860" y="363" text-anchor="middle" fill="#fbbf24" font-size="9">cache.set("projects", data)</text>
+
+  <!-- Arrow response -->
+  <line x1="780" y1="359" x2="180" y2="359" stroke="#34d399" stroke-width="1" stroke-dasharray="4" marker-end="url(#arr-g)"/>
+  <text x="480" y="352" text-anchor="middle" fill="#34d399" font-size="8">responde con datos frescos</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 3: Cache keys and TTLs -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <text x="40" y="420" fill="#60a5fa" font-size="13" font-weight="600">2. CLAVES Y TTL</text>
+
+  <rect x="40" y="435" width="1020" height="90" rx="8" fill="#16162a" stroke="#252548"/>
+
+  <!-- Headers -->
+  <text x="60" y="455" fill="#fbbf24" font-size="9" font-weight="600">CLAVE</text>
+  <text x="280" y="455" fill="#fbbf24" font-size="9" font-weight="600">DATOS</text>
+  <text x="620" y="455" fill="#fbbf24" font-size="9" font-weight="600">TTL</text>
+  <text x="740" y="455" fill="#fbbf24" font-size="9" font-weight="600">APIs QUE EVITA</text>
+
+  <line x1="50" y1="462" x2="1050" y2="462" stroke="#252548"/>
+
+  <text x="60" y="480" fill="#f6821f" font-size="9" font-family="monospace">"projects"</text>
+  <text x="280" y="480" fill="#7a7a9a" font-size="9">Lista de todos los proyectos</text>
+  <text x="620" y="480" fill="#34d399" font-size="9" font-weight="600">2 min</text>
+  <text x="740" y="480" fill="#7a7a9a" font-size="9">GitHub + Cloudflare + R2 (3 calls)</text>
+
+  <text x="60" y="497" fill="#f6821f" font-size="9" font-family="monospace">"project:vulnscan"</text>
+  <text x="280" y="497" fill="#7a7a9a" font-size="9">Detalle + deploys + builds de un proyecto</text>
+  <text x="620" y="497" fill="#34d399" font-size="9" font-weight="600">2 min</text>
+  <text x="740" y="497" fill="#7a7a9a" font-size="9">GitHub + 3x Cloudflare + R2 (5 calls)</text>
+
+  <text x="60" y="514" fill="#f6821f" font-size="9" font-family="monospace">"deploys"</text>
+  <text x="280" y="514" fill="#7a7a9a" font-size="9">Historial de deploys de toda la org</text>
+  <text x="620" y="514" fill="#34d399" font-size="9" font-weight="600">2 min</text>
+  <text x="740" y="514" fill="#7a7a9a" font-size="9">GitHub + N x Cloudflare (N = proyectos)</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 4: Invalidation flow -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <text x="40" y="565" fill="#60a5fa" font-size="13" font-weight="600">3. FLUJO DE INVALIDACIÓN (escrituras)</text>
+
+  <text x="40" y="585" fill="#7a7a9a" font-size="10">Cuando el usuario hace una acción, el cache se invalida para que la siguiente lectura traiga datos frescos.</text>
+
+  <!-- Actions grid -->
+  <rect x="40" y="600" width="1020" height="170" rx="8" fill="#16162a" stroke="#252548"/>
+
+  <!-- Column: Action -->
+  <text x="60" y="622" fill="#f87171" font-size="9" font-weight="600">ACCIÓN</text>
+  <text x="300" y="622" fill="#f87171" font-size="9" font-weight="600">QUÉ INVALIDA</text>
+  <text x="650" y="622" fill="#f87171" font-size="9" font-weight="600">POR QUÉ</text>
+  <line x1="50" y1="629" x2="1050" y2="629" stroke="#252548"/>
+
+  <!-- Deploy -->
+  <text x="60" y="648" fill="#f6821f" font-size="9" font-weight="600">Deploy manual</text>
+  <text x="300" y="648" fill="#7a7a9a" font-size="9" font-family="monospace">"projects" + "project:{name}" + "deploys"</text>
+  <text x="650" y="648" fill="#7a7a9a" font-size="9">El estado del entorno cambia</text>
+
+  <!-- Rollback -->
+  <text x="60" y="668" fill="#f6821f" font-size="9" font-weight="600">Rollback</text>
+  <text x="300" y="668" fill="#7a7a9a" font-size="9" font-family="monospace">"projects" + "project:{name}" + "deploys"</text>
+  <text x="650" y="668" fill="#7a7a9a" font-size="9">Se restaura un build anterior</text>
+
+  <!-- Promote -->
+  <text x="60" y="688" fill="#f6821f" font-size="9" font-weight="600">Promote</text>
+  <text x="300" y="688" fill="#7a7a9a" font-size="9" font-family="monospace">"projects" + "project:{name}" + "deploys"</text>
+  <text x="650" y="688" fill="#7a7a9a" font-size="9">Se crea rama release o merge a main</text>
+
+  <!-- Delete -->
+  <text x="60" y="708" fill="#f6821f" font-size="9" font-weight="600">Delete proyecto</text>
+  <text x="300" y="708" fill="#7a7a9a" font-size="9" font-family="monospace">"projects" + "project:{name}" + "deploys"</text>
+  <text x="650" y="708" fill="#7a7a9a" font-size="9">El proyecto ya no existe</text>
+
+  <!-- Webhook -->
+  <text x="60" y="728" fill="#fbbf24" font-size="9" font-weight="600">Webhook (GitHub/CF)</text>
+  <text x="300" y="728" fill="#7a7a9a" font-size="9" font-family="monospace">"projects" + "project:{name}" + "deploys"</text>
+  <text x="650" y="728" fill="#7a7a9a" font-size="9">Evento externo puede haber cambiado el estado</text>
+
+  <!-- Settings -->
+  <text x="60" y="748" fill="#a78bfa" font-size="9" font-weight="600">Settings update</text>
+  <text x="300" y="748" fill="#7a7a9a" font-size="9" font-family="monospace">No invalida cache</text>
+  <text x="650" y="748" fill="#7a7a9a" font-size="9">Settings van a SQLite, no afectan datos cacheados</text>
+
+  <!-- Invalidation visual -->
+  <text x="60" y="758" fill="#7a7a9a" font-size="8" font-style="italic"></text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 5: Internals -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <text x="40" y="810" fill="#60a5fa" font-size="13" font-weight="600">4. CÓMO FUNCIONA INTERNAMENTE</text>
+
+  <!-- Map structure -->
+  <rect x="40" y="825" width="480" height="130" rx="8" fill="#16162a" stroke="#fbbf24"/>
+  <text x="55" y="848" fill="#fbbf24" font-size="11" font-weight="600">Map&lt;string, { data, expiresAt }&gt;</text>
+
+  <text x="55" y="870" fill="#7a7a9a" font-size="9" font-family="monospace">"projects"    → { data: [...], expiresAt: 1711744800000 }</text>
+  <text x="55" y="888" fill="#7a7a9a" font-size="9" font-family="monospace">"project:app" → { data: {...}, expiresAt: 1711744800000 }</text>
+  <text x="55" y="906" fill="#7a7a9a" font-size="9" font-family="monospace">"deploys"     → { data: [...], expiresAt: 1711744800000 }</text>
+
+  <text x="55" y="930" fill="#7a7a9a" font-size="9">En cada <tspan fill="#f6821f" font-weight="600">get()</tspan>: si <tspan fill="#fbbf24">Date.now() > expiresAt</tspan> → borra la entry → retorna undefined (miss)</text>
+  <text x="55" y="945" fill="#7a7a9a" font-size="9">Máximo <tspan fill="#fbbf24">100 entries</tspan>. Si se supera, evicta la más antigua (FIFO).</text>
+
+  <!-- Stats box -->
+  <rect x="560" y="825" width="500" height="130" rx="8" fill="#16162a" stroke="#22d3ee"/>
+  <text x="575" y="848" fill="#22d3ee" font-size="11" font-weight="600">GET /api/system/cache</text>
+
+  <rect x="575" y="860" width="200" height="80" rx="6" fill="rgba(255,255,255,0.02)" stroke="#252548"/>
+  <text x="585" y="880" fill="#7a7a9a" font-size="9" font-family="monospace">{</text>
+  <text x="585" y="895" fill="#7a7a9a" font-size="9" font-family="monospace">  "size": <tspan fill="#fbbf24">3</tspan>,</text>
+  <text x="585" y="910" fill="#7a7a9a" font-size="9" font-family="monospace">  "hits": <tspan fill="#34d399">47</tspan>,</text>
+  <text x="585" y="925" fill="#7a7a9a" font-size="9" font-family="monospace">  "misses": <tspan fill="#f87171">5</tspan>,</text>
+  <text x="585" y="940" fill="#7a7a9a" font-size="9" font-family="monospace">  "hitRate": <tspan fill="#34d399">"90%"</tspan></text>
+
+  <text x="800" y="880" fill="#7a7a9a" font-size="9"><tspan fill="#34d399" font-weight="600">hits</tspan> = veces que devolvió de cache</text>
+  <text x="800" y="898" fill="#7a7a9a" font-size="9"><tspan fill="#f87171" font-weight="600">misses</tspan> = veces que tuvo que llamar APIs</text>
+  <text x="800" y="916" fill="#7a7a9a" font-size="9"><tspan fill="#fbbf24" font-weight="600">size</tspan> = entries activas en memoria</text>
+  <text x="800" y="934" fill="#7a7a9a" font-size="9"><tspan fill="#34d399" font-weight="600">hitRate</tspan> = hits / (hits + misses)</text>
+  <text x="800" y="952" fill="#7a7a9a" font-size="8">Un hitRate alto = dashboard rápido y pocas API calls</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- Legend -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <rect x="40" y="965" width="1020" height="25" rx="6" fill="#16162a" stroke="#252548"/>
+  <circle cx="70" cy="977" r="4" fill="#34d399"/>
+  <text x="80" y="981" fill="#7a7a9a" font-size="8">Cache HIT</text>
+  <circle cx="170" cy="977" r="4" fill="#f87171"/>
+  <text x="180" y="981" fill="#7a7a9a" font-size="8">Cache MISS</text>
+  <circle cx="275" cy="977" r="4" fill="#fbbf24"/>
+  <text x="285" y="981" fill="#7a7a9a" font-size="8">Cache storage</text>
+  <circle cx="385" cy="977" r="4" fill="#f6821f"/>
+  <text x="395" y="981" fill="#7a7a9a" font-size="8">Invalidación</text>
+  <circle cx="490" cy="977" r="4" fill="#a78bfa"/>
+  <text x="500" y="981" fill="#7a7a9a" font-size="8">APIs externas</text>
+  <circle cx="600" cy="977" r="4" fill="#22d3ee"/>
+  <text x="610" y="981" fill="#7a7a9a" font-size="8">Stats endpoint</text>
+  <text x="750" y="981" fill="#7a7a9a" font-size="8">TTL: 2 min · Max entries: 100 · Evicción: FIFO + lazy expiry</text>
+</svg>

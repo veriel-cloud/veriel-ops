@@ -1,0 +1,534 @@
+{
+  "info": {
+    "name": "veriel-ops API",
+    "description": "Colección completa de la API de veriel-ops. Base URL: http://localhost:3001/api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{AUTH_TOKEN}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:3001/api"
+    },
+    {
+      "key": "AUTH_TOKEN",
+      "value": ""
+    },
+    {
+      "key": "PROJECT_NAME",
+      "value": "demo-app"
+    },
+    {
+      "key": "REPO_NAME",
+      "value": "demo-app"
+    },
+    {
+      "key": "WEBHOOK_SECRET",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "description": "Health, status y cache del servidor",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/system/health",
+            "auth": { "type": "noauth" },
+            "description": "Público — no requiere auth. Devuelve { status: 'ok' }"
+          }
+        },
+        {
+          "name": "Service status",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/system/status",
+            "description": "Estado de servicios externos (GitHub, Cloudflare, R2) con latencia"
+          }
+        },
+        {
+          "name": "Cache stats",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/system/cache",
+            "description": "Estadísticas del cache en memoria: hits, misses, hitRate"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "description": "CRUD de proyectos y operaciones de deploy",
+      "item": [
+        {
+          "name": "List projects",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/projects",
+            "description": "Lista todos los proyectos de la org con estado de entornos"
+          }
+        },
+        {
+          "name": "Get project detail",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}",
+            "description": "Detalle completo: proyecto, deploys, builds, workflow runs"
+          }
+        },
+        {
+          "name": "Create project",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/projects",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"my-new-project\",\n  \"type\": \"astro-static\",\n  \"description\": \"Descripción del proyecto\",\n  \"customDomain\": \"\"\n}"
+            },
+            "description": "Crea repo, Cloudflare Pages, DNS y webhook. Retorna inmediatamente."
+          }
+        },
+        {
+          "name": "Create project (SSE stream)",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/projects/create-stream",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"my-new-project\",\n  \"type\": \"astro-static\",\n  \"description\": \"Descripción del proyecto\",\n  \"customDomain\": \"\"\n}"
+            },
+            "description": "Igual que Create pero retorna un stream SSE con progreso paso a paso"
+          }
+        },
+        {
+          "name": "Import existing project",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/projects/import",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repoName\": \"existing-repo-name\"\n}"
+            },
+            "description": "Importa un repo existente de la org: crea Pages, DNS y webhook"
+          }
+        },
+        {
+          "name": "Delete project",
+          "request": {
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}",
+            "description": "Archiva repo, elimina Pages projects, borra DNS records"
+          }
+        },
+        {
+          "name": "── Deploy ──"
+        },
+        {
+          "name": "Deploy to environment",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/deploy",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"environment\": \"des\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Dispara workflow de deploy manual. Valores: des, pre, pro"
+          }
+        },
+        {
+          "name": "Promote",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/promote",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"des\",\n  \"version\": \"1.0.0\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "DES→PRE: requiere version (crea branch release/x.y.z). PRE→PRO: { from: 'pre' }"
+          }
+        },
+        {
+          "name": "Rollback",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/rollback",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"environment\": \"des\",\n  \"buildArtifact\": \"20260329T214343_ab13509.tar.gz\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Rollback a un build anterior almacenado en R2"
+          }
+        },
+        {
+          "name": "── Deploys & Builds ──"
+        },
+        {
+          "name": "Get project deploys",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/deploys",
+            "description": "Historial de deploys del proyecto"
+          }
+        },
+        {
+          "name": "Get project builds",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/builds",
+            "description": "Artefactos de build almacenados en R2"
+          }
+        },
+        {
+          "name": "── Git ──"
+        },
+        {
+          "name": "List branches",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/branches",
+            "description": "Lista ramas del repo"
+          }
+        },
+        {
+          "name": "Create branch",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/branches",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch\": \"feature/my-branch\",\n  \"from\": \"develop\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Crea una rama nueva. 'from' es opcional (default: rama principal)"
+          }
+        },
+        {
+          "name": "List pull requests",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/pull-requests",
+            "description": "PRs abiertos del repo"
+          }
+        },
+        {
+          "name": "── Files ──"
+        },
+        {
+          "name": "List files",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/files?branch=main",
+              "host": ["{{BASE_URL}}"],
+              "path": ["projects", "{{PROJECT_NAME}}", "files"],
+              "query": [
+                { "key": "branch", "value": "main", "description": "Rama (default: main)" }
+              ]
+            },
+            "description": "Árbol de archivos del repo en una rama"
+          }
+        },
+        {
+          "name": "Get file content",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/files/README.md?branch=main",
+              "host": ["{{BASE_URL}}"],
+              "path": ["projects", "{{PROJECT_NAME}}", "files", "README.md"],
+              "query": [
+                { "key": "branch", "value": "main", "description": "Rama (default: main)" }
+              ]
+            },
+            "description": "Contenido de un archivo específico. La ruta va después de /files/"
+          }
+        },
+        {
+          "name": "Commit files",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/commit",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch\": \"main\",\n  \"message\": \"Update README\",\n  \"files\": [\n    {\n      \"path\": \"README.md\",\n      \"content\": \"# Updated content\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Commit de uno o varios archivos directamente desde el dashboard"
+          }
+        },
+        {
+          "name": "── DNS & Domains ──"
+        },
+        {
+          "name": "Get DNS records",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/dns",
+            "description": "Registros DNS del proyecto en Cloudflare"
+          }
+        },
+        {
+          "name": "Set custom domain",
+          "request": {
+            "method": "PUT",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/domain",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customDomain\": \"my-app.veriel.dev\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Configura dominio custom para el proyecto"
+          }
+        },
+        {
+          "name": "Delete DNS record",
+          "request": {
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/domain/RECORD_ID_HERE",
+            "description": "Elimina un registro DNS por ID"
+          }
+        },
+        {
+          "name": "── Settings ──"
+        },
+        {
+          "name": "Get project settings",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}",
+            "description": "Los settings vienen dentro del detalle del proyecto"
+          }
+        },
+        {
+          "name": "Update project settings",
+          "request": {
+            "method": "PUT",
+            "url": "{{BASE_URL}}/projects/{{PROJECT_NAME}}/settings",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coverageThreshold\": 80\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Actualiza settings del proyecto (ej: coverageThreshold)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Deploys (global)",
+      "description": "Historial global de deploys de todos los proyectos",
+      "item": [
+        {
+          "name": "List all deploys",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/deploys",
+            "description": "Deploys recientes de todos los proyectos"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Actions",
+      "description": "GitHub Actions workflow runs y logs. Públicos (sin auth).",
+      "item": [
+        {
+          "name": "List workflow runs",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/actions/{{REPO_NAME}}/runs",
+            "auth": { "type": "noauth" },
+            "description": "Público. Últimos workflow runs del repo"
+          }
+        },
+        {
+          "name": "Get workflow run logs",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/actions/{{REPO_NAME}}/RUN_ID_HERE/logs",
+            "auth": { "type": "noauth" },
+            "description": "Público. Detalle del run con jobs y steps"
+          }
+        },
+        {
+          "name": "Stream workflow run (SSE)",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/actions/{{REPO_NAME}}/RUN_ID_HERE/stream",
+            "auth": { "type": "noauth" },
+            "description": "Público. SSE stream en tiempo real del progreso del workflow"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "description": "Eventos de webhooks almacenados",
+      "item": [
+        {
+          "name": "List events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/events?project={{PROJECT_NAME}}&since=2026-03-01T00:00:00Z",
+              "host": ["{{BASE_URL}}"],
+              "path": ["events"],
+              "query": [
+                { "key": "project", "value": "{{PROJECT_NAME}}", "description": "Filtrar por proyecto (opcional)" },
+                { "key": "since", "value": "2026-03-01T00:00:00Z", "description": "Desde fecha ISO (opcional)" }
+              ]
+            },
+            "description": "Eventos recibidos por webhooks. Filtrables por proyecto y fecha."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "description": "Sistema de notificaciones",
+      "item": [
+        {
+          "name": "List notifications",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/notifications",
+            "description": "Todas las notificaciones + unreadCount"
+          }
+        },
+        {
+          "name": "Mark as read",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/notifications/1/read",
+            "description": "Marca una notificación como leída. Cambiar '1' por el ID real."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "description": "Receptores de webhooks. Públicos (sin auth). Usados por GitHub y Cloudflare.",
+      "item": [
+        {
+          "name": "GitHub webhook (simular push)",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/webhooks/github",
+            "auth": { "type": "noauth" },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-github-event", "value": "push" },
+              { "key": "x-hub-signature-256", "value": "", "description": "HMAC SHA256 del body con el secret. Dejar vacío si no hay secret configurado." }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"repository\": {\n    \"name\": \"demo-app\",\n    \"full_name\": \"veriel-cloud/demo-app\"\n  },\n  \"ref\": \"refs/heads/develop\",\n  \"head_commit\": {\n    \"id\": \"abc1234\",\n    \"message\": \"test push event\"\n  },\n  \"pusher\": {\n    \"name\": \"veriel-dev\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Simula un webhook push de GitHub. Requiere header x-github-event."
+          }
+        },
+        {
+          "name": "GitHub webhook (simular workflow_run completed)",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/webhooks/github",
+            "auth": { "type": "noauth" },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-github-event", "value": "workflow_run" },
+              { "key": "x-hub-signature-256", "value": "" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"completed\",\n  \"workflow_run\": {\n    \"id\": 12345678,\n    \"name\": \"Deploy DES\",\n    \"head_branch\": \"develop\",\n    \"head_sha\": \"abc1234567890\",\n    \"conclusion\": \"success\",\n    \"status\": \"completed\",\n    \"html_url\": \"https://github.com/veriel-cloud/demo-app/actions/runs/12345678\"\n  },\n  \"repository\": {\n    \"name\": \"demo-app\",\n    \"full_name\": \"veriel-cloud/demo-app\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Simula un workflow_run completado. Cambiar conclusion a 'failure' para probar fallos."
+          }
+        },
+        {
+          "name": "GitHub webhook (simular workflow_run failed)",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/webhooks/github",
+            "auth": { "type": "noauth" },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-github-event", "value": "workflow_run" },
+              { "key": "x-hub-signature-256", "value": "" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"completed\",\n  \"workflow_run\": {\n    \"id\": 12345679,\n    \"name\": \"Deploy PRE\",\n    \"head_branch\": \"release/1.0.0\",\n    \"head_sha\": \"def4567890123\",\n    \"conclusion\": \"failure\",\n    \"status\": \"completed\",\n    \"html_url\": \"https://github.com/veriel-cloud/demo-app/actions/runs/12345679\"\n  },\n  \"repository\": {\n    \"name\": \"demo-app\",\n    \"full_name\": \"veriel-cloud/demo-app\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Simula un workflow fallido. Debería generar notificación workflow_failed."
+          }
+        },
+        {
+          "name": "Cloudflare webhook",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/webhooks/cloudflare",
+            "auth": { "type": "noauth" },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project\": {\n    \"name\": \"demo-app-des\"\n  },\n  \"deployment\": {\n    \"project_name\": \"demo-app-des\",\n    \"url\": \"https://demo-app-des.veriel.dev\",\n    \"environment\": \"production\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Simula un webhook de deployment de Cloudflare Pages"
+          }
+        }
+      ]
+    }
+  ]
+}

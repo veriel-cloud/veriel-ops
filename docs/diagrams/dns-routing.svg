@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="10" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,3 L0,6" fill="#666"/>
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="10" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,3 L0,6" fill="#F6821F"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="10" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,3 L0,6" fill="#6DB33F"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="620" rx="12" fill="#1a1a2e"/>
+
+  <!-- Title -->
+  <text x="450" y="40" text-anchor="middle" fill="#e0e0e0" font-size="18" font-weight="bold">DNS Routing en veriel-ops</text>
+  <text x="450" y="62" text-anchor="middle" fill="#888" font-size="12">Cómo se conecta tu dominio con los servicios de Cloudflare</text>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SECTION 1: CF Pages (Static / Astro / React) -->
+  <!-- ═══════════════════════════════════════════ -->
+
+  <text x="30" y="105" fill="#F6821F" font-size="14" font-weight="bold">CF Pages</text>
+  <text x="130" y="105" fill="#888" font-size="12">Astro Static, React SPA</text>
+
+  <!-- Step 1: CF creates Pages project -->
+  <rect x="30" y="120" width="240" height="70" rx="8" fill="#2a2a3e" stroke="#F6821F" stroke-width="1.5"/>
+  <text x="40" y="142" fill="#F6821F" font-size="11" font-weight="bold">1. CF crea el proyecto Pages</text>
+  <text x="40" y="160" fill="#ccc" font-size="11">URL por defecto:</text>
+  <text x="40" y="176" fill="#F6821F" font-size="12" font-weight="600">kea-des.pages.dev</text>
+
+  <!-- Arrow -->
+  <line x1="270" y1="155" x2="320" y2="155" stroke="#F6821F" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+
+  <!-- Step 2: CNAME -->
+  <rect x="330" y="120" width="240" height="70" rx="8" fill="#2a2a3e" stroke="#F6821F" stroke-width="1.5"/>
+  <text x="340" y="142" fill="#F6821F" font-size="11" font-weight="bold">2. Creamos CNAME (DNS)</text>
+  <text x="340" y="160" fill="#ccc" font-size="11">kea-des.veriel.dev</text>
+  <text x="340" y="176" fill="#888" font-size="11">→ CNAME → kea-des.pages.dev</text>
+
+  <!-- Arrow -->
+  <line x1="570" y1="155" x2="620" y2="155" stroke="#F6821F" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+
+  <!-- Step 3: Custom domain -->
+  <rect x="630" y="120" width="240" height="70" rx="8" fill="#2a2a3e" stroke="#F6821F" stroke-width="1.5"/>
+  <text x="640" y="142" fill="#F6821F" font-size="11" font-weight="bold">3. Registramos dominio custom</text>
+  <text x="640" y="160" fill="#ccc" font-size="11">addCustomDomain() en Pages</text>
+  <text x="640" y="176" fill="#888" font-size="11">CF sabe: dominio → Pages project</text>
+
+  <!-- Result box Pages -->
+  <rect x="30" y="205" width="840" height="45" rx="8" fill="#1e3a2e" stroke="#4ade80" stroke-width="1"/>
+  <text x="450" y="225" text-anchor="middle" fill="#4ade80" font-size="12" font-weight="bold">Resultado: https://kea-des.veriel.dev → CF Proxy → kea-des.pages.dev → Tu sitio estático</text>
+  <text x="450" y="240" text-anchor="middle" fill="#888" font-size="10">SSL automático + CDN + protección DDoS</text>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SECTION 2: CF Workers (Hono / Astro SSR) -->
+  <!-- ═══════════════════════════════════════════ -->
+
+  <text x="30" y="295" fill="#F6821F" font-size="14" font-weight="bold">CF Workers</text>
+  <text x="140" y="295" fill="#888" font-size="12">Hono API, Astro SSR</text>
+
+  <!-- Step 1: Workflow deploys worker -->
+  <rect x="30" y="310" width="240" height="70" rx="8" fill="#2a2a3e" stroke="#F6821F" stroke-width="1.5"/>
+  <text x="40" y="332" fill="#F6821F" font-size="11" font-weight="bold">1. Workflow despliega Worker</text>
+  <text x="40" y="350" fill="#ccc" font-size="11">URL por defecto:</text>
+  <text x="40" y="366" fill="#F6821F" font-size="12" font-weight="600">kea-des.vmordiales.workers.dev</text>
+
+  <!-- Arrow -->
+  <line x1="270" y1="345" x2="420" y2="345" stroke="#F6821F" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <text x="345" y="338" text-anchor="middle" fill="#888" font-size="10">No CNAME</text>
+  <text x="345" y="352" text-anchor="middle" fill="#888" font-size="10">manual</text>
+
+  <!-- Step 2: Custom Domain API (one step!) -->
+  <rect x="430" y="310" width="440" height="70" rx="8" fill="#2a2a3e" stroke="#F6821F" stroke-width="1.5"/>
+  <text x="440" y="332" fill="#F6821F" font-size="11" font-weight="bold">2. Workers Custom Domains API (un solo paso)</text>
+  <text x="440" y="350" fill="#ccc" font-size="11">setupWorkerDomain("kea-des", "kea-des.veriel.dev")</text>
+  <text x="440" y="366" fill="#888" font-size="11">CF crea DNS + ruta automáticamente</text>
+
+  <!-- Result box Workers -->
+  <rect x="30" y="395" width="840" height="45" rx="8" fill="#1e3a2e" stroke="#4ade80" stroke-width="1"/>
+  <text x="450" y="415" text-anchor="middle" fill="#4ade80" font-size="12" font-weight="bold">Resultado: https://kea-des.veriel.dev → CF Proxy → Worker kea-des → Tu API Hono</text>
+  <text x="450" y="430" text-anchor="middle" fill="#888" font-size="10">SSL automático + edge computing + protección DDoS</text>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SECTION 3: Container (Go / Spring Boot) -->
+  <!-- ═══════════════════════════════════════════ -->
+
+  <text x="30" y="485" fill="#6DB33F" font-size="14" font-weight="bold">Container (VPS)</text>
+  <text x="175" y="485" fill="#888" font-size="12">Go Fiber, Spring Boot</text>
+
+  <!-- Step 1: Docker en VPS -->
+  <rect x="30" y="500" width="240" height="70" rx="8" fill="#2a2a3e" stroke="#6DB33F" stroke-width="1.5"/>
+  <text x="40" y="522" fill="#6DB33F" font-size="11" font-weight="bold">1. Docker deploy en VPS</text>
+  <text x="40" y="540" fill="#ccc" font-size="11">IP del servidor:</text>
+  <text x="40" y="556" fill="#6DB33F" font-size="12" font-weight="600">xxx.xxx.xxx.xxx:8080</text>
+
+  <!-- Arrow -->
+  <line x1="270" y1="535" x2="420" y2="535" stroke="#6DB33F" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <text x="345" y="528" text-anchor="middle" fill="#888" font-size="10">Pendiente</text>
+  <text x="345" y="542" text-anchor="middle" fill="#888" font-size="10">de VPS</text>
+
+  <!-- Step 2: DNS A record -->
+  <rect x="430" y="500" width="440" height="70" rx="8" fill="#2a2a3e" stroke="#6DB33F" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="440" y="522" fill="#6DB33F" font-size="11" font-weight="bold">2. DNS A Record (cuando haya VPS)</text>
+  <text x="440" y="540" fill="#ccc" font-size="11">kea-des.veriel.dev → A → IP del VPS</text>
+  <text x="440" y="556" fill="#888" font-size="11">Caddy/Nginx en VPS hace reverse proxy al container</text>
+
+  <!-- Result box Container -->
+  <rect x="30" y="585" width="840" height="28" rx="8" fill="#2a2a1e" stroke="#888" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="450" y="604" text-anchor="middle" fill="#888" font-size="12">Pendiente: requiere VPS (OVHcloud) → Phase B4/B5</text>
+
+</svg>

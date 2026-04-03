@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>veriel-ops — Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',system-ui,sans-serif;background:#09090b;color:#fafafa;overflow:auto}
+  .canvas{position:relative;width:1580px;height:1020px;margin:20px auto}
+  svg.wires{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+
+  .zone{position:absolute;border-radius:14px;border:1.5px solid}
+  .zone-t{position:absolute;top:8px;left:14px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.6px}
+
+  .n{position:absolute;display:flex;flex-direction:column;align-items:center;text-align:center;z-index:2;width:82px}
+  .n-ico{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:5px;border:2.5px solid;background:#111113}
+  .n-ico img{width:24px;height:24px}
+  .n-ico svg{width:24px;height:24px}
+  .n-nm{font-size:10px;font-weight:700;line-height:1.2;white-space:nowrap}
+  .n-d{font-size:8px;color:#71717a;line-height:1.2;margin-top:1px;max-width:100px}
+
+  .tag{position:absolute;z-index:3;font-size:7px;font-weight:700;padding:1px 5px;border-radius:3px;background:#09090b;border:1px solid #1e1e22;letter-spacing:.3px;white-space:nowrap}
+
+  .legend{position:absolute;bottom:14px;right:20px;background:#111113;border:1px solid #1e1e22;border-radius:10px;padding:12px 14px;z-index:5}
+  .legend h4{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:#52525b;margin-bottom:6px}
+  .lg{display:flex;align-items:center;gap:7px;margin-bottom:3px}
+  .lg-l{width:24px;height:2.5px;border-radius:2px;flex-shrink:0}
+  .lg-d{background:repeating-linear-gradient(90deg,var(--c) 0 4px,transparent 4px 7px)}
+  .lg-t{font-size:8.5px;color:#a1a1aa}
+
+  .title{position:absolute;top:10px;left:20px;z-index:5}
+  .title h1{font-size:16px;font-weight:700}
+  .title h1 em{font-style:normal;color:#3b82f6}
+  .title p{font-size:9px;color:#52525b;margin-top:1px}
+
+  .w{fill:none;stroke-width:2}
+  .w-rest{stroke:#3b82f6}
+  .w-sse{stroke:#f97316;stroke-dasharray:6 3}
+  .w-hook{stroke:#ef4444;stroke-dasharray:5 3}
+  .w-gh{stroke:#a855f7}
+  .w-cf{stroke:#F48120}
+  .w-db{stroke:#22c55e}
+  .w-pipe{stroke:#ec4899;stroke-width:2.2}
+  .w-int{stroke:#3f3f46;stroke-width:1.3}
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <div class="title">
+    <h1><em>veriel-ops</em> — System Architecture</h1>
+    <p>Monorepo &middot; pnpm workspaces &middot; Bun + TypeScript strict</p>
+  </div>
+
+  <!-- ═══ ZONES ═══ -->
+  <div class="zone" style="left:10px;top:50px;width:130px;height:940px;border-color:#3b82f612;background:#3b82f604">
+    <span class="zone-t" style="color:#3b82f660">Actor</span>
+  </div>
+  <div class="zone" style="left:152px;top:50px;width:260px;height:940px;border-color:#3b82f618;background:#3b82f606">
+    <span class="zone-t" style="color:#3b82f6">Dashboard</span>
+  </div>
+  <div class="zone" style="left:424px;top:50px;width:200px;height:940px;border-color:#f9731618;background:#f9731606">
+    <span class="zone-t" style="color:#f97316">API (Hono)</span>
+  </div>
+  <div class="zone" style="left:636px;top:50px;width:280px;height:940px;border-color:#a855f712;background:#a855f704">
+    <span class="zone-t" style="color:#a855f7">Services</span>
+  </div>
+  <div class="zone" style="left:928px;top:50px;width:640px;height:940px;border-color:#52525b12;background:#52525b04">
+    <span class="zone-t" style="color:#52525b60">External / Storage</span>
+  </div>
+
+  <!--
+    LAYOUT STRATEGY: Rows aligned horizontally.
+    Each row connects API route → Service → External with straight lines.
+    Cross-row connections use orthogonal (right-angle) routing.
+
+    Row 1 (y=110): Projects setup     Pipeline ─────→ (down to GH + CF)
+    Row 2 (y=230): Actions/Projects   GitHubService → GitHub Repos + Actions
+    Row 3 (y=370): Deploys            CloudflareService → CF Pages + DNS
+    Row 4 (y=500): (R2/rollback)      R2Service ────→ CF R2
+    Row 5 (y=610): Webhooks           DeployTracker
+    Row 6 (y=730): System/store       DbStore ──────→ SQLite
+    Row 7 (y=850): (coverage/cache)   Coverage + CachedData
+  -->
+
+  <!-- ═══ ROW 1 — y=110: PIPELINE ═══ -->
+  <div class="n" style="left:34px;top:100px">
+    <div class="n-ico" style="border-color:#3b82f6">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/></svg>
+    </div>
+    <div class="n-nm">Developer</div>
+  </div>
+
+  <div class="n" style="left:185px;top:100px">
+    <div class="n-ico" style="border-color:#61DAFB">
+      <img src="https://cdn.simpleicons.org/react/61DAFB" alt="React">
+    </div>
+    <div class="n-nm">React 19</div>
+    <div class="n-d">SPA + Router</div>
+  </div>
+
+  <div class="n" style="left:295px;top:100px">
+    <div class="n-ico" style="border-color:#646CFF">
+      <img src="https://cdn.simpleicons.org/vite/646CFF" alt="Vite">
+    </div>
+    <div class="n-nm">Vite 6</div>
+    <div class="n-d">build + HMR</div>
+  </div>
+
+  <div class="n" style="left:465px;top:100px">
+    <div class="n-ico" style="border-color:#FF5B11">
+      <img src="https://cdn.simpleicons.org/hono/FF5B11" alt="Hono">
+    </div>
+    <div class="n-nm">/api/projects</div>
+    <div class="n-d">CRUD + SSE setup</div>
+  </div>
+
+  <div class="n" style="left:700px;top:100px">
+    <div class="n-ico" style="border-color:#ec4899">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+    </div>
+    <div class="n-nm">Pipeline</div>
+    <div class="n-d">setup orchestrator</div>
+  </div>
+
+  <div class="n" style="left:840px;top:100px">
+    <div class="n-ico" style="border-color:#FBF0DF">
+      <img src="https://cdn.simpleicons.org/bun/FBF0DF" alt="Bun">
+    </div>
+    <div class="n-nm">Bun Runtime</div>
+    <div class="n-d">server VPS :3001</div>
+  </div>
+
+  <!-- ═══ ROW 2 — y=230: GITHUB ═══ -->
+  <div class="n" style="left:185px;top:230px">
+    <div class="n-ico" style="border-color:#FF4154">
+      <img src="https://cdn.simpleicons.org/reactquery/FF4154" alt="TanStack Query">
+    </div>
+    <div class="n-nm">TanStack Query</div>
+    <div class="n-d">queries + mutations</div>
+  </div>
+
+  <div class="n" style="left:295px;top:230px">
+    <div class="n-ico" style="border-color:#f97316">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    </div>
+    <div class="n-nm">SSE Hook</div>
+    <div class="n-d">useDeploysStream</div>
+  </div>
+
+  <div class="n" style="left:465px;top:230px">
+    <div class="n-ico" style="border-color:#a855f7">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16"/></svg>
+    </div>
+    <div class="n-nm">/api/actions</div>
+    <div class="n-d">workflow runs</div>
+  </div>
+
+  <div class="n" style="left:700px;top:230px">
+    <div class="n-ico" style="border-color:#a855f7">
+      <img src="https://cdn.simpleicons.org/github/a855f7" alt="GitHub">
+    </div>
+    <div class="n-nm">GitHubService</div>
+    <div class="n-d">Octokit wrapper</div>
+  </div>
+
+  <div class="n" style="left:980px;top:230px">
+    <div class="n-ico" style="border-color:#e0e0e0">
+      <img src="https://cdn.simpleicons.org/github/e0e0e0" alt="GitHub">
+    </div>
+    <div class="n-nm">GitHub Repos</div>
+    <div class="n-d">veriel-cloud org</div>
+  </div>
+
+  <div class="n" style="left:1120px;top:230px">
+    <div class="n-ico" style="border-color:#2088FF">
+      <img src="https://cdn.simpleicons.org/githubactions/2088FF" alt="Actions">
+    </div>
+    <div class="n-nm">GitHub Actions</div>
+    <div class="n-d">CI/CD workflows</div>
+  </div>
+
+  <div class="n" style="left:1270px;top:230px">
+    <div class="n-ico" style="border-color:#ef4444">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    </div>
+    <div class="n-nm">GH Webhooks</div>
+    <div class="n-d">workflow_run</div>
+  </div>
+
+  <!-- ═══ ROW 3 — y=370: CLOUDFLARE ═══ -->
+  <div class="n" style="left:240px;top:370px">
+    <div class="n-ico" style="border-color:#06B6D4">
+      <img src="https://cdn.simpleicons.org/tailwindcss/06B6D4" alt="Tailwind">
+    </div>
+    <div class="n-nm">Tailwind CSS</div>
+    <div class="n-d">styles + 5 themes</div>
+  </div>
+
+  <div class="n" style="left:465px;top:370px">
+    <div class="n-ico" style="border-color:#f97316">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2"><path d="M12 2L2 7l10 5 10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div class="n-nm">/api/deploys</div>
+    <div class="n-d">REST + /stream SSE</div>
+  </div>
+
+  <div class="n" style="left:700px;top:370px">
+    <div class="n-ico" style="border-color:#F48120">
+      <img src="https://cdn.simpleicons.org/cloudflare/F48120" alt="Cloudflare">
+    </div>
+    <div class="n-nm">CloudflareService</div>
+    <div class="n-d">Pages + DNS API</div>
+  </div>
+
+  <div class="n" style="left:980px;top:370px">
+    <div class="n-ico" style="border-color:#F48120">
+      <img src="https://cdn.simpleicons.org/cloudflarepages/F48120" alt="CF Pages">
+    </div>
+    <div class="n-nm">CF Pages</div>
+    <div class="n-d">project hosting</div>
+  </div>
+
+  <div class="n" style="left:1120px;top:370px">
+    <div class="n-ico" style="border-color:#F48120">
+      <img src="https://cdn.simpleicons.org/cloudflare/F48120" alt="CF DNS">
+    </div>
+    <div class="n-nm">CF DNS</div>
+    <div class="n-d">*.veriel.dev</div>
+  </div>
+
+  <!-- ═══ ROW 4 — y=500: R2 / ROLLBACK ═══ -->
+  <div class="n" style="left:240px;top:500px">
+    <div class="n-ico" style="border-color:#007ACC">
+      <img src="https://cdn.simpleicons.org/visualstudiocode/007ACC" alt="Monaco">
+    </div>
+    <div class="n-nm">Monaco Editor</div>
+    <div class="n-d">FileEditor page</div>
+  </div>
+
+  <div class="n" style="left:700px;top:500px">
+    <div class="n-ico" style="border-color:#F48120">
+      <img src="https://cdn.simpleicons.org/amazons3/F48120" alt="S3/R2">
+    </div>
+    <div class="n-nm">R2Service</div>
+    <div class="n-d">aws4fetch S3</div>
+  </div>
+
+  <div class="n" style="left:980px;top:500px">
+    <div class="n-ico" style="border-color:#F48120">
+      <img src="https://cdn.simpleicons.org/cloudflare/F48120" alt="R2">
+    </div>
+    <div class="n-nm">CF R2</div>
+    <div class="n-d">build artifacts</div>
+  </div>
+
+  <!-- ═══ ROW 5 — y=620: WEBHOOKS / TRACKER ═══ -->
+  <div class="n" style="left:34px;top:620px">
+    <div class="n-ico" style="border-color:#a855f7">
+      <img src="https://cdn.simpleicons.org/git/a855f7" alt="Git">
+    </div>
+    <div class="n-nm">git push</div>
+    <div class="n-d">triggers workflow</div>
+  </div>
+
+  <div class="n" style="left:465px;top:620px">
+    <div class="n-ico" style="border-color:#ef4444">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <div class="n-nm">/api/webhooks</div>
+    <div class="n-d">HMAC verify</div>
+  </div>
+
+  <div class="n" style="left:700px;top:620px">
+    <div class="n-ico" style="border-color:#eab308">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    </div>
+    <div class="n-nm">DeployTracker</div>
+    <div class="n-d">active deploys (mem)</div>
+  </div>
+
+  <div class="n" style="left:840px;top:620px">
+    <div class="n-ico" style="border-color:#a855f7">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    </div>
+    <div class="n-nm">Coverage</div>
+    <div class="n-d">extract from logs</div>
+  </div>
+
+  <!-- ═══ ROW 6 — y=740: DB ═══ -->
+  <div class="n" style="left:465px;top:740px">
+    <div class="n-ico" style="border-color:#52525b">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    </div>
+    <div class="n-nm">/api/system</div>
+    <div class="n-d">health, notif, audit</div>
+  </div>
+
+  <div class="n" style="left:700px;top:740px">
+    <div class="n-ico" style="border-color:#22c55e">
+      <img src="https://cdn.simpleicons.org/sqlite/22c55e" alt="SQLite">
+    </div>
+    <div class="n-nm">DbStore</div>
+    <div class="n-d">bun:sqlite wrapper</div>
+  </div>
+
+  <div class="n" style="left:840px;top:740px">
+    <div class="n-ico" style="border-color:#06b6d4">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><path d="M12 2L2 7l10 5 10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div class="n-nm">CachedData</div>
+    <div class="n-d">TTL 2min, max 100</div>
+  </div>
+
+  <div class="n" style="left:980px;top:740px">
+    <div class="n-ico" style="border-color:#22c55e">
+      <img src="https://cdn.simpleicons.org/sqlite/22c55e" alt="SQLite">
+    </div>
+    <div class="n-nm">SQLite DB</div>
+    <div class="n-d">veriel-ops.db</div>
+  </div>
+
+  <!-- Tables info box -->
+  <div class="n" style="left:1100px;top:745px;width:180px">
+    <div style="background:#111113;border:1px solid #27272a;border-radius:6px;padding:6px 10px;font-size:8px;color:#71717a;line-height:1.5;text-align:left;width:180px">
+      <span style="color:#22c55e;font-weight:700">6 tables:</span> webhook_events, deploy_history, audit_log, notifications, project_settings, auth_tokens
+    </div>
+  </div>
+
+  <!-- ═══ ENVIRONMENTS ROW — y=880 ═══ -->
+  <div class="n" style="left:980px;top:880px">
+    <div class="n-ico" style="border-color:#22c55e;font-weight:800;font-size:12px;color:#22c55e">DES</div>
+    <div class="n-nm" style="color:#22c55e">develop</div>
+    <div class="n-d">*-des.veriel.dev</div>
+  </div>
+  <div class="n" style="left:1120px;top:880px">
+    <div class="n-ico" style="border-color:#eab308;font-weight:800;font-size:12px;color:#eab308">PRE</div>
+    <div class="n-nm" style="color:#eab308">release/*</div>
+    <div class="n-d">cov &ge; 80%</div>
+  </div>
+  <div class="n" style="left:1260px;top:880px">
+    <div class="n-ico" style="border-color:#3b82f6;font-weight:800;font-size:12px;color:#3b82f6">PRO</div>
+    <div class="n-nm" style="color:#3b82f6">main</div>
+    <div class="n-d">cov &ge; 80%</div>
+  </div>
+
+  <!-- Pages info box -->
+  <div style="position:absolute;left:160px;top:500px;width:70px;background:#111113;border:1px dashed #27272a;border-radius:6px;padding:6px 8px;font-size:7.5px;color:#71717a;line-height:1.6;z-index:2">
+    <span style="color:#fafafa;font-weight:700;font-size:8px">11 pages</span><br>
+    Login<br>Dashboard<br>Projects<br>ProjectDetail<br>NewProject<br>ImportProject<br>Deploys<br>FileEditor<br>AuditLog<br>Settings<br>404
+  </div>
+
+  <!-- Shared package badge -->
+  <div style="position:absolute;left:160px;top:880px;background:#111113;border:1px solid #eab30840;border-radius:6px;padding:5px 10px;z-index:2;display:flex;align-items:center;gap:6px">
+    <img src="https://cdn.simpleicons.org/typescript/eab308" width="14" height="14" alt="TS">
+    <span style="font-size:9px;color:#eab308;font-weight:700">@veriel-ops/shared</span>
+    <span style="font-size:7.5px;color:#71717a">types + constants</span>
+  </div>
+
+  <!-- Toolchain bar -->
+  <div style="position:absolute;bottom:12px;left:20px;background:#111113;border:1px solid #1e1e22;border-radius:8px;padding:6px 14px;z-index:5;display:flex;gap:12px;align-items:center">
+    <img src="https://cdn.simpleicons.org/typescript/3178C6" width="14" height="14"><span style="font-size:9px;color:#71717a">TS 5.9</span>
+    <img src="https://cdn.simpleicons.org/biome/60a5fa" width="14" height="14"><span style="font-size:9px;color:#71717a">Biome</span>
+    <img src="https://cdn.simpleicons.org/vitest/729B1B" width="14" height="14"><span style="font-size:9px;color:#71717a">Vitest &ge;80%</span>
+    <img src="https://cdn.simpleicons.org/pnpm/F9AD00" width="14" height="14"><span style="font-size:9px;color:#71717a">pnpm</span>
+    <img src="https://cdn.simpleicons.org/turborepo/e0e0e0" width="14" height="14"><span style="font-size:9px;color:#71717a">Turbo</span>
+    <span style="font-size:9px;color:#71717a">Lefthook</span>
+  </div>
+
+  <!-- ═══ WIRE LABELS ═══ -->
+  <!-- Row 1 -->
+  <div class="tag" style="left:117px;top:118px;color:#3b82f6">HTTPS</div>
+  <div class="tag" style="left:580px;top:118px;color:#ec4899">orchestrate</div>
+  <!-- Row 2 -->
+  <div class="tag" style="left:400px;top:248px;color:#a855f7">fetch runs</div>
+  <div class="tag" style="left:815px;top:248px;color:#a855f7">Octokit</div>
+  <div class="tag" style="left:1060px;top:248px;color:#a855f7">Octokit</div>
+  <!-- Row 3 -->
+  <div class="tag" style="left:580px;top:388px;color:#F48120">poll</div>
+  <div class="tag" style="left:815px;top:388px;color:#F48120">REST API</div>
+  <div class="tag" style="left:1060px;top:388px;color:#F48120">REST API</div>
+  <!-- Row 4 -->
+  <div class="tag" style="left:815px;top:518px;color:#F48120">aws4fetch</div>
+  <!-- Row 5 -->
+  <div class="tag" style="left:580px;top:638px;color:#eab308">track</div>
+  <!-- Row 6 -->
+  <div class="tag" style="left:580px;top:758px;color:#22c55e">query</div>
+  <div class="tag" style="left:815px;top:758px;color:#22c55e">bun:sqlite</div>
+
+  <!-- ═══ SVG WIRES ═══ -->
+  <svg class="wires" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a-b" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#3b82f6"/></marker>
+      <marker id="a-o" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#f97316"/></marker>
+      <marker id="a-r" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#ef4444"/></marker>
+      <marker id="a-p" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#a855f7"/></marker>
+      <marker id="a-g" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#22c55e"/></marker>
+      <marker id="a-k" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#ec4899"/></marker>
+      <marker id="a-y" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#eab308"/></marker>
+      <marker id="a-x" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#3f3f46"/></marker>
+      <marker id="a-cf" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#F48120"/></marker>
+    </defs>
+
+    <!-- ═══ ROW 1: Developer → React → /api/projects → Pipeline ═══ -->
+    <line x1="104" y1="128" x2="185" y2="128" class="w w-rest" marker-end="url(#a-b)"/>
+    <!-- TanStack handles the REST calls -->
+    <line x1="240" y1="260" x2="465" y2="130" class="w w-rest" marker-end="url(#a-b)"/>
+    <!-- /api/projects → Pipeline (same row, straight) -->
+    <line x1="547" y1="128" x2="700" y2="128" class="w w-pipe" marker-end="url(#a-k)"/>
+
+    <!-- Pipeline → GitHubService (down to row 2, orthogonal) -->
+    <path d="M 738 160 L 738 230" class="w w-pipe" marker-end="url(#a-k)"/>
+    <!-- Pipeline → CloudflareService (down to row 3, orthogonal) -->
+    <path d="M 745 160 L 745 370" class="w w-pipe" marker-end="url(#a-k)"/>
+
+    <!-- ═══ ROW 2: /api/actions → GitHubService → Repos + Actions ═══ -->
+    <!-- /api/actions → GitHubService (same row, straight) -->
+    <line x1="547" y1="258" x2="700" y2="258" class="w w-gh" marker-end="url(#a-p)"/>
+    <!-- GitHubService → GitHub Repos (same row, straight) -->
+    <line x1="782" y1="255" x2="980" y2="255" class="w w-gh" marker-end="url(#a-p)"/>
+    <!-- GitHubService → GitHub Actions (same row, straight) -->
+    <line x1="782" y1="262" x2="1120" y2="262" class="w w-gh" marker-end="url(#a-p)"/>
+
+    <!-- GH Actions → GH Webhooks (same row, straight) -->
+    <line x1="1202" y1="258" x2="1270" y2="258" class="w w-int" marker-end="url(#a-x)"/>
+
+    <!-- GH Webhooks → /api/webhooks (orthogonal: down then left) -->
+    <path d="M 1308 280 L 1308 648 L 547 648" class="w w-hook" marker-end="url(#a-r)"/>
+
+    <!-- git push → GH Actions (orthogonal: right then up) -->
+    <path d="M 104 648 L 140 648 L 140 258 L 465 258" class="w w-sse" marker-end="url(#a-o)"/>
+
+    <!-- ═══ ROW 3: /api/deploys → CloudflareService → CF Pages + DNS ═══ -->
+    <!-- SSE hook → /api/deploys -->
+    <line x1="358" y1="258" x2="465" y2="398" class="w w-sse" marker-end="url(#a-o)"/>
+    <!-- /api/deploys → CloudflareService (same row, straight) -->
+    <line x1="547" y1="398" x2="700" y2="398" class="w w-cf" marker-end="url(#a-cf)"/>
+    <!-- CloudflareService → CF Pages (same row, straight) -->
+    <line x1="782" y1="395" x2="980" y2="395" class="w w-cf" marker-end="url(#a-cf)"/>
+    <!-- CloudflareService → CF DNS (same row, straight) -->
+    <line x1="782" y1="402" x2="1120" y2="402" class="w w-cf" marker-end="url(#a-cf)"/>
+
+    <!-- ═══ ROW 4: R2Service → CF R2 (same row, straight) ═══ -->
+    <line x1="782" y1="528" x2="980" y2="528" class="w w-cf" marker-end="url(#a-cf)"/>
+
+    <!-- ═══ ROW 5: /api/webhooks → DeployTracker + Coverage ═══ -->
+    <!-- /api/webhooks → DeployTracker (same row, straight) -->
+    <line x1="547" y1="648" x2="700" y2="648" class="w w-hook" marker-end="url(#a-y)"/>
+    <!-- /api/webhooks → Coverage (same row, short hop) -->
+    <line x1="547" y1="655" x2="840" y2="648" class="w w-hook" marker-end="url(#a-p)"/>
+    <!-- /api/webhooks → DbStore (orthogonal: down) -->
+    <path d="M 504 672 L 504 768 L 700 768" class="w w-db" marker-end="url(#a-g)"/>
+
+    <!-- Coverage → GH Actions (orthogonal: up along right edge) -->
+    <path d="M 878 620 L 878 580 L 930 580 L 930 262 L 1120 262" class="w w-gh" marker-end="url(#a-p)" opacity="0.5"/>
+
+    <!-- ═══ ROW 6: /api/system → DbStore → SQLite ═══ -->
+    <!-- /api/system → DbStore (same row, straight) -->
+    <line x1="547" y1="768" x2="700" y2="768" class="w w-db" marker-end="url(#a-g)"/>
+    <!-- DbStore → SQLite (same row, straight) -->
+    <line x1="782" y1="768" x2="980" y2="768" class="w w-db" marker-end="url(#a-g)"/>
+    <!-- SQLite → tables box -->
+    <line x1="1062" y1="768" x2="1100" y2="768" class="w w-db" marker-end="url(#a-g)"/>
+
+    <!-- CachedData → GitHubService (orthogonal: up) -->
+    <path d="M 878 740 L 920 740 L 920 272 L 782 272" class="w w-int" marker-end="url(#a-x)" opacity="0.4"/>
+
+    <!-- ═══ ENVIRONMENTS: CF Pages → DES/PRE/PRO ═══ -->
+    <path d="M 1018 420 L 1018 880" class="w w-int" marker-end="url(#a-x)"/>
+    <path d="M 1024 420 L 1158 880" class="w w-int" marker-end="url(#a-x)"/>
+    <path d="M 1030 420 L 1298 880" class="w w-int" marker-end="url(#a-x)"/>
+
+    <!-- Env promotion -->
+    <line x1="1060" y1="908" x2="1120" y2="908" class="w w-int" marker-end="url(#a-x)"/>
+    <line x1="1200" y1="908" x2="1260" y2="908" class="w w-int" marker-end="url(#a-x)"/>
+  </svg>
+
+  <!-- ═══ LEGEND ═══ -->
+  <div class="legend">
+    <h4>Connections</h4>
+    <div class="lg"><div class="lg-l" style="background:#3b82f6"></div><span class="lg-t">REST (TanStack Query)</span></div>
+    <div class="lg"><div class="lg-l lg-d" style="--c:#f97316"></div><span class="lg-t">SSE (EventSource)</span></div>
+    <div class="lg"><div class="lg-l lg-d" style="--c:#ef4444"></div><span class="lg-t">Webhook (HMAC-SHA256)</span></div>
+    <div class="lg"><div class="lg-l" style="background:#a855f7"></div><span class="lg-t">GitHub API (Octokit)</span></div>
+    <div class="lg"><div class="lg-l" style="background:#F48120"></div><span class="lg-t">Cloudflare API</span></div>
+    <div class="lg"><div class="lg-l" style="background:#22c55e"></div><span class="lg-t">SQLite (bun:sqlite)</span></div>
+    <div class="lg"><div class="lg-l" style="background:#ec4899"></div><span class="lg-t">Pipeline orchestration</span></div>
+    <div class="lg"><div class="lg-l" style="background:#3f3f46"></div><span class="lg-t">Internal / cache</span></div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -18,8 +18,6 @@ dashboard/dist-server/
 .claude/
 .mcp.json
 image.png
-docs/hono-best-practices.md
 server/logs/
 server/data/
 test-screenshots/
-docs/

@@ -1,0 +1,228 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1050" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#7a7a9a"/>
+    </marker>
+    <marker id="arr-g" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#34d399"/>
+    </marker>
+    <marker id="arr-r" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#f87171"/>
+    </marker>
+    <marker id="arr-o" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#f6821f"/>
+    </marker>
+    <marker id="arr-p" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#a78bfa"/>
+    </marker>
+  </defs>
+
+  <rect width="1100" height="1050" rx="12" fill="#0f0f1a"/>
+
+  <!-- Title -->
+  <text x="550" y="38" text-anchor="middle" fill="#f6821f" font-size="20" font-weight="700">TanStack Query en el Dashboard — veriel-ops</text>
+  <text x="550" y="58" text-anchor="middle" fill="#7a7a9a" font-size="11">Cache en cliente · Deduplicación · Invalidación automática · Refetch inteligente</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 1: Before vs After -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <text x="40" y="95" fill="#60a5fa" font-size="13" font-weight="600">¿QUÉ ES Y POR QUÉ?</text>
+
+  <rect x="40" y="110" width="500" height="95" rx="8" fill="rgba(248,113,113,0.05)" stroke="#f87171" stroke-dasharray="4"/>
+  <text x="55" y="130" fill="#f87171" font-size="11" font-weight="600">ANTES — useFetch custom hook</text>
+  <text x="55" y="148" fill="#7a7a9a" font-size="9">Cada componente hace fetch() independiente al montarse</text>
+  <text x="55" y="163" fill="#7a7a9a" font-size="9">Navegar Proyectos → Detalle → Proyectos = 3 fetches al mismo endpoint</text>
+  <text x="55" y="178" fill="#7a7a9a" font-size="9">Dos componentes pidiendo /api/projects = 2 requests simultáneas</text>
+  <text x="55" y="193" fill="#f87171" font-size="9">→ Loading spinners en cada navegación · Requests duplicadas · Sin retry</text>
+
+  <rect x="560" y="110" width="500" height="95" rx="8" fill="rgba(52,211,153,0.05)" stroke="#34d399" stroke-dasharray="4"/>
+  <text x="575" y="130" fill="#34d399" font-size="11" font-weight="600">AHORA — TanStack Query</text>
+  <text x="575" y="148" fill="#7a7a9a" font-size="9">Primera vez: fetch real. Después: devuelve de cache del navegador</text>
+  <text x="575" y="163" fill="#7a7a9a" font-size="9">Navegar entre páginas: datos instantáneos (staleTime: 2 min)</text>
+  <text x="575" y="178" fill="#7a7a9a" font-size="9">Dos componentes pidiendo /api/projects = 1 sola request (deduplicación)</text>
+  <text x="575" y="193" fill="#34d399" font-size="9">→ Dashboard instantáneo · Sin spinners innecesarios · Retry automático</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 2: How queries work -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <text x="40" y="240" fill="#60a5fa" font-size="13" font-weight="600">1. FLUJO DE UNA QUERY (lectura)</text>
+
+  <!-- Component -->
+  <rect x="40" y="260" width="155" height="55" rx="8" fill="#16162a" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="117" y="283" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="600">Dashboard.tsx</text>
+  <text x="117" y="300" text-anchor="middle" fill="#7a7a9a" font-size="8">useProjects()</text>
+
+  <line x1="195" y1="287" x2="255" y2="287" stroke="#7a7a9a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- QueryClient -->
+  <rect x="260" y="255" width="170" height="65" rx="8" fill="#16162a" stroke="#f6821f" stroke-width="1.5"/>
+  <text x="345" y="278" text-anchor="middle" fill="#f6821f" font-size="10" font-weight="600">QueryClient</text>
+  <text x="345" y="293" text-anchor="middle" fill="#7a7a9a" font-size="8">queryKey: ["projects"]</text>
+  <text x="345" y="306" text-anchor="middle" fill="#7a7a9a" font-size="8">¿Datos fresh en cache?</text>
+
+  <!-- Fresh path -->
+  <line x1="345" y1="255" x2="345" y2="225" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-g)"/>
+  <rect x="265" y="195" width="160" height="28" rx="6" fill="rgba(52,211,153,0.08)" stroke="#34d399"/>
+  <text x="345" y="213" text-anchor="middle" fill="#34d399" font-size="9" font-weight="700">FRESH → retorna cache</text>
+  <text x="470" y="213" fill="#34d399" font-size="8">0ms, sin request</text>
+
+  <!-- Stale path -->
+  <line x1="430" y1="287" x2="510" y2="287" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="470" y="278" fill="#fbbf24" font-size="8" font-weight="600">STALE</text>
+
+  <!-- API call -->
+  <rect x="515" y="260" width="155" height="55" rx="8" fill="#16162a" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="592" y="283" text-anchor="middle" fill="#a78bfa" font-size="10" font-weight="600">api.get()</text>
+  <text x="592" y="300" text-anchor="middle" fill="#7a7a9a" font-size="8">GET /api/projects</text>
+
+  <line x1="670" y1="287" x2="735" y2="287" stroke="#7a7a9a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Server -->
+  <rect x="740" y="260" width="140" height="55" rx="8" fill="#16162a" stroke="#22d3ee" stroke-width="1.5"/>
+  <text x="810" y="283" text-anchor="middle" fill="#22d3ee" font-size="10" font-weight="600">Server (Hono)</text>
+  <text x="810" y="300" text-anchor="middle" fill="#7a7a9a" font-size="8">cachedData → APIs</text>
+
+  <!-- Response back -->
+  <line x1="810" y1="315" x2="810" y2="340" stroke="#34d399" stroke-width="1" stroke-dasharray="4"/>
+  <line x1="810" y1="340" x2="345" y2="340" stroke="#34d399" stroke-width="1" stroke-dasharray="4" marker-end="url(#arr-g)"/>
+  <text x="570" y="335" fill="#34d399" font-size="8">Respuesta → actualiza cache → re-renderiza componente</text>
+
+  <!-- Key insight -->
+  <rect x="900" y="260" width="160" height="55" rx="6" fill="rgba(251,191,36,0.06)" stroke="#fbbf24" stroke-dasharray="3"/>
+  <text x="980" y="280" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="600">Stale-While-Revalidate</text>
+  <text x="980" y="296" text-anchor="middle" fill="#7a7a9a" font-size="8">Muestra datos viejos</text>
+  <text x="980" y="308" text-anchor="middle" fill="#7a7a9a" font-size="8">mientras refetcha en background</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 3: Deduplication -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <text x="40" y="390" fill="#60a5fa" font-size="13" font-weight="600">2. DEDUPLICACIÓN DE REQUESTS</text>
+
+  <rect x="40" y="405" width="1020" height="80" rx="8" fill="#16162a" stroke="#252548"/>
+
+  <!-- Before -->
+  <text x="60" y="428" fill="#f87171" font-size="10" font-weight="600">Sin TanStack Query</text>
+  <text x="60" y="446" fill="#7a7a9a" font-size="9" font-family="monospace">Dashboard.tsx  → fetch("/api/projects")  →  Request #1</text>
+  <text x="60" y="460" fill="#7a7a9a" font-size="9" font-family="monospace">Sidebar.tsx    → fetch("/api/projects")  →  Request #2</text>
+  <text x="60" y="474" fill="#f87171" font-size="8">2 componentes = 2 requests idénticas al mismo endpoint</text>
+
+  <!-- After -->
+  <text x="570" y="428" fill="#34d399" font-size="10" font-weight="600">Con TanStack Query</text>
+  <text x="570" y="446" fill="#7a7a9a" font-size="9" font-family="monospace">Dashboard.tsx  → useProjects()  ─┐</text>
+  <text x="570" y="460" fill="#7a7a9a" font-size="9" font-family="monospace">Sidebar.tsx    → useProjects()  ─┴→  <tspan fill="#34d399">1 sola request</tspan></text>
+  <text x="570" y="474" fill="#34d399" font-size="8">Misma queryKey ["projects"] = TanStack los agrupa</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 4: Mutations + invalidation -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <text x="40" y="520" fill="#60a5fa" font-size="13" font-weight="600">3. FLUJO DE UNA MUTACIÓN (escritura + invalidación)</text>
+
+  <!-- User action -->
+  <rect x="40" y="540" width="130" height="50" rx="8" fill="#16162a" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="105" y="560" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="600">Click "Deploy"</text>
+  <text x="105" y="575" text-anchor="middle" fill="#7a7a9a" font-size="8">DeployModal.tsx</text>
+
+  <line x1="170" y1="565" x2="225" y2="565" stroke="#7a7a9a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Mutation -->
+  <rect x="230" y="540" width="175" height="50" rx="8" fill="#16162a" stroke="#f6821f" stroke-width="1.5"/>
+  <text x="317" y="560" text-anchor="middle" fill="#f6821f" font-size="10" font-weight="600">useDeployProject()</text>
+  <text x="317" y="575" text-anchor="middle" fill="#7a7a9a" font-size="8">mutateAsync({ env: "des" })</text>
+
+  <line x1="405" y1="565" x2="460" y2="565" stroke="#f6821f" stroke-width="1.5" marker-end="url(#arr-o)"/>
+
+  <!-- API POST -->
+  <rect x="465" y="540" width="145" height="50" rx="8" fill="#16162a" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="537" y="560" text-anchor="middle" fill="#a78bfa" font-size="10" font-weight="600">api.post()</text>
+  <text x="537" y="575" text-anchor="middle" fill="#7a7a9a" font-size="8">POST /projects/app/deploy</text>
+
+  <line x1="610" y1="565" x2="665" y2="565" stroke="#7a7a9a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Server -->
+  <rect x="670" y="540" width="120" height="50" rx="8" fill="#16162a" stroke="#22d3ee" stroke-width="1.5"/>
+  <text x="730" y="560" text-anchor="middle" fill="#22d3ee" font-size="10" font-weight="600">Server</text>
+  <text x="730" y="575" text-anchor="middle" fill="#7a7a9a" font-size="8">{ success: true }</text>
+
+  <!-- onSuccess arrow down -->
+  <line x1="317" y1="590" x2="317" y2="625" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-g)"/>
+  <text x="337" y="613" fill="#34d399" font-size="8" font-weight="600">onSuccess</text>
+
+  <!-- Invalidation -->
+  <rect x="190" y="630" width="255" height="65" rx="8" fill="rgba(248,113,113,0.06)" stroke="#f87171"/>
+  <text x="317" y="650" text-anchor="middle" fill="#f87171" font-size="10" font-weight="600">invalidateQueries()</text>
+  <text x="317" y="667" text-anchor="middle" fill="#7a7a9a" font-size="8" font-family="monospace">["projects"] → marca stale</text>
+  <text x="317" y="681" text-anchor="middle" fill="#7a7a9a" font-size="8" font-family="monospace">["project", "app"] → marca stale</text>
+  <text x="317" y="695" text-anchor="middle" fill="#7a7a9a" font-size="8" font-family="monospace">["deploys"] → marca stale</text>
+
+  <!-- Auto refetch arrow -->
+  <line x1="445" y1="665" x2="520" y2="665" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-g)"/>
+  <rect x="525" y="645" width="220" height="40" rx="6" fill="rgba(52,211,153,0.06)" stroke="#34d399"/>
+  <text x="635" y="663" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">Refetch automático en background</text>
+  <text x="635" y="678" text-anchor="middle" fill="#7a7a9a" font-size="8">Los componentes montados se actualizan solos</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 5: Query keys map -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <text x="40" y="735" fill="#60a5fa" font-size="13" font-weight="600">4. MAPA DE QUERY KEYS</text>
+
+  <rect x="40" y="750" width="1020" height="155" rx="8" fill="#16162a" stroke="#252548"/>
+
+  <text x="60" y="772" fill="#f6821f" font-size="9" font-weight="600">QUERY KEY</text>
+  <text x="280" y="772" fill="#f6821f" font-size="9" font-weight="600">HOOK</text>
+  <text x="490" y="772" fill="#f6821f" font-size="9" font-weight="600">COMPONENTES</text>
+  <text x="790" y="772" fill="#f6821f" font-size="9" font-weight="600">INVALIDADO POR</text>
+  <line x1="50" y1="779" x2="1050" y2="779" stroke="#252548"/>
+
+  <text x="60" y="796" fill="#fbbf24" font-size="8" font-family="monospace">["projects"]</text>
+  <text x="280" y="796" fill="#7a7a9a" font-size="8">useProjects()</text>
+  <text x="490" y="796" fill="#7a7a9a" font-size="8">Dashboard, Projects, ImportProject</text>
+  <text x="790" y="796" fill="#7a7a9a" font-size="8">deploy, rollback, promote, delete</text>
+
+  <text x="60" y="814" fill="#fbbf24" font-size="8" font-family="monospace">["project", name]</text>
+  <text x="280" y="814" fill="#7a7a9a" font-size="8">useProjectDetail(name)</text>
+  <text x="490" y="814" fill="#7a7a9a" font-size="8">ProjectDetail</text>
+  <text x="790" y="814" fill="#7a7a9a" font-size="8">deploy, rollback, promote, delete, commit</text>
+
+  <text x="60" y="832" fill="#fbbf24" font-size="8" font-family="monospace">["deploys"]</text>
+  <text x="280" y="832" fill="#7a7a9a" font-size="8">useDeploys()</text>
+  <text x="490" y="832" fill="#7a7a9a" font-size="8">Dashboard, Deploys</text>
+  <text x="790" y="832" fill="#7a7a9a" font-size="8">deploy, rollback, promote, delete</text>
+
+  <text x="60" y="850" fill="#fbbf24" font-size="8" font-family="monospace">["notifications"]</text>
+  <text x="280" y="850" fill="#7a7a9a" font-size="8">useNotifications()</text>
+  <text x="490" y="850" fill="#7a7a9a" font-size="8">NotificationBell</text>
+  <text x="790" y="850" fill="#7a7a9a" font-size="8">markAsRead + refetchInterval 30s</text>
+
+  <text x="60" y="868" fill="#fbbf24" font-size="8" font-family="monospace">["branches", name]</text>
+  <text x="280" y="868" fill="#7a7a9a" font-size="8">useBranches(name)</text>
+  <text x="490" y="868" fill="#7a7a9a" font-size="8">BranchList, DeployModal, FileEditor</text>
+  <text x="790" y="868" fill="#7a7a9a" font-size="8">createBranch</text>
+
+  <text x="60" y="886" fill="#fbbf24" font-size="8" font-family="monospace">["dns", name]</text>
+  <text x="280" y="886" fill="#7a7a9a" font-size="8">useDnsRecords(name)</text>
+  <text x="490" y="886" fill="#7a7a9a" font-size="8">DomainManager</text>
+  <text x="790" y="886" fill="#7a7a9a" font-size="8">addDomain, deleteDomain</text>
+
+  <text x="60" y="900" fill="#fbbf24" font-size="8" font-family="monospace">["files", name, branch, path]</text>
+  <text x="280" y="900" fill="#7a7a9a" font-size="8">useProjectFiles()</text>
+  <text x="490" y="900" fill="#7a7a9a" font-size="8">FileEditor</text>
+  <text x="790" y="900" fill="#7a7a9a" font-size="8">commitFiles</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECTION 6: Config -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <text x="40" y="940" fill="#60a5fa" font-size="13" font-weight="600">5. CONFIGURACIÓN</text>
+
+  <rect x="40" y="955" width="490" height="70" rx="8" fill="#16162a" stroke="#fbbf24"/>
+  <text x="55" y="975" fill="#fbbf24" font-size="10" font-weight="600">QueryClient defaults</text>
+  <text x="55" y="993" fill="#7a7a9a" font-size="9"><tspan fill="#f6821f">staleTime:</tspan> 2 min — datos "frescos" durante 2 min, no refetcha</text>
+  <text x="55" y="1008" fill="#7a7a9a" font-size="9"><tspan fill="#f6821f">retry:</tspan> 1 — reintenta 1 vez si falla · <tspan fill="#f6821f">refetchOnWindowFocus:</tspan> true — al volver a la pestaña</text>
+
+  <rect x="560" y="955" width="500" height="70" rx="8" fill="#16162a" stroke="#22d3ee"/>
+  <text x="575" y="975" fill="#22d3ee" font-size="10" font-weight="600">Doble capa de cache</text>
+  <text x="575" y="993" fill="#7a7a9a" font-size="9"><tspan fill="#34d399">Navegador (TanStack Query)</tspan> — cache entre navegaciones de página, 2 min staleTime</text>
+  <text x="575" y="1008" fill="#7a7a9a" font-size="9"><tspan fill="#f6821f">Servidor (cache.ts)</tspan> — cache de APIs externas (GitHub/CF/R2), 2 min TTL</text>
+
+  <!-- Legend -->
+  <rect x="40" y="1035" width="1020" height="10" rx="3" fill="transparent"/>
+</svg>

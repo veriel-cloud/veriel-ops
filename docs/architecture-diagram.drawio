@@ -1,0 +1,306 @@
+<mxfile host="65bd71144e">
+    <diagram name="Architecture" id="veriel-ops-arch">
+        <mxGraphModel dx="2071" dy="875" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="&lt;b&gt;veriel-ops&lt;/b&gt; — System Architecture" style="text;html=1;align=left;verticalAlign=middle;fontColor=#FAFAFA;fontSize=16;fontFamily=Inter;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="10" width="400" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="z-actor" value="ACTOR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3b82f604;strokeColor=#3b82f630;arcSize=4;verticalAlign=top;spacingTop=6;fontColor=#3b82f680;fontSize=9;fontStyle=1;letterSpacing=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="10" y="50" width="130" height="1000" as="geometry"/>
+                </mxCell>
+                <mxCell id="z-dash" value="DASHBOARD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3b82f606;strokeColor=#3b82f630;arcSize=4;verticalAlign=top;spacingTop=6;fontColor=#3b82f6;fontSize=9;fontStyle=1;letterSpacing=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="150" y="50" width="260" height="1000" as="geometry"/>
+                </mxCell>
+                <mxCell id="z-api" value="API (HONO)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9731606;strokeColor=#f9731630;arcSize=4;verticalAlign=top;spacingTop=6;fontColor=#f97316;fontSize=9;fontStyle=1;letterSpacing=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="420" y="50" width="200" height="1000" as="geometry"/>
+                </mxCell>
+                <mxCell id="z-svc" value="SERVICES" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#a855f704;strokeColor=#a855f720;arcSize=4;verticalAlign=top;spacingTop=6;fontColor=#a855f7;fontSize=9;fontStyle=1;letterSpacing=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="630" y="50" width="280" height="1000" as="geometry"/>
+                </mxCell>
+                <mxCell id="z-ext" value="EXTERNAL / STORAGE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#52525b04;strokeColor=#52525b20;arcSize=4;verticalAlign=top;spacingTop=6;fontColor=#52525b80;fontSize=9;fontStyle=1;letterSpacing=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="920" y="50" width="760" height="1000" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-dev" value="Developer" style="shape=label;image=https://cdn.simpleicons.org/googlechrome/3b82f6;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#3b82f6;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="30" y="85" width="80" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-react" value="React 19&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;SPA + Router&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/react/61DAFB;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#61DAFB;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="180" y="85" width="80" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-vite" value="Vite 6&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;build + HMR&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/vite/646CFF;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#646CFF;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="85" width="80" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-rt-proj" value="/api/projects&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;CRUD + SSE setup&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/hono/FF5B11;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#FF5B11;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="85" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-pipeline" value="Pipeline&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;setup orchestrator&lt;/font&gt;" style="shape=label;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=5;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#ec4899;strokeWidth=2;fontColor=#ec4899;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="690" y="85" width="90" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-bun" value="Bun Runtime&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;VPS :3001&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/bun/FBF0DF;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#FBF0DF;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="830" y="85" width="80" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="w1a" style="rounded=0;strokeColor=#3b82f6;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-dev" target="n-react" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w1a-lbl" value="&lt;font color=&quot;#3b82f6&quot; style=&quot;font-size:7px&quot;&gt;HTTPS&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w1a" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w1b" style="rounded=0;strokeColor=#ec4899;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-rt-proj" target="n-pipeline" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w1b-lbl" value="&lt;font color=&quot;#ec4899&quot; style=&quot;font-size:7px&quot;&gt;orchestrate&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w1b" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-tanstack" value="TanStack Query&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;queries + mutations&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/reactquery/FF4154;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#FF4154;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="180" y="220" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-sse" value="SSE Hook&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;useDeploysStream&lt;/font&gt;" style="shape=label;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=5;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#f97316;strokeWidth=2;fontColor=#f97316;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="225" width="90" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-rt-act" value="/api/actions&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;workflow runs&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/hono/FF5B11;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#a855f7;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="220" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-ghsvc" value="GitHubService&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;Octokit wrapper&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/github/a855f7;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#a855f7;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="690" y="220" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-gh-repos" value="GitHub Repos&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;veriel-cloud org&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/github/e0e0e0;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#e0e0e0;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="960" y="220" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-gh-actions" value="GitHub Actions&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;CI/CD workflows&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/githubactions/2088FF;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#2088FF;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="1100" y="220" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-gh-wh" value="GH Webhooks&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;workflow_run&lt;/font&gt;" style="shape=label;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=5;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#ef4444;strokeWidth=2;fontColor=#ef4444;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="1260" y="225" width="90" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="w2a" style="rounded=0;strokeColor=#a855f7;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-rt-act" target="n-ghsvc" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w2a-lbl" value="&lt;font color=&quot;#a855f7&quot; style=&quot;font-size:7px&quot;&gt;fetch runs&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w2a" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w2b" style="rounded=0;strokeColor=#a855f7;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-ghsvc" target="n-gh-repos" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w2b-lbl" value="&lt;font color=&quot;#a855f7&quot; style=&quot;font-size:7px&quot;&gt;Octokit&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w2b" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w2c" style="rounded=0;strokeColor=#a855f7;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-gh-repos" target="n-gh-actions" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w2c-lbl" value="&lt;font color=&quot;#a855f7&quot; style=&quot;font-size:7px&quot;&gt;Octokit&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w2c" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w2d" style="rounded=0;strokeColor=#3f3f46;strokeWidth=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-gh-actions" target="n-gh-wh" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-tq-proj" style="rounded=1;strokeColor=#3b82f6;strokeWidth=2;exitX=1;exitY=0;entryX=0;entryY=1;" parent="1" source="n-tanstack" target="n-rt-proj" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-tq-proj-lbl" value="&lt;font color=&quot;#3b82f6&quot; style=&quot;font-size:7px&quot;&gt;REST&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w-tq-proj" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-pipe-gh" style="rounded=1;strokeColor=#ec4899;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="n-pipeline" target="n-ghsvc" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-tailwind" value="Tailwind CSS&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;5 themes&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/tailwindcss/06B6D4;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#06B6D4;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="240" y="360" width="80" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-rt-dep" value="/api/deploys&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;REST + SSE stream&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/hono/FF5B11;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#f97316;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="360" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-cfsvc" value="CloudflareService&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;Pages + DNS API&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/cloudflare/F48120;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#F48120;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="680" y="360" width="100" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-cf-pages" value="CF Pages&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;project hosting&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/cloudflarepages/F48120;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#F48120;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="960" y="360" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-cf-dns" value="CF DNS&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;*.veriel.dev&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/cloudflare/F48120;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#F48120;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="1100" y="360" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="w3a" style="rounded=0;strokeColor=#F48120;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-rt-dep" target="n-cfsvc" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w3a-lbl" value="&lt;font color=&quot;#F48120&quot; style=&quot;font-size:7px&quot;&gt;poll&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w3a" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w3b" style="rounded=0;strokeColor=#F48120;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-cfsvc" target="n-cf-pages" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w3b-lbl" value="&lt;font color=&quot;#F48120&quot; style=&quot;font-size:7px&quot;&gt;REST API&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w3b" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w3c" style="rounded=0;strokeColor=#F48120;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-cf-pages" target="n-cf-dns" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w3c-lbl" value="&lt;font color=&quot;#F48120&quot; style=&quot;font-size:7px&quot;&gt;REST API&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w3c" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-sse-dep" style="rounded=1;strokeColor=#f97316;strokeWidth=2;dashed=1;dashPattern=6 3;exitX=1;exitY=1;entryX=0;entryY=0;" parent="1" source="n-sse" target="n-rt-dep" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-sse-dep-lbl" value="&lt;font color=&quot;#f97316&quot; style=&quot;font-size:7px&quot;&gt;SSE&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w-sse-dep" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-pipe-cf" style="rounded=1;strokeColor=#ec4899;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="n-ghsvc" target="n-cfsvc" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-monaco" value="Monaco Editor&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;FileEditor page&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/visualstudiocode/007ACC;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#007ACC;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="240" y="490" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-r2svc" value="R2Service&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;aws4fetch S3&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/amazons3/F48120;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#F48120;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="690" y="490" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-cf-r2" value="CF R2&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;build artifacts&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/cloudflare/F48120;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#F48120;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="960" y="490" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="w4a" style="rounded=0;strokeColor=#F48120;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-r2svc" target="n-cf-r2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w4a-lbl" value="&lt;font color=&quot;#F48120&quot; style=&quot;font-size:7px&quot;&gt;aws4fetch&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w4a" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-git" value="git push&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;triggers workflow&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/git/a855f7;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#a855f7;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="30" y="610" width="80" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-rt-wh" value="/api/webhooks&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;HMAC verify&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/hono/FF5B11;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#ef4444;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="610" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-tracker" value="DeployTracker&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;active deploys (mem)&lt;/font&gt;" style="shape=label;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=5;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#eab308;strokeWidth=2;fontColor=#eab308;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="690" y="615" width="100" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-coverage" value="Coverage&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;extract from logs&lt;/font&gt;" style="shape=label;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=5;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#a855f7;strokeWidth=2;fontColor=#a855f7;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="840" y="615" width="80" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="w5a" style="rounded=0;strokeColor=#ef4444;strokeWidth=2;dashed=1;dashPattern=5 3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-rt-wh" target="n-tracker" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w5a-lbl" value="&lt;font color=&quot;#eab308&quot; style=&quot;font-size:7px&quot;&gt;track&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w5a" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-ghwh-rt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#ef4444;strokeWidth=2;dashed=1;dashPattern=5 3;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" parent="1" source="n-gh-wh" target="n-rt-wh" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1305" y="680"/>
+                            <mxPoint x="550" y="680"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="w-ghwh-lbl" value="&lt;font color=&quot;#ef4444&quot; style=&quot;font-size:7px&quot;&gt;HMAC webhook&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w-ghwh-rt" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-rt-sys" value="/api/system&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;health, notif, audit&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/hono/FF5B11;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#52525b;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="740" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-dbstore" value="DbStore&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;bun:sqlite wrapper&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/sqlite/22c55e;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#22c55e;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="690" y="740" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-cache" value="CachedData&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;TTL 2min&lt;/font&gt;" style="shape=label;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=5;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#06b6d4;strokeWidth=2;fontColor=#06b6d4;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="840" y="745" width="80" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-sqlite" value="SQLite DB&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;veriel-ops.db&lt;/font&gt;" style="shape=label;image=https://cdn.simpleicons.org/sqlite/22c55e;imageWidth=24;imageHeight=24;imageAlign=center;imageVerticalAlign=top;spacingTop=28;whiteSpace=wrap;html=1;rounded=1;arcSize=50;fillColor=#111113;strokeColor=#22c55e;strokeWidth=2;fontColor=#FAFAFA;fontSize=9;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="960" y="740" width="90" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="w6a" style="rounded=0;strokeColor=#22c55e;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-rt-sys" target="n-dbstore" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w6a-lbl" value="&lt;font color=&quot;#22c55e&quot; style=&quot;font-size:7px&quot;&gt;query&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w6a" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w6b" style="rounded=0;strokeColor=#22c55e;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-dbstore" target="n-sqlite" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="780" y="840"/>
+                            <mxPoint x="880" y="840"/>
+                            <mxPoint x="960" y="840"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="w6b-lbl" value="&lt;font color=&quot;#22c55e&quot; style=&quot;font-size:7px&quot;&gt;bun:sqlite&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w6b" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-wh-db" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#22c55e;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="n-rt-wh" target="n-dbstore" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-wh-db-lbl" value="&lt;font color=&quot;#22c55e&quot; style=&quot;font-size:7px&quot;&gt;store event&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w-wh-db" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-des" value="&lt;b style=&quot;color:#22c55e&quot;&gt;DES&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;develop · *-des.veriel.dev&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#111113;strokeColor=#22c55e;strokeWidth=2;fontColor=#FAFAFA;fontSize=10;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="960" y="880" width="140" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-pre" value="&lt;b style=&quot;color:#eab308&quot;&gt;PRE&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;release/* · cov &amp;ge; 80%&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#111113;strokeColor=#eab308;strokeWidth=2;fontColor=#FAFAFA;fontSize=10;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="1140" y="880" width="140" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-pro" value="&lt;b style=&quot;color:#3b82f6&quot;&gt;PRO&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;main · cov &amp;ge; 80%&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#111113;strokeColor=#3b82f6;strokeWidth=2;fontColor=#FAFAFA;fontSize=10;arcSize=15;" parent="1" vertex="1">
+                    <mxGeometry x="1320" y="880" width="140" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-env1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#3f3f46;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="n-cf-pages" target="n-des" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-env2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#3f3f46;strokeWidth=1;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" parent="1" source="n-cf-pages" target="n-pre" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-env3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#3f3f46;strokeWidth=1;exitX=1;exitY=1;entryX=0.5;entryY=0;" parent="1" source="n-cf-pages" target="n-pro" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-promo1" style="rounded=0;strokeColor=#3f3f46;strokeWidth=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-des" target="n-pre" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-promo1-lbl" value="&lt;font color=&quot;#3f3f46&quot; style=&quot;font-size:7px&quot;&gt;promote&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w-promo1" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-promo2" style="rounded=0;strokeColor=#3f3f46;strokeWidth=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-pre" target="n-pro" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-promo2-lbl" value="&lt;font color=&quot;#3f3f46&quot; style=&quot;font-size:7px&quot;&gt;promote&lt;/font&gt;" style="edgeLabel;html=1;fillColor=#09090b;" parent="w-promo2" vertex="1" connectable="0">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="tables-box" value="&lt;font color=&quot;#22c55e&quot; style=&quot;font-weight:bold;font-size:9px&quot;&gt;6 tables:&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#71717A&quot; style=&quot;font-size:8px&quot;&gt;webhook_events, deploy_history, audit_log,&lt;br&gt;notifications, project_settings, auth_tokens&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#111113;strokeColor=#27272A;arcSize=8;align=left;spacingLeft=8;" parent="1" vertex="1">
+                    <mxGeometry x="1080" y="745" width="200" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="w-sql-tbl" style="rounded=0;strokeColor=#22c55e;strokeWidth=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="n-sqlite" target="tables-box" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="pages-box" value="&lt;font color=&quot;#fafafa&quot; style=&quot;font-weight:bold;font-size:8px&quot;&gt;11 pages:&lt;/font&gt; &lt;font color=&quot;#71717A&quot; style=&quot;font-size:7px&quot;&gt;Login · Dashboard · Projects · ProjectDetail · NewProject · ImportProject · Deploys · FileEditor · AuditLog · Settings · 404&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#111113;strokeColor=#27272A;strokeDasharray=3 3;arcSize=8;align=left;spacingLeft=8;" parent="1" vertex="1">
+                    <mxGeometry x="160" y="640" width="240" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="shared" value="&lt;font color=&quot;#eab308&quot; style=&quot;font-weight:bold;font-size:9px&quot;&gt;@veriel-ops/shared&lt;/font&gt; &lt;font color=&quot;#71717A&quot; style=&quot;font-size:7px&quot;&gt;types + constants&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#111113;strokeColor=#eab30840;arcSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="160" y="890" width="180" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="toolchain" value="&lt;font color=&quot;#71717A&quot; style=&quot;font-size:9px&quot;&gt;&lt;b&gt;Toolchain:&lt;/b&gt; TypeScript 5.9 · Biome · Vitest (cov &amp;ge; 80%) · pnpm workspaces · Turbo · Lefthook&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#111113;strokeColor=#1e1e22;arcSize=12;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="980" width="550" height="24" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#111113;strokeColor=#1e1e22;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="1400" y="610" width="180" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg-title" value="&lt;font color=&quot;#52525b&quot; style=&quot;font-size:8px;letter-spacing:1px&quot;&gt;&lt;b&gt;CONNECTIONS&lt;/b&gt;&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="1412" y="615" width="100" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg1" value="&lt;font color=&quot;#3b82f6&quot;&gt;━━&lt;/font&gt; &lt;font color=&quot;#a1a1aa&quot; style=&quot;font-size:8px&quot;&gt;REST (TanStack)&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="1412" y="636" width="160" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg2" value="&lt;font color=&quot;#f97316&quot;&gt;╌╌&lt;/font&gt; &lt;font color=&quot;#a1a1aa&quot; style=&quot;font-size:8px&quot;&gt;SSE (EventSource)&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="1412" y="654" width="160" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg3" value="&lt;font color=&quot;#ef4444&quot;&gt;╌╌&lt;/font&gt; &lt;font color=&quot;#a1a1aa&quot; style=&quot;font-size:8px&quot;&gt;Webhook (HMAC)&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="1412" y="672" width="160" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg4" value="&lt;font color=&quot;#a855f7&quot;&gt;━━&lt;/font&gt; &lt;font color=&quot;#a1a1aa&quot; style=&quot;font-size:8px&quot;&gt;GitHub (Octokit)&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="1412" y="690" width="160" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg5" value="&lt;font color=&quot;#F48120&quot;&gt;━━&lt;/font&gt; &lt;font color=&quot;#a1a1aa&quot; style=&quot;font-size:8px&quot;&gt;Cloudflare API&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="1412" y="708" width="160" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg6" value="&lt;font color=&quot;#22c55e&quot;&gt;━━&lt;/font&gt; &lt;font color=&quot;#a1a1aa&quot; style=&quot;font-size:8px&quot;&gt;SQLite (bun:sqlite)&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="1412" y="726" width="160" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg7" value="&lt;font color=&quot;#ec4899&quot;&gt;━━&lt;/font&gt; &lt;font color=&quot;#a1a1aa&quot; style=&quot;font-size:8px&quot;&gt;Pipeline&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="1412" y="744" width="160" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="leg8" value="&lt;font color=&quot;#3f3f46&quot;&gt;━━&lt;/font&gt; &lt;font color=&quot;#a1a1aa&quot; style=&quot;font-size:8px&quot;&gt;Internal / cache&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="1412" y="762" width="160" height="16" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
