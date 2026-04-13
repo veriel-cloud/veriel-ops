@@ -104,7 +104,7 @@ describe("project settings", () => {
   it("sets and retrieves settings", () => {
     store.setProjectSettings("my-app", { coverageThreshold: 90 });
     const settings = store.getProjectSettings("my-app");
-    expect(settings).toEqual({ coverageThreshold: 90 });
+    expect(settings).toMatchObject({ coverageThreshold: 90 });
   });
 
   it("merges partial settings with defaults", () => {

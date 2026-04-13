@@ -3,7 +3,16 @@ import { runMigrations } from "./migrations.js";
 
 export type { Database } from "bun:sqlite";
 
+function ensureDir(filePath: string): void {
+  const dir = filePath.substring(0, filePath.lastIndexOf("/"));
+  if (dir) {
+    Bun.spawnSync(["mkdir", "-p", dir]);
+  }
+}
+
 export function createDatabase(dbPath: string): Database {
+  ensureDir(dbPath);
+
   const db = new Database(dbPath, { create: true });
 
   db.exec("PRAGMA journal_mode = WAL");

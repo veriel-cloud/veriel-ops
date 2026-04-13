@@ -6,6 +6,7 @@ dist/
 .dev.vars
 !.env.example
 *.tgz
+*.gpg
 .DS_Store
 coverage/
 dashboard/.astro/
@@ -15,7 +16,7 @@ dashboard/dist-server/
 .playwright-mcp
 
 # Local config / tooling
-.claude/
+# .claude/
 .mcp.json
 image.png
 server/logs/
