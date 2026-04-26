@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { setStoredToken } from "../lib/api";
+import { API_BASE, setStoredToken } from "../lib/api";
 
 export function Login() {
   const [token, setToken] = useState("");
@@ -14,7 +14,7 @@ export function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/system/status", {
+      const response = await fetch(`${API_BASE}/system/status`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

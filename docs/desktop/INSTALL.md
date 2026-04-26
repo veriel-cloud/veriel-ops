@@ -225,6 +225,8 @@ update-desktop-database ~/.local/share/applications/
 | Icono no aparece en el menú              | `update-desktop-database ~/.local/share/applications/` y reinicia sesión    |
 | Server arranca pero falla con `EADDRINUSE` | Otro proceso usa :3001 — `lsof -i :3001`                                  |
 | Cambios en `.dev.vars` no aplican        | `systemctl --user restart veriel-ops-server`                                |
+| App abre pero todos los fetches fallan   | `vite build` produjo un bundle de modo dev — el script ya fuerza `NODE_ENV=production`, pero verifica que tu shell no tenga `NODE_ENV=development` exportado |
+| `failed to run linuxdeploy` al empaquetar | El `strip` que trae `linuxdeploy` no entiende ELFs modernos en Arch — relanza con `NO_STRIP=true pnpm tauri:build` |
 
 ---
 

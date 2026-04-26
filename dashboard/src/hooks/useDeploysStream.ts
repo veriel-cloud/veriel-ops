@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getStoredToken } from "@/lib/api";
+import { API_BASE, getStoredToken } from "@/lib/api";
 import type { DeployEntry } from "@veriel-ops/shared";
 
 function parseSSELines(
@@ -47,7 +47,7 @@ export function useDeploysStream(enabled = true) {
     async function connect() {
       try {
         const token = getStoredToken();
-        const response = await fetch("/api/deploys/stream", {
+        const response = await fetch(`${API_BASE}/deploys/stream`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           signal: controller.signal,
         });

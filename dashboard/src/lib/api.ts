@@ -1,4 +1,4 @@
-const BASE = import.meta.env.DEV ? "/api" : "http://localhost:3001/api";
+export const API_BASE = import.meta.env.DEV ? "/api" : "http://localhost:3001/api";
 const TOKEN_KEY = "veriel-ops-token";
 
 export function getStoredToken(): string | null {
@@ -24,7 +24,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${BASE}${path}`, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
   });

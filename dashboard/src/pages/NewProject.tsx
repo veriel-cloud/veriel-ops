@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import type { ProjectType } from "@veriel-ops/shared";
 import { PROJECT_TYPE_UI, getTypeDefaults } from "@veriel-ops/shared";
 import { Header } from "@/components/Header";
+import { API_BASE } from "@/lib/api";
 import { ProjectTypeSelector } from "@/components/ProjectTypeSelector";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -144,7 +145,7 @@ export function NewProject() {
 
       try {
         const token = localStorage.getItem("veriel-ops-token");
-        const response = await fetch("/api/projects/create-stream", {
+        const response = await fetch(`${API_BASE}/projects/create-stream`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

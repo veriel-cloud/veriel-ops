@@ -24,7 +24,7 @@ import { getDeployTargetLabel, getTypeLabel } from "@veriel-ops/shared";
 import { useProjectBuilds, useProjectDetail } from "@/hooks/queries";
 import { useDeploysStream } from "@/hooks/useDeploysStream";
 import { useUpdateSettings } from "@/hooks/mutations";
-import { api } from "@/lib/api";
+import { API_BASE, api } from "@/lib/api";
 import { cn, timeAgo } from "@/lib/utils";
 
 export function ProjectDetail() {
@@ -483,7 +483,7 @@ export function ProjectDetail() {
                                 type="button"
                                 onClick={async () => {
                                   const token = localStorage.getItem("veriel-ops-token");
-                                  const res = await fetch(`/api/projects/${name}/builds/${b.environment}/${b.name}`, {
+                                  const res = await fetch(`${API_BASE}/projects/${name}/builds/${b.environment}/${b.name}`, {
                                     headers: token ? { Authorization: `Bearer ${token}` } : {},
                                   });
                                   if (!res.ok) return;

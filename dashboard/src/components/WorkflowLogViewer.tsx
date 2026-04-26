@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Modal } from "@/components/ui/Modal";
 import { Spinner } from "@/components/ui/Spinner";
+import { API_BASE } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface Step {
   name: string;
@@ -74,7 +75,7 @@ export function WorkflowLogViewer({ open, onClose, repo, runId, runName, initial
 
     if (initialStatus === "completed") {
       const token = localStorage.getItem("veriel-ops-token");
-      fetch(`/api/actions/${repo}/${runId}/logs`, {
+      fetch(`${API_BASE}/actions/${repo}/${runId}/logs`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
         .then((r) => r.json())
