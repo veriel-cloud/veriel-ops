@@ -1,7 +1,7 @@
 {
   "name": "veriel-ops",
   "version": "0.1.0",
-  "description": "Sistema centralizado de DevOps para proyectos web de veriel.dev",
+  "description": "Plataforma de DevOps para gestionar despliegues, rollbacks y monitorización de proyectos web sobre Cloudflare",
   "type": "module",
   "private": true,
   "scripts": {

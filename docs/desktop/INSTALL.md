@@ -35,7 +35,7 @@ Todo se instala a nivel de **usuario** (no requiere `sudo` salvo para dependenci
 ## Requisitos previos
 
 ```bash
-which bun           # /home/veriel/.bun/bin/bun
+which bun           # ~/.bun/bin/bun
 which cloudflared   # /usr/bin/cloudflared (si vas a usar túnel)
 pnpm --version
 ```
@@ -130,7 +130,7 @@ El token del túnel **no se versiona**, va en un archivo aparte.
 ```bash
 mkdir -p ~/.config/veriel-ops
 cat > ~/.config/veriel-ops/tunnel.env <<'EOF'
-TUNNEL_TOKEN=eyJhIjoi...   # pegado de: cloudflared tunnel token veriel-ops-dev
+TUNNEL_TOKEN=<TUNNEL_TOKEN>   # pegado de: cloudflared tunnel token <tunnel-name>
 EOF
 chmod 600 ~/.config/veriel-ops/tunnel.env
 ```

@@ -16,8 +16,13 @@ dashboard/dist-server/
 .playwright-mcp
 
 # Local config / tooling
-# .claude/
+.claude/
 .mcp.json
+
+# Documentación interna (no se publica)
+docs/phases/
+docs/plan-public-release.md
+docs/local-services.md
 image.png
 server/logs/
 server/data/

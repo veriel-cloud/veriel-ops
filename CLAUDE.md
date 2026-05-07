@@ -1,6 +1,6 @@
 # veriel-ops
 
-Sistema centralizado de DevOps para gestionar despliegues de proyectos web de veriel.dev.
+Sistema centralizado de DevOps para gestionar despliegues, rollbacks y monitorización de proyectos web (configurable vía `BASE_DOMAIN`).
 Monorepo con tres workspaces: `dashboard/` (React), `server/` (Hono/Bun) y `packages/shared/`.
 
 ## Stack
@@ -26,7 +26,7 @@ Monorepo con tres workspaces: `dashboard/` (React), `server/` (Hono/Bun) y `pack
 - **Nunca default exports** — solo named exports en todo el monorepo
 - **Nunca barrel imports** (`export *`) — importaciones explícitas siempre
 - **Nunca `any`** — tipos concretos; `unknown` solo en fronteras externas
-- **Nunca duplicar workflows** en repos individuales — callers hacia `veriel-cloud/.github`
+- **Nunca duplicar workflows** en repos individuales — callers hacia `<GITHUB_ORG>/.github`
 - **Nunca clases** para servicios — factory functions que devuelven objetos
 - **Nunca Redux, Zustand ni estado global** — TanStack Query + Context API mínimo
 - **Nunca CSS modules ni CSS-in-JS** — solo Tailwind CSS
@@ -456,17 +456,19 @@ it("renders label", () => {
 develop → DES (sin gate) → release/* → PRE (cob >= 80%) → main → PRO (cob >= 80%)
 ```
 
-| Entorno | Branch      | Dominio                     |
-| ------- | ----------- | --------------------------- |
-| DES     | `develop`   | `<proyecto>-des.veriel.dev` |
-| PRE     | `release/*` | `<proyecto>-pre.veriel.dev` |
-| PRO     | `main`      | `<proyecto>.veriel.dev`     |
+Dominio configurable vía `BASE_DOMAIN` (env var; default `example.com`). Org configurable vía `GITHUB_ORG` (default `my-org`).
+
+| Entorno | Branch      | Dominio                            |
+| ------- | ----------- | ---------------------------------- |
+| DES     | `develop`   | `<proyecto>-des.<BASE_DOMAIN>`     |
+| PRE     | `release/*` | `<proyecto>-pre.<BASE_DOMAIN>`     |
+| PRO     | `main`      | `<proyecto>.<BASE_DOMAIN>`         |
 
 - **Deploy**: dispatch workflow → webhook marca activo → SSE tracking → webhook marca done
 - **Rollback**: artefacto R2 → workflow re-sube a Cloudflare
 - **Promote**: PR release→main → merge → deploy-pro automático
 - Artefactos en R2: `{project}/{env}/{version}_{commitSha}.tar.gz`
-- Workflows reutilizables en `veriel-cloud/.github`, repos solo tienen callers
+- Workflows reutilizables fuera del repo (caller pattern hacia `<GITHUB_ORG>/.github`)
 
 ## Comandos
 
