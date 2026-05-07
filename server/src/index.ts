@@ -29,12 +29,20 @@ const deployTracker = createDeployTracker();
 const apiCache = createCache<unknown>({ ttlMs: 2 * 60_000, maxEntries: 100 });
 const cachedData = createCachedData(apiCache);
 
+const DEFAULT_ALLOWED_ORIGINS = ["http://localhost:5173", "tauri://localhost", "https://tauri.localhost"];
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  : DEFAULT_ALLOWED_ORIGINS;
+
 const app = new Hono<Env>();
 
 app.use(
   "/*",
   cors({
-    origin: ["http://localhost:5173", "https://veriel-ops.veriel.dev", "tauri://localhost", "https://tauri.localhost"],
+    origin: allowedOrigins,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
   }),

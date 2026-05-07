@@ -4,6 +4,7 @@ import type { ProjectType } from "@veriel-ops/shared";
 import { PROJECT_TYPE_UI, getTypeDefaults } from "@veriel-ops/shared";
 import { Header } from "@/components/Header";
 import { API_BASE } from "@/lib/api";
+import { useSystemSettings } from "@/hooks/queries";
 import { ProjectTypeSelector } from "@/components/ProjectTypeSelector";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -28,6 +29,8 @@ export function NewProject() {
   const [showBuildConfig, setShowBuildConfig] = useState(false);
   const [domainType, setDomainType] = useState<"default" | "custom">("default");
   const [customDomain, setCustomDomain] = useState("");
+  const { data: systemSettings } = useSystemSettings();
+  const baseDomain = systemSettings?.baseDomain ?? "example.com";
 
   function handleTypeChange(newType: ProjectType) {
     setType(newType);
@@ -321,7 +324,7 @@ export function NewProject() {
                       className="accent-white"
                     />
                     <span className="text-[13px] text-[var(--color-text-secondary)]">
-                      veriel.dev subdomain
+                      {baseDomain} subdomain
                     </span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -340,13 +343,13 @@ export function NewProject() {
                 {domainType === "default" && name && (
                   <div className="bg-[var(--color-bg-secondary)] rounded-md p-3 space-y-1 border border-[var(--color-border)]">
                     <p className="text-[12px] text-[var(--color-env-des)]">
-                      DES → {name}-des.veriel.dev
+                      DES → {name}-des.{baseDomain}
                     </p>
                     <p className="text-[12px] text-[var(--color-env-pre)]">
-                      PRE → {name}-pre.veriel.dev
+                      PRE → {name}-pre.{baseDomain}
                     </p>
                     <p className="text-[12px] text-[var(--color-env-pro)]">
-                      PRO → {name}.veriel.dev
+                      PRO → {name}.{baseDomain}
                     </p>
                   </div>
                 )}

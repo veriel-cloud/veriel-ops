@@ -1,4 +1,4 @@
-import type { DeployTarget, ProjectType } from "@veriel-ops/shared";
+import { BASE_DOMAIN, type DeployTarget, type ProjectType } from "@veriel-ops/shared";
 import { describe, expect, it } from "vitest";
 import { domainForEnv, PROJECT_TYPE_CONFIG, pagesProjectName, urlForEnv } from "../constants.js";
 
@@ -17,38 +17,38 @@ describe("pagesProjectName", () => {
 });
 
 describe("domainForEnv", () => {
-  it("returns project.veriel.dev for pro without custom domain", () => {
-    expect(domainForEnv("my-app", "pro")).toBe("my-app.veriel.dev");
+  it("returns project.<base> for pro without custom domain", () => {
+    expect(domainForEnv("my-app", "pro")).toBe(`my-app.${BASE_DOMAIN}`);
   });
 
-  it("returns project-des.veriel.dev for des without custom domain", () => {
-    expect(domainForEnv("my-app", "des")).toBe("my-app-des.veriel.dev");
+  it("returns project-des.<base> for des without custom domain", () => {
+    expect(domainForEnv("my-app", "des")).toBe(`my-app-des.${BASE_DOMAIN}`);
   });
 
-  it("returns project-pre.veriel.dev for pre without custom domain", () => {
-    expect(domainForEnv("my-app", "pre")).toBe("my-app-pre.veriel.dev");
+  it("returns project-pre.<base> for pre without custom domain", () => {
+    expect(domainForEnv("my-app", "pre")).toBe(`my-app-pre.${BASE_DOMAIN}`);
   });
 
   it("returns custom domain for pro", () => {
-    expect(domainForEnv("my-app", "pro", "example.com")).toBe("example.com");
+    expect(domainForEnv("my-app", "pro", "custom.test")).toBe("custom.test");
   });
 
   it("returns dev.customDomain for des", () => {
-    expect(domainForEnv("my-app", "des", "example.com")).toBe("dev.example.com");
+    expect(domainForEnv("my-app", "des", "custom.test")).toBe("dev.custom.test");
   });
 
   it("returns pre.customDomain for pre", () => {
-    expect(domainForEnv("my-app", "pre", "example.com")).toBe("pre.example.com");
+    expect(domainForEnv("my-app", "pre", "custom.test")).toBe("pre.custom.test");
   });
 });
 
 describe("urlForEnv", () => {
   it("returns https URL for domain", () => {
-    expect(urlForEnv("my-app", "pro")).toBe("https://my-app.veriel.dev");
+    expect(urlForEnv("my-app", "pro")).toBe(`https://my-app.${BASE_DOMAIN}`);
   });
 
   it("returns https URL with custom domain", () => {
-    expect(urlForEnv("my-app", "pro", "example.com")).toBe("https://example.com");
+    expect(urlForEnv("my-app", "pro", "custom.test")).toBe("https://custom.test");
   });
 });
 

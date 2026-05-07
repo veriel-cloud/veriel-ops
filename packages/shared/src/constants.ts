@@ -1,8 +1,11 @@
 import type { DeployTarget, Environment, ProjectRuntime, ProjectType } from "./types.js";
 
+const runtimeEnv: Record<string, string | undefined> =
+  typeof process !== "undefined" && process.env ? process.env : {};
+
 // ─── Domain ───────────────────────────────────────────────────────────
 
-export const BASE_DOMAIN = "veriel.dev";
+export const BASE_DOMAIN = runtimeEnv.BASE_DOMAIN ?? "example.com";
 
 export const ENV_BRANCHES: Record<Environment, string> = {
   des: "develop",
@@ -14,8 +17,8 @@ export const ENV_BRANCHES: Record<Environment, string> = {
 
 export const DEFAULT_COVERAGE_THRESHOLD = 80;
 export const DEFAULT_PROJECT_TYPE: ProjectType = "astro-static";
-export const DEFAULT_ORG = "veriel-cloud";
-export const DEFAULT_BUCKET = "veriel-ops-builds";
+export const DEFAULT_ORG = runtimeEnv.GITHUB_ORG ?? "my-org";
+export const DEFAULT_BUCKET = runtimeEnv.R2_BUCKET_NAME ?? "ops-builds";
 
 // ─── Project type config ──────────────────────────────────────────────
 

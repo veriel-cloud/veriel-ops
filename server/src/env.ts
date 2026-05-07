@@ -19,6 +19,8 @@ export interface Bindings {
   WORKERS_SUBDOMAIN: string;
   WEBHOOK_URL: string;
   PORT: string;
+  ALLOWED_ORIGINS: string;
+  BASE_DOMAIN: string;
   [key: string]: string;
 }
 
