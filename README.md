@@ -128,8 +128,10 @@ pnpm tauri:build      # Build nativo de escritorio
 
 ## Capturas
 
-![Dashboard](./docs/screenshots/dashboard.png)
-![Deploy en vivo](./docs/screenshots/deploy-sse.png)
+<p align="center">
+  <img src="./docs/screenshots/dashboard.png" alt="Dashboard" width="700" />
+  <img src="./docs/screenshots/deploy-sse.png" alt="Deploy en vivo" width="700" />
+</p>
 
 ## Notas
 
