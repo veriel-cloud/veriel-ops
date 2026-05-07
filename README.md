@@ -128,7 +128,8 @@ pnpm tauri:build      # Build nativo de escritorio
 
 ## Capturas
 
-> Capturas pendientes — el proyecto se ejecuta como app nativa en Linux/macOS/Windows vía Tauri, además del dashboard web.
+![Dashboard](./docs/screenshots/dashboard.png)
+![Deploy en vivo](./docs/screenshots/deploy-sse.png)
 
 ## Notas
 
